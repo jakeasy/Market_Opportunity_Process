@@ -472,6 +472,112 @@
 
         // Default: English
         setLang('en');
+
+        // ── Admin ──
+        const ADMIN_PW = 'medit1234';
+
+        function openAdmin(e) {
+            e.preventDefault();
+            const pw = prompt('Enter admin password:');
+            if (pw !== ADMIN_PW) {
+                if (pw !== null) alert('Incorrect password.');
+                return;
+            }
+            renderSubmissions();
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('adminPanel').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function closeAdmin() {
+            document.getElementById('adminPanel').style.display = 'none';
+        }
+
+        function renderSubmissions() {
+            const keys = [];
+            try {
+                for (let i = 0; i < localStorage.length; i++) {
+                    const k = localStorage.key(i);
+                    if (k.startsWith('mop_submission_')) keys.push(k);
+                }
+            } catch(e) {}
+            keys.sort().reverse();
+
+            const container = document.getElementById('submissionsList');
+            document.getElementById('adminSubCount').textContent = keys.length + ' submission(s)';
+
+            if (keys.length === 0) {
+                container.innerHTML = '<p style="color:var(--muted); text-align:center; padding:48px 0; font-size:0.95rem;">No submissions yet.</p>';
+                return;
+            }
+
+            let html = '';
+            keys.forEach((key, idx) => {
+                try {
+                    const item = JSON.parse(localStorage.getItem(key));
+                    const d = item.data;
+                    const date = new Date(item.timestamp).toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+                    const complexity = (d.initialComplexity || 'N/A').toUpperCase();
+                    const cColor = complexity === 'HIGH' ? '#e8614d' : complexity === 'MEDIUM' ? '#d4a017' : complexity === 'LOW' ? '#22c55e' : '#888';
+                    const reqType = d.requestType || '-';
+
+                    html += `
+                    <div style="background:var(--primary); border:1px solid var(--border); border-radius:12px; margin-bottom:10px; overflow:hidden; transition:border-color 0.2s;" onmouseover="this.style.borderColor='#2a4a6a'" onmouseout="this.style.borderColor='var(--border)'">
+                        <div onclick="toggleDetail(${idx})" style="padding:16px 20px; cursor:pointer; display:flex; align-items:center; gap:14px;">
+                            <span style="color:var(--muted); font-size:0.8rem; font-weight:600; min-width:24px;">${idx + 1}</span>
+                            <span style="color:var(--text); font-family:'Outfit',sans-serif; font-weight:600; flex:1; font-size:0.95rem;">${d.opportunityTitle || 'Untitled'}</span>
+                            <span style="background:${cColor}18; color:${cColor}; padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:700; letter-spacing:0.5px;">${complexity}</span>
+                            <span style="background:var(--card); color:var(--muted); padding:3px 10px; border-radius:4px; font-size:0.72rem; font-weight:600;">${reqType}</span>
+                            <span style="color:var(--muted); font-size:0.78rem; white-space:nowrap;">${date}</span>
+                            <span id="arrow-${idx}" style="color:var(--muted); font-size:0.65rem; transition:transform 0.3s;">▼</span>
+                        </div>
+                        <div id="detail-${idx}" style="display:none; padding:0 20px 24px 58px; border-top:1px solid var(--border);">
+                            <table style="width:100%; border-collapse:collapse; margin-top:16px;">
+                                ${detailRow('Request Owner', d.requestOwner)}
+                                ${detailRow('Target Customer', d.targetCustomer)}
+                                ${sectionRow('OPPORTUNITY SUMMARY', d.opportunitySummary)}
+                                ${sectionRow('PROBLEM BEING SOLVED', d.problemBeingSolved)}
+                                ${sectionRow('STRATEGIC RELEVANCE', d.strategicRelevance)}
+                                ${sectionRow('GROWTH IMPACT HYPOTHESIS', d.growthImpact)}
+                                ${sectionRow('EVIDENCE', d.evidence)}
+                                ${sectionRow('RELATIVE PRIORITY ARGUMENT', d.priorityArgument)}
+                                ${d.visibleDependencies ? sectionRow('VISIBLE DEPENDENCIES', d.visibleDependencies) : ''}
+                            </table>
+                            <div style="margin-top:20px; padding-top:16px; border-top:1px solid var(--border); text-align:right;">
+                                <button onclick="deleteSubmission('${key}')" style="background:none; border:1px solid rgba(232,97,77,0.25); color:var(--coral); padding:6px 16px; border-radius:6px; cursor:pointer; font-size:0.8rem; font-family:'Outfit',sans-serif; font-weight:600; transition:all 0.2s;" onmouseover="this.style.background='rgba(232,97,77,0.1)'" onmouseout="this.style.background='none'">Delete</button>
+                            </div>
+                        </div>
+                    </div>`;
+                } catch(e) {}
+            });
+
+            container.innerHTML = html;
+        }
+
+        function detailRow(label, val) {
+            return '<tr><td style="color:var(--muted); padding:6px 16px 6px 0; vertical-align:top; width:160px; font-size:0.82rem;">' + label + '</td><td style="color:var(--text); padding:6px 0; font-size:0.85rem;">' + (val || '-') + '</td></tr>';
+        }
+
+        function sectionRow(label, val) {
+            return '<tr><td colspan="2" style="padding:14px 0 4px; color:var(--coral); font-weight:700; font-size:0.75rem; letter-spacing:0.5px;">' + label + '</td></tr><tr><td colspan="2" style="color:#ccc; padding:2px 0 8px; font-size:0.85rem; line-height:1.65;">' + (val || '-') + '</td></tr>';
+        }
+
+        function toggleDetail(idx) {
+            const detail = document.getElementById('detail-' + idx);
+            const arrow = document.getElementById('arrow-' + idx);
+            if (detail.style.display === 'none') {
+                detail.style.display = 'block';
+                arrow.style.transform = 'rotate(180deg)';
+            } else {
+                detail.style.display = 'none';
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+
+        function deleteSubmission(key) {
+            if (!confirm('Delete this submission?')) return;
+            try { localStorage.removeItem(key); } catch(e) {}
+            renderSubmissions();
+        }
     </script>
 </body>
 </html>
