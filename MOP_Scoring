@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOP Scoring Tool — Medit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-dark: #0a1628;
+            --accent-coral: #e8614d;
+            --accent-teal: #1a8a7d;
+            --accent-amber: #d4a017;
+            --text-light: #f5f5f5;
+            --text-muted: #b0b0b0;
+            --bg-dark: #0f1f2e;
+            --bg-card: #1a2a3a;
+            --border-color: #2a3a4a;
+            --score-red: #ef4444;
+            --score-amber: #f59e0b;
+            --score-light-green: #84cc16;
+            --score-green: #22c55e;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary-dark) 0%, var(--bg-dark) 100%);
+            color: var(--text-light);
+            font-family: 'Source Sans 3', sans-serif;
+            line-height: 1.6;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: slideInDown 0.8s ease-out;
+        }
+
+        header h1 {
+            font-family: 'Outfit', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, var(--text-light), var(--accent-teal));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+        }
+
+        /* Input Section */
+        .input-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            animation: slideInUp 0.8s ease-out 0.1s backwards;
+        }
+
+        @media (max-width: 768px) {
+            .input-section {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-light);
+            font-size: 0.95rem;
+        }
+
+        .form-group input {
+            background: var(--primary-dark);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: var(--text-light);
+            font-family: 'Source Sans 3', sans-serif;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--accent-teal);
+            background: rgba(26, 138, 125, 0.05);
+            box-shadow: 0 0 0 3px rgba(26, 138, 125, 0.1);
+        }
+
+        /* Main Content Grid */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Criteria Cards */
+        .criteria-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+        }
+
+        .criteria-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideInUp 0.8s ease-out backwards;
+        }
+
+        .criteria-card:nth-child(1) { animation-delay: 0.2s; }
+        .criteria-card:nth-child(2) { animation-delay: 0.25s; }
+        .criteria-card:nth-child(3) { animation-delay: 0.3s; }
+        .criteria-card:nth-child(4) { animation-delay: 0.35s; }
+        .criteria-card:nth-child(5) { animation-delay: 0.4s; }
+        .criteria-card:nth-child(6) { animation-delay: 0.45s; }
+        .criteria-card:nth-child(7) { animation-delay: 0.5s; }
+        .criteria-card:nth-child(8) { animation-delay: 0.55s; }
+
+        .criteria-card:hover {
+            border-color: var(--accent-teal);
+            box-shadow: 0 8px 24px rgba(26, 138, 125, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .criteria-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .criteria-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.2rem;
+            font-weight: 600;
+            flex: 1;
+        }
+
+        .criteria-weight {
+            background: var(--primary-dark);
+            color: var(--accent-teal);
+            padding: 4px 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            white-space: nowrap;
+            margin-left: 12px;
+        }
+
+        .criteria-description {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .rubric-grid {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .rubric-button {
+            width: 40px;
+            height: 40px;
+            border: 2px solid var(--border-color);
+            background: var(--primary-dark);
+            color: var(--text-light);
+            border-radius: 8px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rubric-button:hover {
+            border-color: var(--accent-teal);
+            transform: scale(1.05);
+        }
+
+        .rubric-button.active {
+            background: var(--accent-teal);
+            border-color: var(--accent-teal);
+            color: var(--primary-dark);
+            font-weight: 700;
+        }
+
+        .rubric-guidance {
+            background: var(--primary-dark);
+            border-left: 3px solid var(--accent-teal);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            line-height: 1.3;
+        }
+
+        /* Sidebar - Score Summary */
+        .sidebar {
+            animation: slideInRight 0.8s ease-out 0.2s backwards;
+        }
+
+        .score-display {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 30px 24px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .score-display-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .score-display-value {
+            font-family: 'Outfit', sans-serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+            transition: color 0.5s ease;
+        }
+
+        .score-display-max {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .score-gauge {
+            width: 100%;
+            height: 12px;
+            background: var(--primary-dark);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-top: 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .score-gauge-fill {
+            height: 100%;
+            border-radius: 6px;
+            width: 0%;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(90deg, var(--score-red), var(--score-amber), var(--score-light-green), var(--score-green));
+        }
+
+        /* Recommendation Box */
+        .recommendation-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .recommendation-label {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .recommendation-text {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .recommendation-not {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ff6b6b;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .recommendation-further {
+            background: rgba(212, 160, 23, 0.1);
+            color: var(--accent-amber);
+            border: 1px solid rgba(212, 160, 23, 0.3);
+        }
+
+        .recommendation-recommended {
+            background: rgba(132, 204, 22, 0.1);
+            color: var(--score-light-green);
+            border: 1px solid rgba(132, 204, 22, 0.3);
+        }
+
+        .recommendation-strong {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--score-green);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        /* Score Breakdown */
+        .score-breakdown {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .breakdown-title {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            color: var(--text-light);
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.9rem;
+        }
+
+        .breakdown-item:last-child {
+            border-bottom: none;
+        }
+
+        .breakdown-name {
+            color: var(--text-muted);
+        }
+
+        .breakdown-value {
+            font-weight: 600;
+            color: var(--accent-teal);
+        }
+
+        /* Export Button */
+        .export-section {
+            margin-top: 40px;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            animation: slideInUp 0.8s ease-out 0.6s backwards;
+        }
+
+        .btn {
+            font-family: 'Outfit', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 14px 32px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent-teal);
+            color: var(--primary-dark);
+        }
+
+        .btn-primary:hover {
+            background: #0f9d8f;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(26, 138, 125, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--accent-coral);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #d65344;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(232, 97, 77, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 30px 20px;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 60px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: var(--accent-teal);
+            color: var(--primary-dark);
+            padding: 16px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(26, 138, 125, 0.3);
+            animation: slideInRight 0.4s ease-out;
+            z-index: 1000;
+        }
+
+        .toast.hidden {
+            animation: slideOutRight 0.4s ease-out forwards;
+        }
+
+        /* Animations */
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes slideOutRight {
+            from {
+                opacity: 1;
+                transform: translateX(0);
+            }
+            to {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+            }
+
+            .input-section,
+            .rubric-grid,
+            .export-section,
+            .rubric-button {
+                display: none;
+            }
+
+            .container {
+                max-width: 100%;
+                padding: 0;
+            }
+
+            .criteria-card,
+            .score-display,
+            .recommendation-box,
+            .score-breakdown {
+                background: white;
+                border: 1px solid #ddd;
+                page-break-inside: avoid;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            header {
+                margin-bottom: 20px;
+            }
+
+            h1, h2, h3 {
+                color: var(--primary-dark);
+            }
+
+            .score-display-value {
+                color: var(--primary-dark);
+            }
+        }
+
+        /* Utility Classes */
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>MOP Scoring Tool</h1>
+            <p>Market Opportunity Process — Medit</p>
+        </header>
+
+        <section class="input-section">
+            <div class="form-group">
+                <label for="opportunityTitle">Opportunity Title</label>
+                <input type="text" id="opportunityTitle" placeholder="e.g., AI-Powered Smile Prediction System">
+            </div>
+            <div class="form-group">
+                <label for="reviewerName">Reviewer Name</label>
+                <input type="text" id="reviewerName" placeholder="Your name">
+            </div>
+        </section>
+
+        <div class="main-grid">
+            <div class="criteria-container" id="criteriaContainer"></div>
+
+            <aside class="sidebar">
+                <div class="score-display">
+                    <div class="score-display-label">Weighted Score</div>
+                    <div class="score-display-value" id="totalScore">0.0</div>
+                    <div class="score-display-max">out of 5.0</div>
+                    <div class="score-gauge">
+                        <div class="score-gauge-fill" id="scoreGauge"></div>
+                    </div>
+                </div>
+
+                <div class="recommendation-box">
+                    <div class="recommendation-label">Recommendation</div>
+                    <div class="recommendation-text" id="recommendation">Not Scored</div>
+                </div>
+
+                <div class="score-breakdown">
+                    <div class="breakdown-title">Score Breakdown</div>
+                    <div id="breakdownContainer"></div>
+                </div>
+            </aside>
+        </div>
+
+        <div class="export-section">
+            <button class="btn btn-primary" id="exportBtn">
+                <span>📋</span> Export Summary
+            </button>
+            <button class="btn btn-secondary" id="printBtn">
+                <span>🖨️</span> Print Results
+            </button>
+        </div>
+        <div style="text-align: center; margin-top: 20px; color: var(--text-muted); font-size: 0.9rem;">
+            Export를 누르면 Excel 파일이 자동으로 다운로드됩니다.
+        </div>
+    </div>
+
+    <footer>
+        Market Opportunity Process — Scoring Tool — Medit
+    </footer>
+
+    <script>
+        const CRITERIA = [
+            {
+                id: 'strategic-alignment',
+                name: 'Strategic Alignment',
+                weight: 20,
+                description: 'How well does this align with Medit\'s strategic priorities?',
+                rubric: {
+                    1: 'Misaligned with strategic direction',
+                    2: 'Partially aligned with one priority',
+                    3: 'Aligned with one or two core priorities',
+                    4: 'Strongly aligned with multiple priorities',
+                    5: 'Critical to strategic vision'
+                }
+            },
+            {
+                id: 'market-opportunity',
+                name: 'Market Opportunity Size',
+                weight: 20,
+                description: 'Total addressable market and growth potential',
+                rubric: {
+                    1: 'TAM < $10M or minimal growth',
+                    2: 'TAM $10-50M with modest growth',
+                    3: 'TAM $50-200M with steady growth',
+                    4: 'TAM $200M-1B with strong growth',
+                    5: 'TAM > $1B with exceptional growth'
+                }
+            },
+            {
+                id: 'customer-impact',
+                name: 'Customer Impact',
+                weight: 15,
+                description: 'Severity of pain point and breadth of affected customers',
+                rubric: {
+                    1: 'Solves minor pain for niche audience',
+                    2: 'Addresses moderate pain for select segments',
+                    3: 'Solves significant pain for key segments',
+                    4: 'Addresses critical pain across segments',
+                    5: 'Transforms core workflows for industry'
+                }
+            },
+            {
+                id: 'competitive-advantage',
+                name: 'Competitive Advantage',
+                weight: 15,
+                description: 'Differentiation potential and defensibility',
+                rubric: {
+                    1: 'Easily replicable, weak moat',
+                    2: 'Some differentiation, 6-12 month lag',
+                    3: 'Meaningful differentiation, 1-2 year lag',
+                    4: 'Strong differentiation, 2-3 year advantage',
+                    5: 'Defensible leadership, proprietary advantage'
+                }
+            },
+            {
+                id: 'revenue-potential',
+                name: 'Revenue / Growth Potential',
+                weight: 10,
+                description: 'Expected revenue contribution or growth acceleration',
+                rubric: {
+                    1: '< 1% revenue impact',
+                    2: '1-2% revenue impact',
+                    3: '2-5% revenue impact',
+                    4: '5-10% revenue impact',
+                    5: '> 10% revenue impact or 3x growth'
+                }
+            },
+            {
+                id: 'feasibility',
+                name: 'Feasibility',
+                weight: 10,
+                description: 'Technical feasibility and resource availability',
+                rubric: {
+                    1: 'High technical risk, heavy resource needs',
+                    2: 'Moderate risk, significant resources',
+                    3: 'Manageable with current resources',
+                    4: 'Straightforward with available capability',
+                    5: 'Leverages existing tech and resources'
+                }
+            },
+            {
+                id: 'time-to-market',
+                name: 'Time to Market',
+                weight: 5,
+                description: 'Speed of execution relative to market window',
+                rubric: {
+                    1: '2+ years to market',
+                    2: '18-24 months to market',
+                    3: '12-18 months to market',
+                    4: '6-12 months to market',
+                    5: '< 6 months to market'
+                }
+            },
+            {
+                id: 'risk-profile',
+                name: 'Risk Profile',
+                weight: 5,
+                description: 'Regulatory, technical, and market risks (5 = low risk)',
+                rubric: {
+                    1: 'Multiple critical risks',
+                    2: 'Several significant risks',
+                    3: 'Moderate, manageable risks',
+                    4: 'Low risk profile',
+                    5: 'Minimal risk, proven approach'
+                }
+            }
+        ];
+
+        const scores = {};
+        CRITERIA.forEach(c => scores[c.id] = 0);
+
+        function initializeCriteria() {
+            const container = document.getElementById('criteriaContainer');
+            container.innerHTML = CRITERIA.map((criterion, index) => `
+                <div class="criteria-card">
+                    <div class="criteria-header">
+                        <h2 class="criteria-title">${criterion.name}</h2>
+                        <span class="criteria-weight">${criterion.weight}%</span>
+                    </div>
+                    <p class="criteria-description">${criterion.description}</p>
+                    <div class="rubric-grid">
+                        ${[1, 2, 3, 4, 5].map(score => `
+                            <button class="rubric-button" data-criterion="${criterion.id}" data-score="${score}">
+                                ${score}
+                            </button>
+                        `).join('')}
+                    </div>
+                    <div class="rubric-guidance" id="guidance-${criterion.id}">
+                        Select a score to see guidance
+                    </div>
+                </div>
+            `).join('');
+
+            document.querySelectorAll('.rubric-button').forEach(btn => {
+                btn.addEventListener('click', handleScoreClick);
+            });
+        }
+
+        function handleScoreClick(e) {
+            const criterionId = e.target.dataset.criterion;
+            const score = parseInt(e.target.dataset.score);
+
+            scores[criterionId] = score;
+
+            // Update active button
+            document.querySelectorAll(`[data-criterion="${criterionId}"]`).forEach(btn => {
+                btn.classList.remove('active');
+            });
+            e.target.classList.add('active');
+
+            // Update guidance text
+            const criterion = CRITERIA.find(c => c.id === criterionId);
+            document.getElementById(`guidance-${criterionId}`).textContent = criterion.rubric[score];
+
+            updateCalculations();
+        }
+
+        function calculateWeightedScore() {
+            let totalWeightedScore = 0;
+            let totalWeight = 0;
+
+            CRITERIA.forEach(criterion => {
+                const score = scores[criterion.id];
+                const weight = criterion.weight / 100;
+                totalWeightedScore += score * weight;
+                totalWeight += weight;
+            });
+
+            return totalWeight > 0 ? totalWeightedScore : 0;
+        }
+
+        function updateCalculations() {
+            const weightedScore = calculateWeightedScore();
+            const percentage = (weightedScore / 5) * 100;
+
+            // Update score display
+            document.getElementById('totalScore').textContent = weightedScore.toFixed(1);
+            document.getElementById('scoreGauge').style.width = percentage + '%';
+
+            // Update score color
+            const scoreDisplay = document.getElementById('totalScore');
+            if (weightedScore < 2) {
+                scoreDisplay.style.color = '#ff6b6b';
+            } else if (weightedScore < 3) {
+                scoreDisplay.style.color = '#d4a017';
+            } else if (weightedScore < 4) {
+                scoreDisplay.style.color = '#84cc16';
+            } else {
+                scoreDisplay.style.color = '#22c55e';
+            }
+
+            // Update recommendation
+            updateRecommendation(weightedScore);
+
+            // Update breakdown
+            updateBreakdown();
+        }
+
+        function updateRecommendation(score) {
+            const recBox = document.getElementById('recommendation');
+            let recommendation = 'Not Scored';
+            let className = '';
+
+            if (score === 0) {
+                recommendation = 'Not Scored';
+                className = '';
+            } else if (score < 2) {
+                recommendation = 'Not Recommended';
+                className = 'recommendation-not';
+            } else if (score < 3) {
+                recommendation = 'Needs Further Analysis';
+                className = 'recommendation-further';
+            } else if (score < 4) {
+                recommendation = 'Recommended';
+                className = 'recommendation-recommended';
+            } else {
+                recommendation = 'Strongly Recommended';
+                className = 'recommendation-strong';
+            }
+
+            recBox.textContent = recommendation;
+            recBox.className = `recommendation-text ${className}`;
+        }
+
+        function updateBreakdown() {
+            const container = document.getElementById('breakdownContainer');
+            const items = CRITERIA.map(criterion => {
+                const score = scores[criterion.id];
+                const weighted = score > 0 ? (score * (criterion.weight / 100)).toFixed(2) : '0.00';
+                return `
+                    <div class="breakdown-item">
+                        <span class="breakdown-name">${criterion.name}</span>
+                        <span class="breakdown-value">${weighted}</span>
+                    </div>
+                `;
+            }).join('');
+
+            container.innerHTML = items;
+        }
+
+        function exportSummary() {
+            const opportunityTitle = document.getElementById('opportunityTitle').value || 'Untitled Opportunity';
+            const reviewerName = document.getElementById('reviewerName').value || 'Anonymous Reviewer';
+            const weightedScore = calculateWeightedScore();
+            const today = new Date();
+            const dateStr = today.toISOString().split('T')[0];
+
+            let recommendation = '';
+            if (weightedScore < 2) {
+                recommendation = 'Not Recommended';
+            } else if (weightedScore < 3) {
+                recommendation = 'Needs Further Analysis';
+            } else if (weightedScore < 4) {
+                recommendation = 'Recommended';
+            } else {
+                recommendation = 'Strongly Recommended';
+            }
+
+            // Create workbook
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet([]);
+
+            // Row 1: Merged header
+            ws['A1'] = { t: 's', v: 'MOP SCORING TOOL - RESULTS' };
+            ws.merge = ws.merge || [];
+            ws.merge.push({ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } });
+
+            // Row 2: Empty
+            // Row 3: Opportunity Title
+            ws['A3'] = { t: 's', v: 'Opportunity Title' };
+            ws['B3'] = { t: 's', v: opportunityTitle };
+
+            // Row 4: Reviewer Name
+            ws['A4'] = { t: 's', v: 'Reviewer Name' };
+            ws['B4'] = { t: 's', v: reviewerName };
+
+            // Row 5: Date
+            ws['A5'] = { t: 's', v: 'Date' };
+            ws['B5'] = { t: 's', v: today.toLocaleDateString() };
+
+            // Row 6: Empty
+            // Row 7: Weighted Score
+            ws['A7'] = { t: 's', v: 'Weighted Score' };
+            ws['B7'] = { t: 'n', v: parseFloat(weightedScore.toFixed(1)) };
+            ws['C7'] = { t: 's', v: 'out of 5.0' };
+
+            // Row 8: Recommendation
+            ws['A8'] = { t: 's', v: 'Recommendation' };
+            ws['B8'] = { t: 's', v: recommendation };
+
+            // Row 9: Empty
+            // Row 10: Table Header
+            ws['A10'] = { t: 's', v: 'Criterion' };
+            ws['B10'] = { t: 's', v: 'Weight' };
+            ws['C10'] = { t: 's', v: 'Score (1-5)' };
+            ws['D10'] = { t: 's', v: 'Weighted Score' };
+
+            // Rows 11+: Criteria Data
+            let currentRow = 11;
+            CRITERIA.forEach(criterion => {
+                const score = scores[criterion.id];
+                const weighted = score > 0 ? (score * (criterion.weight / 100)) : 0;
+
+                ws['A' + currentRow] = { t: 's', v: criterion.name };
+                ws['B' + currentRow] = { t: 's', v: criterion.weight + '%' };
+                ws['C' + currentRow] = { t: 'n', v: score };
+                ws['D' + currentRow] = { t: 'n', v: parseFloat(weighted.toFixed(2)) };
+                currentRow++;
+            });
+
+            // Total row
+            const totalRow = currentRow;
+            ws['A' + totalRow] = { t: 's', v: 'Total' };
+            ws['B' + totalRow] = { t: 's', v: '100%' };
+            ws['C' + totalRow] = { t: 's', v: '' };
+            ws['D' + totalRow] = { t: 'n', v: parseFloat(weightedScore.toFixed(2)) };
+
+            // Set column widths
+            ws['!cols'] = [
+                { wch: 30 },
+                { wch: 15 },
+                { wch: 15 },
+                { wch: 15 }
+            ];
+
+            XLSX.utils.book_append_sheet(wb, ws, 'MOP Score');
+
+            // Generate filename
+            const filename = `MOP_Score_${opportunityTitle.replace(/\s+/g, '_')}_${dateStr}.xlsx`;
+
+            // Download Excel file
+            XLSX.writeFile(wb, filename);
+
+            // Show toast
+            showToast('스코어링 결과가 Excel 파일로 다운로드됩니다.');
+
+            // Save to localStorage
+            const timestamp = Date.now();
+            const storageData = {
+                opportunityTitle,
+                reviewerName,
+                weightedScore: weightedScore.toFixed(1),
+                recommendation,
+                date: dateStr,
+                scores,
+                criteria: CRITERIA.map(c => ({
+                    name: c.name,
+                    weight: c.weight,
+                    score: scores[c.id],
+                    weightedScore: scores[c.id] > 0 ? (scores[c.id] * (c.weight / 100)).toFixed(2) : '0.00'
+                }))
+            };
+            localStorage.setItem(`mop_score_${timestamp}`, JSON.stringify(storageData));
+        }
+
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = message;
+            document.body.appendChild(toast);
+
+            setTimeout(() => {
+                toast.classList.add('hidden');
+                setTimeout(() => toast.remove(), 400);
+            }, 3000);
+        }
+
+        function printResults() {
+            window.print();
+        }
+
+        // Event Listeners
+        document.getElementById('exportBtn').addEventListener('click', exportSummary);
+        document.getElementById('printBtn').addEventListener('click', printResults);
+
+        // Initialize
+        initializeCriteria();
+        updateCalculations();
+    </script>
+</body>
+</html>
