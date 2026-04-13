@@ -798,13 +798,10 @@
             if (url && event.data.payload) {
                 var emailBody = event.data.payload;
                 emailBody.type = 'email';
-                fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'text/plain' },
-                    body: JSON.stringify(emailBody)
-                }).then(function(r){ return r.json(); })
-                  .then(function(j){ console.log('MOP Email:', j); })
-                  .catch(function(e){ console.warn('MOP Email error:', e); });
+                gasPost(url, emailBody,
+                    function(j){ console.log('MOP Email:', j); },
+                    function(e){ console.warn('MOP Email error:', e); }
+                );
             }
         }
         if (event.data && event.data.type === 'mop-review-update') {
@@ -950,6 +947,47 @@
     var _cloudSaveTimer = null;
     function getAppsScriptUrl() { return localStorage.getItem('mop_apps_script_url') || ''; }
 
+    // Google Apps Script는 302 리다이렉트를 사용하므로
+    // fetch 대신 XMLHttpRequest를 사용 (리다이렉트 자동 처리)
+    function gasPost(url, data, onSuccess, onError) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', url, true);
+        xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    try {
+                        var j = JSON.parse(xhr.responseText);
+                        if (onSuccess) onSuccess(j);
+                    } catch(e) { if (onSuccess) onSuccess({ success: true }); }
+                } else {
+                    if (onError) onError(xhr.statusText);
+                }
+            }
+        };
+        xhr.onerror = function() { if (onError) onError('Network error'); };
+        xhr.send(JSON.stringify(data));
+    }
+
+    function gasGet(url, onSuccess, onError) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    try {
+                        var j = JSON.parse(xhr.responseText);
+                        if (onSuccess) onSuccess(j);
+                    } catch(e) { if (onError) onError('Parse error'); }
+                } else {
+                    if (onError) onError(xhr.statusText);
+                }
+            }
+        };
+        xhr.onerror = function() { if (onError) onError('Network error'); };
+        xhr.send();
+    }
+
     function cloudSaveDebounced() {
         var url = getAppsScriptUrl(); if (!url) return;
         if (_cloudSaveTimer) clearTimeout(_cloudSaveTimer);
@@ -965,43 +1003,38 @@
             afcState: mopAfcState,
             portfolio: mopPortfolioState
         };
-        fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify(body)
-        }).then(function(r) { return r.json(); })
-          .then(function(j) {
-            if (j.success) showCloudBadge('saved');
-            else showCloudBadge('error');
-          })
-          .catch(function() { showCloudBadge('error'); });
+        showCloudBadge('saving');
+        gasPost(url, body,
+            function(j) { showCloudBadge(j.success ? 'saved' : 'error'); },
+            function() { showCloudBadge('error'); }
+        );
     }
 
     function cloudLoad() {
         var url = getAppsScriptUrl(); if (!url) return;
         showCloudBadge('loading');
-        fetch(url)
-          .then(function(r) { return r.json(); })
-          .then(function(j) {
-            if (j.success && j.data) {
-                var d = j.data;
-                if (d.submissions && d.submissions.length) { mopSubmissions = d.submissions; try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(e) {} }
-                if (d.reviews && d.reviews.length) { mopReviews = d.reviews; try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(e) {} }
-                if (d.afcState) { mopAfcState = d.afcState; try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(e) {} }
-                if (d.portfolio) { mopPortfolioState = d.portfolio; try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(e) {} }
-                showCloudBadge('loaded');
-            } else { showCloudBadge('empty'); }
-          })
-          .catch(function() { showCloudBadge('error'); });
+        gasGet(url,
+            function(j) {
+                if (j.success && j.data) {
+                    var d = j.data;
+                    if (d.submissions && d.submissions.length) { mopSubmissions = d.submissions; try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(e) {} }
+                    if (d.reviews && d.reviews.length) { mopReviews = d.reviews; try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(e) {} }
+                    if (d.afcState) { mopAfcState = d.afcState; try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(e) {} }
+                    if (d.portfolio) { mopPortfolioState = d.portfolio; try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(e) {} }
+                    showCloudBadge('loaded');
+                } else { showCloudBadge('empty'); }
+            },
+            function() { showCloudBadge('error'); }
+        );
     }
 
     function showCloudBadge(state) {
         var el = document.getElementById('cloudStatus');
         if (!el) return;
-        var map = { saved: ['☁️ Saved', '#34d399'], loading: ['☁️ Loading...', '#60a5fa'], loaded: ['☁️ Loaded', '#34d399'], error: ['☁️ Error', '#ef4444'], empty: ['☁️ No data', '#fbbf24'] };
+        var map = { saved: ['☁️ Saved', '#34d399'], saving: ['☁️ Saving...', '#60a5fa'], loading: ['☁️ Loading...', '#60a5fa'], loaded: ['☁️ Loaded', '#34d399'], error: ['☁️ Error', '#ef4444'], empty: ['☁️ No data', '#fbbf24'] };
         var info = map[state] || ['☁️', '#94a3b8'];
         el.textContent = info[0]; el.style.color = info[1]; el.style.opacity = '1';
-        if (state !== 'loading') setTimeout(function() { el.style.opacity = '0'; }, 3000);
+        if (state !== 'loading' && state !== 'saving') setTimeout(function() { el.style.opacity = '0'; }, 3000);
     }
 
     // 페이지 로드시 클라우드에서 데이터 불러오기
