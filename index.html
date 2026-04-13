@@ -787,7 +787,27 @@
         if (event.data && event.data.type === 'mop-submitted') { closeTool(); }
         if (event.data && event.data.type === 'mop-submission-data') {
             var payload = event.data.payload;
-            if (payload && !mopSubmissions.find(function(s){ return s.id === payload.id; })) { mopSubmissions.push(payload); saveSubmissions(); }
+            if (payload && !mopSubmissions.find(function(s){ return s.id === payload.id; })) {
+                mopSubmissions.push(payload);
+                saveSubmissions();
+                // 새 제출 시 자동 이메일 발송
+                var url = getAppsScriptUrl();
+                if (url) {
+                    var sd = payload.submissionData || payload;
+                    gasPost(url, {
+                        type: 'email',
+                        email: sd.requestOwnerEmail || '',
+                        submitter: sd.requestOwner || '',
+                        title: sd.opportunityTitle || payload.title || '',
+                        region: sd.division || '',
+                        requestType: sd.requestType || '',
+                        date: new Date().toLocaleString(),
+                        submissionId: payload.id || ''
+                    },
+                    function(j){ console.log('MOP Email sent:', j); },
+                    function(e){ console.warn('MOP Email error:', e); });
+                }
+            }
         }
         if (event.data && event.data.type === 'mop-review-data') {
             var payload = event.data.payload;
