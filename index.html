@@ -793,7 +793,7 @@
                 // 새 제출 시 자동 이메일 발송
                 var url = getAppsScriptUrl();
                 if (url) {
-                    var sd = payload.submissionData || payload;
+                    var sd = payload.data || payload.submissionData || payload;
                     gasPost(url, {
                         type: 'email',
                         email: sd.requestOwnerEmail || '',
@@ -965,7 +965,7 @@
 
     // ── Cloud Sync (Google Apps Script) ──────────────────────
     var _cloudSaveTimer = null;
-    var _defaultAppsScriptUrl = 'https://script.google.com/macros/s/AKfycbxrXYisU0tOYra5pIRFIiyAZJbq11AHe7oFHCYBTxJ6pi89hm_U5sFLjEXsCfg231UMng/exec';
+    var _defaultAppsScriptUrl = 'https://script.google.com/macros/s/AKfycbwomASLT6mJuIQbk8HRSlYZXET7MY2zoEBCI5LAeX_3rnqQ8SW1CkWqiVJ6rrvmkZ6vOA/exec';
     function getAppsScriptUrl() { return localStorage.getItem('mop_apps_script_url') || _defaultAppsScriptUrl; }
 
     // Google Apps Script는 302 리다이렉트를 사용하므로
