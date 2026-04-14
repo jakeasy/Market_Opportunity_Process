@@ -965,7 +965,8 @@
 
     // ── Cloud Sync (Google Apps Script) ──────────────────────
     var _cloudSaveTimer = null;
-    function getAppsScriptUrl() { return localStorage.getItem('mop_apps_script_url') || ''; }
+    var _defaultAppsScriptUrl = 'https://script.google.com/macros/s/AKfycbxrXYisU0tOYra5pIRFIiyAZJbq11AHe7oFHCYBTxJ6pi89hm_U5sFLjEXsCfg231UMng/exec';
+    function getAppsScriptUrl() { return localStorage.getItem('mop_apps_script_url') || _defaultAppsScriptUrl; }
 
     // Google Apps Script는 302 리다이렉트를 사용하므로
     // fetch 대신 XMLHttpRequest를 사용 (리다이렉트 자동 처리)
