@@ -921,8 +921,13 @@
                     + '</td></tr>'
                     // Body
                     + '<tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:28px;border-radius:0 0 12px 12px;">'
-                    + '<p style="font-size:14px;color:#374151;margin:0 0 20px 0;">'
-                    + 'Reviewer <strong>' + _reviewer + '</strong> has finalized the AFC Readiness Check.'
+                    + '<p style="font-size:15px;color:#111827;font-weight:600;margin:0 0 8px 0;">AFC Readiness Review — Gate Decision Notification</p>'
+                    + '<p style="font-size:13.5px;color:#374151;line-height:1.75;margin:0 0 16px 0;">'
+                    + (_gate === 'go'
+                        ? 'Following a comprehensive cross-functional assessment — spanning Product Readiness, Regulatory &amp; Compliance, Commercial, Financial Feasibility, and other key criteria — <strong>' + _title + '</strong> has successfully met all readiness requirements.<br><br>This project is hereby recommended to <strong>HQ for investment approval and commercialization</strong>.'
+                        : _gate === 'conditional'
+                        ? 'The cross-functional readiness review for <strong>' + _title + '</strong> has been completed with a <strong>Conditional</strong> decision.<br><br>The project demonstrates sufficient readiness to proceed; however, specific action items identified during the review must be addressed prior to full commercialization. <strong>HQ review is recommended with the noted conditions taken into account.</strong>'
+                        : 'The cross-functional readiness review for <strong>' + _title + '</strong> has concluded with a <strong>NO GO — Deferred</strong> decision.<br><br>Based on the multi-department assessment, this project does not currently meet the readiness criteria required for commercialization investment. Further preparation and re-evaluation are recommended before proceeding to HQ.')
                     + '</p>'
                     + '<table width="100%" cellpadding="0" cellspacing="0" border="0">'
                     + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;border-bottom:1px solid #f3f4f6;width:38%;">Project</td><td style="padding:7px 0;font-size:13px;color:#111827;font-weight:500;border-bottom:1px solid #f3f4f6;">' + _title + '</td></tr>'
@@ -948,19 +953,17 @@
                     adminHtml: adminHtml,
                     adminText: 'AFC Review Finalized by ' + _reviewer + ': ' + _gateText + ' | ' + _title
                 };
-                console.log('AFC custom-email sending → Reviewer:', ep.reviewerEmail, '| Gate:', _gateText, '| Title:', _title);
-                gasPost(url, afcPayload,
-                    function(j){
-                        if (j && j.sent === true) {
-                            console.log('✓ AFC email sent to reviewer. Admin copy:', j.adminSent);
-                        } else {
-                            // custom-email 핸들러가 없는 경우 — Apps Script 재배포 필요
-                            // 틀린 내용의 이메일을 보내느니 발송하지 않음
-                            console.error('✗ AFC email NOT sent — Apps Script에 custom-email 핸들러가 없습니다. MOP_AppsScript.js 재배포 필요.');
-                        }
-                    },
-                    function(e){ console.error('✗ AFC email request failed:', e); }
-                );
+                console.log('AFC custom-email sending (no-cors) → Reviewer:', ep.reviewerEmail, '| Gate:', _gateText, '| Title:', _title);
+                fetch(url, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify(afcPayload)
+                }).then(function() {
+                    console.log('✓ AFC email request sent → Reviewer:', ep.reviewerEmail, '| Admin: jake@medit.com');
+                }).catch(function(err) {
+                    console.error('✗ AFC email request failed:', err);
+                });
             } else {
                 console.warn('AFC email skipped — reviewerEmail missing or invalid:', ep && ep.reviewerEmail);
             }
