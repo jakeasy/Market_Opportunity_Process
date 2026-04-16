@@ -349,11 +349,11 @@
                 <div class="flow-step"><span class="step-num">4</span> Portfolio</div>
             </div>
             <div class="cards">
-                <div class="card" onclick="window.location.href='MOP_Submission_Form.html'">
+                <div class="card" onclick="openTool('form','MOP Submission Form','Step 1','#3b82f6')">
                     <div class="card-top"><div class="card-step">Step 1</div><div class="card-role" id="card1Role"></div></div><div class="card-icon">📝</div>
                     <h2>MOP Submission Form</h2><p id="card1Desc"></p><span class="card-link" id="card1Link"></span>
                 </div>
-                <div class="card" onclick="requirePw('scoring', 'MOP_Scoring_Tool.html')">
+                <div class="card" onclick="requirePw('scoring')">
                     <div class="card-top"><div class="card-step">Step 2</div><div class="card-role" id="card2Role"></div></div><div class="card-icon">📊</div>
                     <h2>MOP Scoring Tool</h2><p id="card2Desc"></p><span class="card-link" id="card2Link"></span>
                 </div>
@@ -460,10 +460,10 @@
         var b64 = toolB64[key];
         if (!b64) return;
         var html = b64decode(b64);
-        var blob = new Blob([html], { type: 'text/html; charset=utf-8' });
-        var url = URL.createObjectURL(blob);
         var iframe = document.getElementById('tool-iframe');
-        iframe.src = url;
+        // srcdoc 방식 사용 — Blob URL 없이 작동 (GitHub Pages 호환)
+        iframe.removeAttribute('src');
+        iframe.srcdoc = html;
         document.getElementById('iframeTitle').textContent = title;
         var badge = document.getElementById('iframeBadge');
         badge.textContent = step;
@@ -484,7 +484,7 @@
 
     function closeTool() {
         var iframe = document.getElementById('tool-iframe');
-        try { URL.revokeObjectURL(iframe.src); } catch(e) {}
+        iframe.removeAttribute('srcdoc');
         iframe.src = 'about:blank';
         document.getElementById('iframe-view').classList.remove('active');
         document.getElementById('gateway-view').style.display = '';
