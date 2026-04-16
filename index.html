@@ -841,15 +841,31 @@
         if (event.data && event.data.type === 'mop-afc-finalize-email') {
             var url = getAppsScriptUrl();
             var ep = event.data.payload;
-            if (url && ep) {
+            if (url && ep && ep.reviewerEmail && ep.reviewerEmail.indexOf('@') > 0) {
                 console.log('=== AFC Finalize Email ===');
-                console.log('To (reviewer):', ep.reviewerEmail);
-                console.log('Gate:', ep.gateLabel);
-                console.log('Title:', ep.title);
-                gasPost(url, ep,
-                    function(j){ console.log('✓ AFC email sent:', j); },
+                console.log('Reviewer:', ep.reviewer, '→', ep.reviewerEmail);
+                console.log('Gate:', ep.gateLabel, '| Title:', ep.title);
+                // Use the confirmed-working 'email' type handler so no Apps Script redeploy is needed.
+                // ep.reviewerEmail → sendSubmitterEmail (to field), ep.reviewer → submitter name
+                var gateIcon = ep.gate === 'go' ? '✅ GO' : ep.gate === 'conditional' ? '⚠️ Conditional' : '🚫 No-Go';
+                var afcPayload = {
+                    type: 'email',
+                    email: ep.reviewerEmail,
+                    to: ep.reviewerEmail,
+                    recipientEmail: ep.reviewerEmail,
+                    submitter: ep.reviewer || 'Reviewer',
+                    title: ep.title || '',
+                    requestType: 'AFC Readiness Check — ' + gateIcon,
+                    region: (ep.pct != null ? ep.pct + '% Ready' : 'Review Complete'),
+                    date: new Date().toLocaleDateString('ko-KR'),
+                    submissionId: ep.submissionId || ''
+                };
+                gasPost(url, afcPayload,
+                    function(j){ console.log('✓ AFC email sent to reviewer:', j); },
                     function(e){ console.error('✗ AFC email error:', e); }
                 );
+            } else {
+                console.warn('AFC email skipped — reviewerEmail missing or invalid:', ep && ep.reviewerEmail);
             }
         }
         if (event.data && event.data.type === 'mop-afc-state-save') {
