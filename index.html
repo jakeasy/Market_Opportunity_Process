@@ -349,15 +349,15 @@
                 <div class="flow-step"><span class="step-num">4</span> Portfolio</div>
             </div>
             <div class="cards">
-                <div class="card" onclick="openTool('form','MOP Submission Form','Step 1','#3b82f6')">
+                <div class="card" onclick="isPwOn('form')?requirePw('form'):openTool('form','MOP Submission Form','Step 1','#3b82f6')">
                     <div class="card-top"><div class="card-step">Step 1</div><div class="card-role" id="card1Role"></div></div><div class="card-icon">📝</div>
                     <h2>MOP Submission Form</h2><p id="card1Desc"></p><span class="card-link" id="card1Link"></span>
                 </div>
-                <div class="card" onclick="requirePw('scoring')">
+                <div class="card" onclick="isPwOn('scoring')?requirePw('scoring'):openToolWithSync('scoring','MOP Scoring Tool','Step 2','#8b5cf6')">
                     <div class="card-top"><div class="card-step">Step 2</div><div class="card-role" id="card2Role"></div></div><div class="card-icon">📊</div>
                     <h2>MOP Scoring Tool</h2><p id="card2Desc"></p><span class="card-link" id="card2Link"></span>
                 </div>
-                <div class="card" onclick="requirePw('afc')">
+                <div class="card" onclick="isPwOn('afc')?requirePw('afc'):openAFC()">
                     <div class="card-top"><div class="card-step">Step 3</div><div class="card-role" id="card3Role"></div></div><div class="card-icon">✅</div>
                     <h2 id="card3Title">AFI Readiness Checklist</h2><p id="card3Desc"></p><span class="card-link" id="card3Link"></span>
                 </div>
@@ -366,7 +366,7 @@
                     <h2 id="card4Title">Project Portfolio Board</h2><p id="card4Desc"></p>
                     <div style="display:flex;gap:8px;margin-top:12px">
                         <button onclick="event.stopPropagation();openPortfolioGuest()" style="flex:1;padding:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#cbd5e1;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">👁️ <span id="card4Guest">Guest</span></button>
-                        <button onclick="event.stopPropagation();requirePw('portfolio')" style="flex:1;padding:8px 0;border-radius:8px;border:1px solid rgba(245,158,11,0.3);background:rgba(245,158,11,0.1);color:#f59e0b;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'">🔑 <span id="card4Admin">Admin</span></button>
+                        <button onclick="event.stopPropagation();isPwOn('portfolio')?requirePw('portfolio'):openPortfolio()" style="flex:1;padding:8px 0;border-radius:8px;border:1px solid rgba(245,158,11,0.3);background:rgba(245,158,11,0.1);color:#f59e0b;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'">🔑 <span id="card4Admin">Admin</span></button>
                     </div>
                 </div>
             </div>
@@ -399,24 +399,53 @@
         <div class="pw-modal" style="width:460px;">
             <div class="pw-icon">⚙️</div>
             <div class="pw-title">MOP Settings</div>
-            <div style="text-align:left;margin-bottom:16px;background:#0f2040;border:1px solid #1e3a5f;border-radius:8px;padding:12px 14px;">
-                <div style="font-size:0.75rem;font-weight:600;color:#60a5fa;margin-bottom:4px;">📧 이메일 자동 발송</div>
-                <div style="font-size:0.72rem;color:#94a3b8;line-height:1.6;">Submission 완료 시 <strong style="color:#e2e8f0;">작성자</strong>와 <strong style="color:#e2e8f0;">관리자(jake@medit.com)</strong>에게<br>자동으로 확인 이메일이 발송됩니다.</div>
+            <!-- Admin Email Management -->
+            <div style="text-align:left;margin-bottom:16px;">
+                <label style="font-size:0.8rem;font-weight:600;color:#94a3b8;display:block;margin-bottom:8px;">📧 관리자 알림 이메일</label>
+                <div id="adminEmailList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
+                <div style="display:flex;gap:6px;">
+                    <input type="email" id="adminEmailInput" placeholder="추가할 이메일 입력"
+                        style="flex:1;padding:7px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.82rem;outline:none;font-family:inherit;"
+                        onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#2d3a4f'"
+                        onkeydown="if(event.key==='Enter')addAdminEmail()" />
+                    <button onclick="addAdminEmail()" style="padding:7px 14px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:0.82rem;font-weight:600;cursor:pointer;">+ 추가</button>
+                </div>
+                <div style="font-size:0.7rem;color:#64748b;margin-top:5px;">MOP 제출 및 AFC 결과 알림이 위 주소로 발송됩니다.</div>
             </div>
             <div style="text-align:left;margin-bottom:16px;">
-                <label style="font-size:0.8rem;font-weight:600;color:#94a3b8;display:block;margin-bottom:10px;">Password (Step별 개별 설정)</label>
-                <div style="display:flex;flex-direction:column;gap:8px">
-                    <div style="display:flex;align-items:center;gap:10px">
-                        <span style="font-size:0.75rem;font-weight:600;color:#8b5cf6;min-width:56px">Step 2</span>
-                        <input type="text" id="settingsPwScoring" class="pw-input" style="letter-spacing:2px;font-size:0.85rem;text-align:center;flex:1" placeholder="1111" />
+                <label style="font-size:0.8rem;font-weight:600;color:#94a3b8;display:block;margin-bottom:10px;">🔒 Password (Step별 개별 설정)</label>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:0.75rem;font-weight:600;color:#3b82f6;min-width:52px;">Step 1</span>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
+                            <input type="checkbox" id="pwOnForm" onchange="togglePwInput('Form',this.checked)" style="width:15px;height:15px;cursor:pointer;" />
+                            <span id="pwOnFormLabel" style="font-size:0.72rem;color:#64748b;min-width:22px;"></span>
+                        </label>
+                        <input type="text" id="settingsPwForm" class="pw-input" style="letter-spacing:2px;font-size:0.85rem;text-align:center;flex:1;" placeholder="1111" />
                     </div>
-                    <div style="display:flex;align-items:center;gap:10px">
-                        <span style="font-size:0.75rem;font-weight:600;color:#10b981;min-width:56px">Step 3</span>
-                        <input type="text" id="settingsPwAfc" class="pw-input" style="letter-spacing:2px;font-size:0.85rem;text-align:center;flex:1" placeholder="1111" />
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:0.75rem;font-weight:600;color:#8b5cf6;min-width:52px;">Step 2</span>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
+                            <input type="checkbox" id="pwOnScoring" onchange="togglePwInput('Scoring',this.checked)" style="width:15px;height:15px;cursor:pointer;" />
+                            <span id="pwOnScoringLabel" style="font-size:0.72rem;color:#64748b;min-width:22px;"></span>
+                        </label>
+                        <input type="text" id="settingsPwScoring" class="pw-input" style="letter-spacing:2px;font-size:0.85rem;text-align:center;flex:1;" placeholder="1111" />
                     </div>
-                    <div style="display:flex;align-items:center;gap:10px">
-                        <span style="font-size:0.75rem;font-weight:600;color:#f59e0b;min-width:56px">Step 4</span>
-                        <input type="text" id="settingsPwPortfolio" class="pw-input" style="letter-spacing:2px;font-size:0.85rem;text-align:center;flex:1" placeholder="1111" />
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:0.75rem;font-weight:600;color:#10b981;min-width:52px;">Step 3</span>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
+                            <input type="checkbox" id="pwOnAfc" onchange="togglePwInput('Afc',this.checked)" style="width:15px;height:15px;cursor:pointer;" />
+                            <span id="pwOnAfcLabel" style="font-size:0.72rem;color:#64748b;min-width:22px;"></span>
+                        </label>
+                        <input type="text" id="settingsPwAfc" class="pw-input" style="letter-spacing:2px;font-size:0.85rem;text-align:center;flex:1;" placeholder="1111" />
+                    </div>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span style="font-size:0.75rem;font-weight:600;color:#f59e0b;min-width:52px;">Step 4</span>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
+                            <input type="checkbox" id="pwOnPortfolio" onchange="togglePwInput('Portfolio',this.checked)" style="width:15px;height:15px;cursor:pointer;" />
+                            <span id="pwOnPortfolioLabel" style="font-size:0.72rem;color:#64748b;min-width:22px;"></span>
+                        </label>
+                        <input type="text" id="settingsPwPortfolio" class="pw-input" style="letter-spacing:2px;font-size:0.85rem;text-align:center;flex:1;" placeholder="1111" />
                     </div>
                 </div>
             </div>
@@ -562,32 +591,102 @@
         setTimeout(sendPortfolioData, 1500);
     }
     /* ── Password Protection ── */
-    var TOOL_PW_SCORING = localStorage.getItem('mop_pw_scoring') || '1111';
-    var TOOL_PW_AFC = localStorage.getItem('mop_pw_afc') || '1111';
-    var TOOL_PW_PORTFOLIO = localStorage.getItem('mop_pw_portfolio') || '1111';
+    var TOOL_PW_FORM     = localStorage.getItem('mop_pw_form')     || '1111';
+    var TOOL_PW_SCORING  = localStorage.getItem('mop_pw_scoring')  || '1111';
+    var TOOL_PW_AFC      = localStorage.getItem('mop_pw_afc')      || '1111';
+    var TOOL_PW_PORTFOLIO= localStorage.getItem('mop_pw_portfolio')|| '1111';
+    var PW_ON_FORM       = localStorage.getItem('mop_pw_on_form')      !== 'false';
+    var PW_ON_SCORING    = localStorage.getItem('mop_pw_on_scoring')   !== 'false';
+    var PW_ON_AFC        = localStorage.getItem('mop_pw_on_afc')       !== 'false';
+    var PW_ON_PORTFOLIO  = localStorage.getItem('mop_pw_on_portfolio') !== 'false';
     var pwPending = null; // stores which tool to open after auth
 
     var SETTINGS_PW = 'medit';
+    var _adminEmails = (function() {
+        try { var s = localStorage.getItem('mop_admin_emails'); return s ? JSON.parse(s) : ['jake@medit.com']; } catch(e) { return ['jake@medit.com']; }
+    })();
+    function getAdminEmailsStr() { return _adminEmails.join(','); }
+
+    function renderAdminEmailList() {
+        var el = document.getElementById('adminEmailList');
+        if (!el) return;
+        if (_adminEmails.length === 0) {
+            el.innerHTML = '<div style="font-size:0.75rem;color:#64748b;padding:6px 0;">등록된 이메일 없음</div>';
+            return;
+        }
+        el.innerHTML = _adminEmails.map(function(email, i) {
+            return '<div style="display:flex;align-items:center;justify-content:space-between;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;padding:6px 10px;">'
+                + '<span style="font-size:0.82rem;color:#e2e8f0;">📧 ' + email + '</span>'
+                + '<button onclick="removeAdminEmail(' + i + ')" style="background:rgba(239,68,68,0.15);color:#ef4444;border:1px solid rgba(239,68,68,0.25);border-radius:5px;padding:2px 8px;font-size:0.72rem;cursor:pointer;">삭제</button>'
+                + '</div>';
+        }).join('');
+    }
+    function addAdminEmail() {
+        var input = document.getElementById('adminEmailInput');
+        var email = input ? input.value.trim() : '';
+        if (!email || email.indexOf('@') < 1) { alert('유효한 이메일을 입력하세요.'); return; }
+        if (_adminEmails.indexOf(email) >= 0) { alert('이미 등록된 이메일입니다.'); return; }
+        _adminEmails.push(email);
+        if (input) input.value = '';
+        renderAdminEmailList();
+    }
+    function removeAdminEmail(i) {
+        _adminEmails.splice(i, 1);
+        renderAdminEmailList();
+    }
+
+    function togglePwInput(k, on) {
+        var lbl = document.getElementById('pwOn'+k+'Label');
+        var inp = document.getElementById('settingsPw'+k);
+        if(lbl){ lbl.textContent = on?'ON':'OFF'; lbl.style.color = on?'#10b981':'#64748b'; }
+        if(inp){ inp.disabled = !on; inp.style.opacity = on?'1':'0.35'; }
+    }
     function openSettings() {
         var pw = prompt(currentLang === 'ko' ? 'Settings 비밀번호를 입력하세요:' : 'Enter Settings password:');
         if (pw !== SETTINGS_PW) {
             if (pw !== null) alert(currentLang === 'ko' ? '비밀번호가 틀립니다.' : 'Incorrect password.');
             return;
         }
+        document.getElementById('settingsPwForm').value = TOOL_PW_FORM;
         document.getElementById('settingsPwScoring').value = TOOL_PW_SCORING;
         document.getElementById('settingsPwAfc').value = TOOL_PW_AFC;
         document.getElementById('settingsPwPortfolio').value = TOOL_PW_PORTFOLIO;
+        ['Form','Scoring','Afc','Portfolio'].forEach(function(k) {
+            var on = k==='Form'?PW_ON_FORM:k==='Scoring'?PW_ON_SCORING:k==='Afc'?PW_ON_AFC:PW_ON_PORTFOLIO;
+            var cb = document.getElementById('pwOn'+k);
+            var lbl = document.getElementById('pwOn'+k+'Label');
+            var inp = document.getElementById('settingsPw'+k);
+            if(cb) cb.checked = on;
+            if(lbl) lbl.textContent = on ? 'ON' : 'OFF';
+            if(lbl) lbl.style.color = on ? '#10b981' : '#64748b';
+            if(inp) inp.disabled = !on;
+            if(inp) inp.style.opacity = on ? '1' : '0.35';
+        });
+        renderAdminEmailList();
         document.getElementById('settingsOverlay').classList.add('active');
     }
     function closeSettings() { document.getElementById('settingsOverlay').classList.remove('active'); }
     function saveSettings() {
+        var pw1 = document.getElementById('settingsPwForm').value.trim() || '1111';
         var pw2 = document.getElementById('settingsPwScoring').value.trim() || '1111';
         var pw3 = document.getElementById('settingsPwAfc').value.trim() || '1111';
         var pw4 = document.getElementById('settingsPwPortfolio').value.trim() || '1111';
+        var on1 = document.getElementById('pwOnForm').checked;
+        var on2 = document.getElementById('pwOnScoring').checked;
+        var on3 = document.getElementById('pwOnAfc').checked;
+        var on4 = document.getElementById('pwOnPortfolio').checked;
+        localStorage.setItem('mop_pw_form', pw1);
         localStorage.setItem('mop_pw_scoring', pw2);
         localStorage.setItem('mop_pw_afc', pw3);
         localStorage.setItem('mop_pw_portfolio', pw4);
-        TOOL_PW_SCORING = pw2; TOOL_PW_AFC = pw3; TOOL_PW_PORTFOLIO = pw4;
+        localStorage.setItem('mop_pw_on_form', on1);
+        localStorage.setItem('mop_pw_on_scoring', on2);
+        localStorage.setItem('mop_pw_on_afc', on3);
+        localStorage.setItem('mop_pw_on_portfolio', on4);
+        TOOL_PW_FORM=pw1; TOOL_PW_SCORING=pw2; TOOL_PW_AFC=pw3; TOOL_PW_PORTFOLIO=pw4;
+        PW_ON_FORM=on1; PW_ON_SCORING=on2; PW_ON_AFC=on3; PW_ON_PORTFOLIO=on4;
+        // 관리자 이메일 저장
+        localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails));
         document.getElementById('settingsOverlay').classList.remove('active');
     }
     function clearAllData() {
@@ -603,6 +702,10 @@
     }
 
     var pwInfo = {
+        form: {
+            en: { title: 'MOP Submission Form', desc: 'Please enter the password to access the submission form.' },
+            ko: { title: 'MOP 제출 양식', desc: '비밀번호를 입력하여 제출 양식에 접속하세요.' }
+        },
         scoring: {
             en: { title: 'MOP Scoring Tool', desc: 'This step is managed by <strong>Regional Marketing Director</strong>.<br>Please enter the password to access the scoring tool.' },
             ko: { title: 'MOP Scoring Tool', desc: '이 단계는 <strong>Regional Marketing Director</strong>가 관리합니다.<br>비밀번호를 입력하여 평가 도구에 접속하세요.' }
@@ -639,10 +742,18 @@
     }
 
     function getToolPw(key) {
-        if (key === 'scoring') return TOOL_PW_SCORING;
-        if (key === 'afc') return TOOL_PW_AFC;
-        if (key === 'portfolio') return TOOL_PW_PORTFOLIO;
+        if (key === 'form')     return TOOL_PW_FORM;
+        if (key === 'scoring')  return TOOL_PW_SCORING;
+        if (key === 'afc')      return TOOL_PW_AFC;
+        if (key === 'portfolio')return TOOL_PW_PORTFOLIO;
         return '1111';
+    }
+    function isPwOn(key) {
+        if (key === 'form')     return PW_ON_FORM;
+        if (key === 'scoring')  return PW_ON_SCORING;
+        if (key === 'afc')      return PW_ON_AFC;
+        if (key === 'portfolio')return PW_ON_PORTFOLIO;
+        return false;
     }
     function submitPw() {
         var val = document.getElementById('pwInput').value;
@@ -651,7 +762,8 @@
             var key = pwPending;
             pwPending = null;
             pwTargetUrl = null;
-            if (key === 'scoring') openToolWithSync('scoring','MOP Scoring Tool','Step 2','#8b5cf6');
+            if (key === 'form') openTool('form','MOP Submission Form','Step 1','#3b82f6');
+            else if (key === 'scoring') openToolWithSync('scoring','MOP Scoring Tool','Step 2','#8b5cf6');
             else if (key === 'afc') openAFC();
             else if (key === 'portfolio') openPortfolio();
         } else {
@@ -812,6 +924,7 @@
                 console.log('All fields:', Object.keys(emailBody));
                 console.log('Posting to:', url);
 
+                emailBody.adminTo = getAdminEmailsStr();
                 gasPost(url, emailBody,
                     function(j){
                         console.log('✓ MOP Email Response:', j);
@@ -962,7 +1075,8 @@
                     subject: '[MOP AFC] ' + _title + ' — ' + _gateEmoji + ' ' + _gateText,
                     htmlBody: reviewerHtml,
                     textBody: 'Hi ' + _reviewer + ', AFC Review Complete: ' + _gateEmoji + ' ' + _gateText + ' | ' + _title,
-                    // 관리자에게
+                    // 관리자에게 (Settings에서 설정된 이메일 사용)
+                    adminTo: getAdminEmailsStr(),
                     adminSubject: '[MOP AFC 관리자] ' + _title + ' — ' + _gateEmoji + ' ' + _gateText,
                     adminHtml: adminHtml,
                     adminText: 'AFC Review Finalized by ' + _reviewer + ': ' + _gateText + ' | ' + _title
