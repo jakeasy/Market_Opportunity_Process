@@ -838,6 +838,20 @@
             mopReviews = event.data.payload || [];
             saveReviews();
         }
+        if (event.data && event.data.type === 'mop-afc-finalize-email') {
+            var url = getAppsScriptUrl();
+            var ep = event.data.payload;
+            if (url && ep) {
+                console.log('=== AFC Finalize Email ===');
+                console.log('To (reviewer):', ep.reviewerEmail);
+                console.log('Gate:', ep.gateLabel);
+                console.log('Title:', ep.title);
+                gasPost(url, ep,
+                    function(j){ console.log('✓ AFC email sent:', j); },
+                    function(e){ console.error('✗ AFC email error:', e); }
+                );
+            }
+        }
         if (event.data && event.data.type === 'mop-afc-state-save') {
             mopAfcState = event.data.payload;
             try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(e) {}
