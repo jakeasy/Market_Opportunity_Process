@@ -844,28 +844,114 @@
             if (url && ep && ep.reviewerEmail && ep.reviewerEmail.indexOf('@') > 0) {
                 console.log('=== AFC Finalize Email ===');
                 console.log('Reviewer:', ep.reviewer, '→', ep.reviewerEmail);
-                console.log('Gate:', ep.gateLabel, '| Title:', ep.title);
-                // Use the confirmed-working 'email' type handler so no Apps Script redeploy is needed.
-                // ep.reviewerEmail → sendSubmitterEmail (to field), ep.reviewer → submitter name
-                var gateIcon = ep.gate === 'go' ? '✅ GO' : ep.gate === 'conditional' ? '⚠️ Conditional' : '🚫 No-Go';
+                console.log('Gate:', ep.gate, '|', ep.gateLabel, '| Title:', ep.title);
+
+                var _gate      = ep.gate || 'go';
+                var _gateLabel = _gate === 'go' ? 'GO — Approved' : _gate === 'conditional' ? 'Conditional — Proceed with Actions' : 'NO GO — Deferred';
+                var _gateEmoji = _gate === 'go' ? '✅' : _gate === 'conditional' ? '⚠️' : '🚫';
+                var _gateText  = _gate === 'go' ? 'GO' : _gate === 'conditional' ? 'Conditional' : 'No-Go';
+                var _gateColor = _gate === 'go' ? '#059669' : _gate === 'conditional' ? '#d97706' : '#dc2626';
+                var _gateBg    = _gate === 'go' ? '#ecfdf5' : _gate === 'conditional' ? '#fffbeb' : '#fef2f2';
+                var _gateBdr   = _gate === 'go' ? '#a7f3d0' : _gate === 'conditional' ? '#fde68a' : '#fecaca';
+                var _gateMsg   = _gate === 'go'
+                    ? 'The project has passed all readiness criteria and is <strong>approved to proceed</strong>.'
+                    : _gate === 'conditional'
+                    ? 'The project may <strong>proceed conditionally</strong>. Please complete the required action items.'
+                    : 'The project has been <strong>deferred (No-Go)</strong>. Further preparation is required before re-evaluation.';
+                var _reviewer  = ep.reviewer || 'Reviewer';
+                var _title     = ep.title || '';
+                var _pct       = ep.pct != null ? ep.pct + '%' : '-';
+                var _date      = new Date().toLocaleDateString('ko-KR');
+
+                // ── 리뷰어 이메일 HTML (AFC 결과) ──────────────────────────
+                var reviewerHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
+                    + '<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background-color:#f0f2f5;">'
+                    + '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0f2f5;padding:24px 16px;">'
+                    + '<tr><td align="center">'
+                    + '<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">'
+                    // Header — gate color
+                    + '<tr><td bgcolor="' + _gateColor + '" style="background-color:' + _gateColor + ';padding:28px 28px 20px;text-align:center;border-radius:12px 12px 0 0;">'
+                    + '<div style="font-size:11px;letter-spacing:3px;color:rgba(255,255,255,0.75);font-weight:600;margin-bottom:8px;">MEDIT DIGITAL SOLUTIONS</div>'
+                    + '<div style="font-size:38px;margin-bottom:6px;">' + _gateEmoji + '</div>'
+                    + '<div style="font-size:22px;font-weight:700;color:#ffffff;margin-bottom:4px;">AFC Review Complete</div>'
+                    + '<div style="font-size:13px;color:rgba(255,255,255,0.8);">AFC Readiness Checklist — Review Result</div>'
+                    + '</td></tr>'
+                    // Gate result banner
+                    + '<tr><td bgcolor="' + _gateBg + '" style="background-color:' + _gateBg + ';padding:16px 28px;border-left:4px solid ' + _gateColor + ';border-right:1px solid ' + _gateBdr + ';border-bottom:1px solid ' + _gateBdr + ';">'
+                    + '<p style="margin:0;font-size:15px;font-weight:700;color:' + _gateColor + ';">' + _gateEmoji + ' ' + _gateLabel + '</p>'
+                    + '</td></tr>'
+                    // Body
+                    + '<tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:28px;border-radius:0 0 12px 12px;">'
+                    + '<p style="font-size:14px;color:#374151;line-height:1.7;margin:0 0 20px 0;">'
+                    + 'Hi <strong>' + _reviewer + '</strong>,<br><br>'
+                    + _gateMsg
+                    + '</p>'
+                    + '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:20px;">'
+                    + '<tr><td style="padding:20px;">'
+                    + '<p style="font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin:0 0 12px 0;">Review Summary</p>'
+                    + '<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+                    + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;border-bottom:1px solid #f3f4f6;width:38%;">Project</td><td style="padding:7px 0;font-size:13px;color:#111827;font-weight:500;border-bottom:1px solid #f3f4f6;">' + _title + '</td></tr>'
+                    + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;border-bottom:1px solid #f3f4f6;">Gate Result</td><td style="padding:7px 0;font-size:13px;font-weight:700;color:' + _gateColor + ';border-bottom:1px solid #f3f4f6;">' + _gateEmoji + ' ' + _gateText + '</td></tr>'
+                    + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;border-bottom:1px solid #f3f4f6;">Readiness</td><td style="padding:7px 0;font-size:13px;color:#111827;font-weight:500;border-bottom:1px solid #f3f4f6;">' + _pct + '</td></tr>'
+                    + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;">Date</td><td style="padding:7px 0;font-size:13px;color:#111827;font-weight:500;">' + _date + '</td></tr>'
+                    + '</table></td></tr></table>'
+                    + '<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="background-color:' + _gateBg + ';border-left:4px solid ' + _gateColor + ';padding:12px 16px;font-size:12px;color:#374151;line-height:1.6;">'
+                    + 'This is an automated AFC result notification from the MOP System.'
+                    + '</td></tr></table>'
+                    + '</td></tr>'
+                    + '<tr><td style="text-align:center;padding:16px 0;font-size:11px;color:#9ca3af;">MEDIT MOP System — Automated Notification</td></tr>'
+                    + '</table></td></tr></table></body></html>';
+
+                // ── 관리자 이메일 HTML (AFC 결과 알림) ────────────────────
+                var adminHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
+                    + '<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background-color:#f0f2f5;">'
+                    + '<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f0f2f5;padding:24px 16px;">'
+                    + '<tr><td align="center">'
+                    + '<table width="600" cellpadding="0" cellspacing="0" border="0" style="max-width:600px;width:100%;">'
+                    // Header — dark slate + ADMIN badge
+                    + '<tr><td bgcolor="#1e293b" style="background-color:#1e293b;padding:28px 28px 20px;text-align:center;border-radius:12px 12px 0 0;">'
+                    + '<div style="display:inline-block;background:#334155;border:1px solid #475569;border-radius:20px;padding:3px 14px;font-size:10px;letter-spacing:2px;color:#94a3b8;font-weight:700;margin-bottom:12px;">ADMIN NOTIFICATION</div>'
+                    + '<div style="font-size:11px;letter-spacing:3px;color:#64748b;font-weight:600;margin-bottom:6px;">MEDIT DIGITAL SOLUTIONS</div>'
+                    + '<div style="font-size:22px;font-weight:700;color:#f1f5f9;margin-bottom:4px;">AFC Review Finalized</div>'
+                    + '<div style="font-size:13px;color:#94a3b8;">AFC Readiness Checklist — Admin Report</div>'
+                    + '</td></tr>'
+                    // Gate banner
+                    + '<tr><td bgcolor="' + _gateBg + '" style="background-color:' + _gateBg + ';padding:14px 28px;text-align:center;border-left:4px solid ' + _gateColor + ';">'
+                    + '<span style="font-size:18px;font-weight:800;color:' + _gateColor + ';">' + _gateEmoji + ' ' + _gateLabel + '</span>'
+                    + '</td></tr>'
+                    // Body
+                    + '<tr><td bgcolor="#ffffff" style="background-color:#ffffff;padding:28px;border-radius:0 0 12px 12px;">'
+                    + '<p style="font-size:14px;color:#374151;margin:0 0 20px 0;">'
+                    + 'Reviewer <strong>' + _reviewer + '</strong> has finalized the AFC Readiness Check.'
+                    + '</p>'
+                    + '<table width="100%" cellpadding="0" cellspacing="0" border="0">'
+                    + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;border-bottom:1px solid #f3f4f6;width:38%;">Project</td><td style="padding:7px 0;font-size:13px;color:#111827;font-weight:500;border-bottom:1px solid #f3f4f6;">' + _title + '</td></tr>'
+                    + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;border-bottom:1px solid #f3f4f6;">Reviewer</td><td style="padding:7px 0;font-size:13px;color:#111827;font-weight:500;border-bottom:1px solid #f3f4f6;">' + _reviewer + '</td></tr>'
+                    + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;border-bottom:1px solid #f3f4f6;">Reviewer Email</td><td style="padding:7px 0;font-size:13px;color:#111827;font-weight:500;border-bottom:1px solid #f3f4f6;">' + ep.reviewerEmail + '</td></tr>'
+                    + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;border-bottom:1px solid #f3f4f6;">Gate Result</td><td style="padding:7px 0;font-size:13px;font-weight:700;color:' + _gateColor + ';border-bottom:1px solid #f3f4f6;">' + _gateEmoji + ' ' + _gateLabel + '</td></tr>'
+                    + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;border-bottom:1px solid #f3f4f6;">Readiness</td><td style="padding:7px 0;font-size:13px;color:#111827;font-weight:500;border-bottom:1px solid #f3f4f6;">' + _pct + '</td></tr>'
+                    + '<tr><td style="padding:7px 0;font-size:12px;color:#6b7280;font-weight:600;">Date</td><td style="padding:7px 0;font-size:13px;color:#111827;font-weight:500;">' + _date + '</td></tr>'
+                    + '</table>'
+                    + '</td></tr>'
+                    + '<tr><td style="text-align:center;padding:16px 0;font-size:11px;color:#9ca3af;">MEDIT MOP System — Admin Automated Notification</td></tr>'
+                    + '</table></td></tr></table></body></html>';
+
                 var afcPayload = {
-                    type: 'email',
-                    isAfc: true,
-                    gate: ep.gate || 'go',
-                    gateLabel: ep.gateLabel || ep.gate || '',
-                    email: ep.reviewerEmail,
+                    type: 'custom-email',
+                    // 리뷰어에게
                     to: ep.reviewerEmail,
-                    recipientEmail: ep.reviewerEmail,
-                    submitter: ep.reviewer || 'Reviewer',
-                    title: ep.title || '',
-                    requestType: 'AFC Readiness Check — ' + gateIcon,
-                    region: (ep.pct != null ? ep.pct + '% Ready' : 'Review Complete'),
-                    date: new Date().toLocaleDateString('ko-KR'),
-                    submissionId: ep.submissionId || ''
+                    subject: '[MOP AFC] ' + _title + ' — ' + _gateEmoji + ' ' + _gateText,
+                    htmlBody: reviewerHtml,
+                    textBody: 'Hi ' + _reviewer + ', AFC Review Complete: ' + _gateEmoji + ' ' + _gateText + ' | ' + _title,
+                    // 관리자에게
+                    adminSubject: '[MOP AFC 관리자] ' + _title + ' — ' + _gateEmoji + ' ' + _gateText,
+                    adminHtml: adminHtml,
+                    adminText: 'AFC Review Finalized by ' + _reviewer + ': ' + _gateText + ' | ' + _title
                 };
+                console.log('AFC email payload ready. Reviewer:', ep.reviewerEmail, 'Gate:', _gateText);
                 gasPost(url, afcPayload,
-                    function(j){ console.log('✓ AFC email sent to reviewer:', j); },
-                    function(e){ console.error('✗ AFC email error:', e); }
+                    function(j){ console.log('✓ AFC custom-email sent:', JSON.stringify(j)); },
+                    function(e){ console.error('✗ AFC custom-email error:', e); }
                 );
             } else {
                 console.warn('AFC email skipped — reviewerEmail missing or invalid:', ep && ep.reviewerEmail);
