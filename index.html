@@ -850,6 +850,9 @@
                 var gateIcon = ep.gate === 'go' ? '✅ GO' : ep.gate === 'conditional' ? '⚠️ Conditional' : '🚫 No-Go';
                 var afcPayload = {
                     type: 'email',
+                    isAfc: true,
+                    gate: ep.gate || 'go',
+                    gateLabel: ep.gateLabel || ep.gate || '',
                     email: ep.reviewerEmail,
                     to: ep.reviewerEmail,
                     recipientEmail: ep.reviewerEmail,
