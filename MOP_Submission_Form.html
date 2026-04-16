@@ -1,0 +1,1691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOP Submission Form - Medit</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-blue: #3b82f6;
+            --primary-blue-hover: #2563eb;
+            --text-heading: #f0f2f5;
+            --text-body: #cbd5e1;
+            --text-secondary: #64748b;
+            --background-main: #111827;
+            --background-section: #0f1525;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --success-color: #34d399;
+            --error-color: #ef4444;
+            --shadow-subtle: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: var(--text-body);
+            background-color: var(--background-section);
+            position: relative;
+        }
+
+        /* Clean, minimal background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: var(--background-section);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        body::after {
+            display: none;
+        }
+
+        /* Header */
+        header {
+            background: var(--background-main);
+            color: var(--text-heading);
+            padding: 3rem 2rem;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-30px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        header .medit-brand {
+            font-size: 0.875rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            color: var(--primary-blue);
+        }
+
+        header h1 {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            letter-spacing: -0.5px;
+            color: var(--text-heading);
+        }
+
+        header p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Main container - grid layout */
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+            display: grid;
+            grid-template-columns: 1fr 280px;
+            gap: 28px;
+            align-items: start;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: sticky;
+            top: 20px;
+            align-self: start;
+            animation: fadeIn 1s ease-out 0.3s both;
+        }
+
+        .sidebar-card {
+            background: var(--background-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 16px;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .sidebar-card-label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+
+        .progress-circle-wrap {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 12px;
+        }
+
+        .progress-circle {
+            position: relative;
+            width: 120px;
+            height: 120px;
+        }
+
+        .progress-circle svg {
+            transform: rotate(-90deg);
+            width: 120px;
+            height: 120px;
+        }
+
+        .progress-circle .bg {
+            fill: none;
+            stroke: var(--border-color);
+            stroke-width: 8;
+        }
+
+        .progress-circle .fg {
+            fill: none;
+            stroke: var(--primary-blue);
+            stroke-width: 8;
+            stroke-linecap: round;
+            stroke-dasharray: 326.7;
+            stroke-dashoffset: 326.7;
+            transition: stroke-dashoffset 0.5s ease;
+        }
+
+        .progress-circle .progress-pct {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-blue);
+        }
+
+        .progress-circle .progress-pct-sign {
+            font-size: 0.9rem;
+            font-weight: 400;
+            color: var(--text-secondary);
+        }
+
+        .field-checklist {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .field-checklist li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 0;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .field-checklist li:last-child {
+            border-bottom: none;
+        }
+
+        .field-checklist li.done {
+            color: var(--success-color);
+        }
+
+        .field-check-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.65rem;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+        }
+
+        .field-checklist li.done .field-check-icon {
+            background: var(--success-color);
+            border-color: var(--success-color);
+            color: white;
+        }
+
+        /* Form */
+        form {
+            background: var(--background-main);
+            border-radius: 8px;
+            box-shadow: var(--shadow-subtle);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            animation: fadeIn 1s ease-out 0.6s both;
+        }
+
+        /* Form sections */
+        .form-section {
+            padding: 2.5rem;
+            border-bottom: 1px solid var(--border-color);
+            animation: slideUp 0.6s ease-out both;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-number {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 50px;
+            height: 50px;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: 50%;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .section-title {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: var(--text-heading);
+            margin: 0;
+        }
+
+        /* Form groups */
+        .form-group {
+            margin-bottom: 2rem;
+        }
+
+        .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            color: var(--text-heading);
+            font-size: 0.95rem;
+        }
+
+        label.required::after {
+            content: ' *';
+            color: var(--error-color);
+        }
+
+        input[type="text"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            color: var(--text-body);
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #1a2235;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        select:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        textarea::-webkit-scrollbar { width:8px; }
+        textarea::-webkit-scrollbar-track { background:#1a2235;border-radius:4px; }
+        textarea::-webkit-scrollbar-thumb { background:#334155;border-radius:4px; }
+        textarea::-webkit-scrollbar-thumb:hover { background:#475569; }
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'DM Sans', sans-serif;
+            scrollbar-color:#334155 #1a2235;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23cbd5e1' d='M10.293 3.293L6 7.586 1.707 3.293A1 1 0 00.293 4.707l5 5a1 1 0 001.414 0l5-5a1 1 0 10-1.414-1.414z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 2.5rem;
+        }
+
+        .helper-text {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            line-height: 1.5;
+        }
+
+        .char-count {
+            display: block;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 0.5rem;
+            text-align: right;
+        }
+
+        .char-count.warning {
+            color: #ff9800;
+            font-weight: 500;
+        }
+
+        .char-count.critical {
+            color: var(--error-color);
+            font-weight: 500;
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            font-family: inherit;
+            font-size: 0.95rem;
+            color: var(--text-body);
+            background: #1a2235;
+            transition: border-color 0.2s;
+        }
+        .form-select option {
+            background: #1a2235;
+            color: #cbd5e1;
+        }
+        .form-select:focus {
+            outline: none;
+            border-color: var(--primary-blue);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+        }
+
+        .file-attach-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border: 1px dashed var(--border-color);
+            border-radius: var(--radius-sm);
+            font-size: 0.88rem;
+            color: var(--primary-blue);
+            background: transparent;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .file-attach-btn:hover {
+            background: rgba(59, 130, 246, 0.1);
+            border-color: var(--primary-blue);
+        }
+        .file-list {
+            margin-top: 6px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .file-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: #0f1525;
+            border-radius: 6px;
+            font-size: 0.84rem;
+        }
+        .file-item a {
+            color: var(--primary-blue);
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .file-item a:hover { text-decoration: underline; }
+        .file-item .file-remove {
+            color: #ef4444;
+            cursor: pointer;
+            font-weight: 700;
+            margin-left: 4px;
+        }
+
+        /* Radio button groups */
+        .radio-group {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: var(--primary-blue);
+        }
+
+        .radio-option label {
+            margin: 0;
+            cursor: pointer;
+            font-weight: 400;
+        }
+
+        /* Conditional sections */
+        .conditional-section {
+            display: none;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border-color);
+            animation: slideDown 0.3s ease-out;
+        }
+
+        .conditional-section.visible {
+            display: block;
+        }
+
+        /* Button group */
+        .button-group {
+            padding: 2.5rem;
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            background: var(--background-section);
+            border-top: 1px solid var(--border-color);
+        }
+
+        button {
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 500;
+            padding: 0.875rem 2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-submit {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .btn-submit:hover {
+            background: var(--primary-blue-hover);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+
+        /* Footer */
+        footer {
+            background: var(--background-main);
+            color: var(--text-heading);
+            padding: 2rem;
+            text-align: center;
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border-color);
+            animation: fadeIn 1.5s ease-out;
+        }
+
+        footer p {
+            margin: 0.25rem 0;
+            color: var(--text-body);
+        }
+
+        .footer-date {
+            color: var(--primary-blue);
+            font-weight: 500;
+        }
+
+        /* Validation styles */
+        input.error,
+        textarea.error,
+        select.error {
+            border-color: var(--error-color);
+            background: rgba(229, 57, 53, 0.02);
+        }
+
+        .error-message {
+            display: block;
+            color: var(--error-color);
+            font-size: 0.85rem;
+            margin-top: 0.5rem;
+            font-weight: 500;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .error-banner {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid var(--error-color);
+            border-left: 4px solid var(--error-color);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin: 0 2rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .error-banner-icon {
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .error-banner-text {
+            color: var(--error-color);
+            font-size: 0.95rem;
+            font-weight: 500;
+            line-height: 1.5;
+        }
+
+        input.success,
+        textarea.success,
+        select.success {
+            border-color: var(--success-color);
+        }
+
+        /* Language toggle */
+        .lang-toggle {
+            position: fixed;
+            top: 20px;
+            right: 24px;
+            z-index: 200;
+            display: flex;
+            background: var(--background-main);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: var(--shadow-subtle);
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 500;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .lang-btn.active {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        .lang-btn:hover {
+            color: var(--text-heading);
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 2rem;
+            }
+
+            header {
+                padding: 2rem 1.5rem;
+            }
+
+            .container {
+                padding: 1.5rem 1rem;
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+
+            .form-section {
+                padding: 1.5rem;
+            }
+
+            .button-group {
+                padding: 1.5rem;
+                flex-direction: column-reverse;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+
+            .radio-group {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            body::before,
+            body::after {
+                display: none;
+            }
+
+            header {
+                background: var(--background-main);
+                color: var(--text-heading);
+                page-break-after: avoid;
+            }
+
+            .sidebar,
+            .button-group,
+            .lang-toggle {
+                display: none;
+            }
+
+            form {
+                box-shadow: none;
+                border: 1px solid var(--border-color);
+            }
+
+            .form-section {
+                page-break-inside: avoid;
+            }
+
+            button {
+                display: none;
+            }
+
+            footer {
+                page-break-before: avoid;
+            }
+        }
+
+        /* Animation for character count changes */
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.6;
+            }
+        }
+
+        .char-count.updating {
+            animation: pulse 0.3s ease-out;
+        }
+
+        .in-iframe .lang-toggle { display: none !important; }
+    </style>
+</head>
+<body>
+    <!-- Language Toggle -->
+    <div class="lang-toggle">
+        <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
+        <button class="lang-btn" id="langKo" onclick="setLang('ko')">한국어</button>
+    </div>
+
+    <header>
+        <div class="medit-brand" id="t-brand">Medit Digital Solutions</div>
+        <h1 id="t-header-title">MOP Submission Form</h1>
+        <p id="t-header-subtitle">Market Opportunity Proposal for Product Advancement</p>
+    </header>
+
+    <div class="container">
+        <form id="mopForm" novalidate>
+            <!-- Section 1: Basic Information -->
+            <div class="form-section">
+                <div class="section-header">
+                    <span class="section-number">1</span>
+                    <h2 class="section-title" id="t-section1-title">Basic Information</h2>
+                </div>
+
+                <div class="form-group">
+                    <label for="opportunityTitle" class="required" id="t-label-oppTitle">Opportunity Title</label>
+                    <input type="text" id="opportunityTitle" name="opportunityTitle" placeholder="Short and specific working title" maxlength="100" required>
+                    <span class="helper-text" id="t-helper-oppTitle">A concise name for this opportunity that captures its essence.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="requestType" class="required" id="t-label-reqType">Request Type</label>
+                    <select id="requestType" name="requestType" required>
+                        <option value="">-- Select a request type --</option>
+                        <option value="new-product" id="t-opt-newproduct">New product</option>
+                        <option value="enhancement" id="t-opt-enhancement">Enhancement</option>
+                        <option value="line-extension" id="t-opt-lineext">Line extension</option>
+                        <option value="strategic-capability" id="t-opt-strategic">Strategic capability</option>
+                        <option value="market-specific" id="t-opt-market">Market-specific request</option>
+                        <option value="other" id="t-opt-other">Other</option>
+                    </select>
+                    <span class="helper-text" id="t-helper-reqType">Categorize the nature of your request.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="division" class="required" id="t-label-division">Region</label>
+                    <select id="division" name="division" required>
+                        <option value="">-- Select a region --</option>
+                        <option value="HQ">HQ</option>
+                        <option value="AMERICA">AMERICA</option>
+                        <option value="APAC">APAC</option>
+                        <option value="EMEA">EMEA</option>
+                        <option value="CHINA">CHINA</option>
+                    </select>
+                    <span class="helper-text" id="t-helper-division">Select the region submitting this request.</span>
+                </div>
+
+                <div class="form-group">
+                    <label class="required" id="t-label-reqOwner">Request Owner</label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                        <input type="text" id="requestOwner" name="requestOwner" placeholder="Name" maxlength="150" required>
+                        <input type="email" id="requestOwnerEmail" name="requestOwnerEmail" placeholder="Email" maxlength="200" required>
+                    </div>
+                    <span class="helper-text" id="t-helper-reqOwner">Who will be the primary contact for follow-up questions?</span>
+                </div>
+            </div>
+
+            <!-- Section 2: Opportunity Definition -->
+            <div class="form-section">
+                <div class="section-header">
+                    <span class="section-number">2</span>
+                    <h2 class="section-title" id="t-section2-title">Opportunity Definition</h2>
+                </div>
+
+                <div class="form-group">
+                    <label for="opportunitySummary" class="required" id="t-label-oppSummary">Opportunity Summary</label>
+                    <textarea id="opportunitySummary" name="opportunitySummary" placeholder="Three to five sentences describing the request in plain language" maxlength="1000" required></textarea>
+                    <span class="char-count"><span class="current-count">0</span> <span id="t-charcount-of">/</span> 1000 <span id="t-charcount-chars">characters</span></span>
+                    <span class="helper-text" id="t-helper-oppSummary">Provide a high-level overview that anyone can quickly understand.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="problemBeingSolved" class="required" id="t-label-problem">Problem Being Solved</label>
+                    <textarea id="problemBeingSolved" name="problemBeingSolved" placeholder="Customer pain point, unmet need, or business opportunity" maxlength="1000" required></textarea>
+                    <span class="char-count"><span class="current-count">0</span> <span id="t-charcount-of2">/</span> 1000 <span id="t-charcount-chars2">characters</span></span>
+                    <span class="helper-text" id="t-helper-problem">Articulate the specific pain point or gap this addresses.</span>
+                </div>
+            </div>
+
+            <!-- Section 3: Market & Customer Context -->
+            <div class="form-section">
+                <div class="section-header">
+                    <span class="section-number">3</span>
+                    <h2 class="section-title" id="t-section3-title">Market & Customer Context</h2>
+                </div>
+
+                <div class="form-group">
+                    <label for="targetCustomer" class="required" id="t-label-targetCust">Target Customer / Segment</label>
+                    <input type="text" id="targetCustomer" name="targetCustomer" placeholder="Specific market, customer type, geography, or installed-base segment" maxlength="200" required>
+                    <span class="helper-text" id="t-helper-targetCust">Be as specific as possible. Who benefits most from this opportunity?</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="strategicRelevance" class="required" id="t-label-strategic">Strategic Relevance</label>
+                    <textarea id="strategicRelevance" name="strategicRelevance" placeholder="Which company priority the opportunity supports and why it matters now" maxlength="800" required></textarea>
+                    <span class="char-count"><span class="current-count">0</span> <span id="t-charcount-of3">/</span> 800 <span id="t-charcount-chars3">characters</span></span>
+                    <span class="helper-text" id="t-helper-strategic">Connect this to our strategic priorities and explain the timing.</span>
+                </div>
+            </div>
+
+            <!-- Section 4: Impact & Evidence -->
+            <div class="form-section">
+                <div class="section-header">
+                    <span class="section-number">4</span>
+                    <h2 class="section-title" id="t-section4-title">Impact & Evidence</h2>
+                </div>
+
+                <div class="form-group">
+                    <label for="growthImpact" class="required" id="t-label-growth">Growth Impact Hypothesis</label>
+                    <textarea id="growthImpact" name="growthImpact" placeholder="Primary growth pathway and directional estimate of impact" maxlength="1000" required></textarea>
+                    <span class="char-count"><span class="current-count">0</span> <span id="t-charcount-of4">/</span> 1000 <span id="t-charcount-chars4">characters</span></span>
+                    <span class="helper-text" id="t-helper-growth">How does this drive revenue, market share, or strategic positioning?</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="evidence" class="required" id="t-label-evidence">Evidence</label>
+                    <textarea id="evidence" name="evidence" placeholder="Customer, market, competitive, or internal data supporting the request" maxlength="1200" required></textarea>
+                    <span class="char-count"><span class="current-count">0</span> <span id="t-charcount-of5">/</span> 1200 <span id="t-charcount-chars5">characters</span></span>
+                    <span class="helper-text" id="t-helper-evidence">Cite customer feedback, market research, competitive intelligence, or internal data.</span>
+                    <div class="file-attach-area" style="margin-top:8px;">
+                        <label class="file-attach-btn" id="t-label-attachFiles">
+                            📎 <span id="t-attach-label">Attach Files</span>
+                            <input type="file" id="evidenceFiles" multiple style="display:none" onchange="handleEvidenceFiles(this)">
+                        </label>
+                        <div class="file-list" id="evidenceFileList"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="competitorBenchmark" id="t-label-competitor">Competitor / Benchmarking</label>
+                    <textarea id="competitorBenchmark" name="competitorBenchmark" placeholder="Competitor products, features, or market benchmarks referenced" maxlength="1200"></textarea>
+                    <span class="char-count"><span class="current-count">0</span> <span id="t-charcount-of5b">/</span> 1200 <span id="t-charcount-chars5b">characters</span></span>
+                    <span class="helper-text" id="t-helper-competitor">Describe competitor products, features, or benchmarking data that support your proposal.</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="revenuePotential" class="required" id="t-label-revenuePotential">Revenue / Growth Potential</label>
+                    <select id="revenuePotential" name="revenuePotential" class="form-select" required>
+                        <option value="" disabled selected>-- Select --</option>
+                        <option value="under5">< 5% revenue impact</option>
+                        <option value="6to10">6–10% revenue impact</option>
+                        <option value="11to20">11–20% revenue impact</option>
+                        <option value="21to50">21–50% revenue impact</option>
+                        <option value="over50">> 50% revenue impact or 3x growth</option>
+                    </select>
+                    <span class="helper-text" id="t-helper-revenuePotential">What is the expected revenue contribution or growth impact?</span>
+                </div>
+            </div>
+
+            <!-- Section 5: Priority Argument -->
+            <div class="form-section">
+                <div class="section-header">
+                    <span class="section-number">5</span>
+                    <h2 class="section-title" id="t-section5-title">Priority Argument</h2>
+                </div>
+
+                <div class="form-group">
+                    <label for="priorityArgument" class="required" id="t-label-priority">Relative Priority Argument</label>
+                    <textarea id="priorityArgument" name="priorityArgument" placeholder="Why this opportunity should rank above others" maxlength="1000" required></textarea>
+                    <span class="char-count"><span class="current-count">0</span> <span id="t-charcount-of7">/</span> 1000 <span id="t-charcount-chars7">characters</span></span>
+                    <span class="helper-text" id="t-helper-priority">Make a compelling case for why this should be prioritized.</span>
+                </div>
+            </div>
+
+            <!-- Buttons -->
+            <div class="button-group">
+                <button type="submit" class="btn-submit" id="submitBtn">Submit</button>
+            </div>
+        </form>
+
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-card">
+                <div class="sidebar-card-label" id="t-sidebar-progress">Progress</div>
+                <div class="progress-circle-wrap">
+                    <div class="progress-circle">
+                        <svg viewBox="0 0 120 120">
+                            <circle class="bg" cx="60" cy="60" r="52"/>
+                            <circle class="fg" id="progressArc" cx="60" cy="60" r="52"/>
+                        </svg>
+                        <div class="progress-pct"><span id="progressPct">0</span><span class="progress-pct-sign">%</span></div>
+                    </div>
+                </div>
+            </div>
+            <div class="sidebar-card">
+                <div class="sidebar-card-label" id="t-sidebar-checklist">Checklist</div>
+                <ul class="field-checklist" id="fieldChecklist"></ul>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Success overlay (must be outside .container to avoid grid context) -->
+    <div id="successOverlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center;">
+        <div style="background:var(--background-main); border-radius:16px; padding:48px 40px; text-align:center; max-width:440px; width:90%; box-shadow:0 24px 60px rgba(0,0,0,0.3);">
+            <div style="width:64px;height:64px;border-radius:50%;background:var(--success-color);margin:0 auto 20px;display:flex;align-items:center;justify-content:center;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h2 style="font-family:'DM Sans',sans-serif; font-size:1.5rem; color:var(--text-heading); margin-bottom:8px;" id="t-success-title">Submission Complete</h2>
+            <p style="color:var(--text-secondary); font-size:1rem; line-height:1.6; margin-bottom:24px; white-space:pre-line;" id="t-success-message">Your MOP Submission has been successfully submitted.
+We will review and provide further guidance.</p>
+            <button onclick="closeSuccess()" style="font-family:'DM Sans',sans-serif; background:var(--primary-blue); color:#fff; border:none; padding:12px 32px; border-radius:8px; font-size:1rem; font-weight:600; cursor:pointer;" id="t-success-btn">OK</button>
+        </div>
+    </div>
+
+    <footer>
+        <p>Copyright &copy; 2026 MEDIT Corp. All rights reserved.</p>
+    </footer>
+
+    <script>
+        try { if (window !== window.top || window.self !== window.top) { document.documentElement.classList.add('in-iframe'); } } catch(e) { document.documentElement.classList.add('in-iframe'); }
+        // ====== GLOBALS (needed by inline onclick handlers) ======
+        let currentLang = 'en';
+        function setLang(lang) { if (window._setLangImpl) window._setLangImpl(lang); }
+        function closeSuccess() { if (window._closeSuccessImpl) window._closeSuccessImpl(); }
+
+        // i18n translations
+        const i18n = {
+            en: {
+                'brand': 'Medit Digital Solutions',
+                'header-title': 'MOP Submission Form',
+                'header-subtitle': 'Market Opportunity Proposal for Product Advancement',
+                'progress-label': 'Progress',
+                'sidebar-progress': 'Progress',
+                'sidebar-checklist': 'Checklist',
+                'section1-title': 'Basic Information',
+                'section2-title': 'Opportunity Definition',
+                'section3-title': 'Market & Customer Context',
+                'section4-title': 'Impact & Evidence',
+                'section5-title': 'Priority Argument',
+                'label-oppTitle': 'Opportunity Title',
+                'label-reqType': 'Request Type',
+                'label-division': 'Region',
+                'label-reqOwner': 'Request Owner',
+                'label-oppSummary': 'Opportunity Summary',
+                'label-problem': 'Problem Being Solved',
+                'label-targetCust': 'Target Customer / Segment',
+                'label-strategic': 'Strategic Relevance',
+                'label-growth': 'Growth Impact Hypothesis',
+                'label-evidence': 'Evidence',
+                'attach-label': 'Attach Files',
+                'label-competitor': 'Competitor / Benchmarking',
+                'label-revenuePotential': 'Revenue / Growth Potential',
+                'helper-competitor': 'Describe competitor products, features, or benchmarking data that support your proposal.',
+                'helper-revenuePotential': 'What is the expected revenue contribution or growth impact?',
+                'label-complexity': 'Initial Complexity View',
+                'label-dependencies': 'Visible Dependencies (Optional)',
+                'label-priority': 'Relative Priority Argument',
+                'helper-oppTitle': 'A concise name for this opportunity that captures its essence.',
+                'helper-reqType': 'Categorize the nature of your request.',
+                'helper-division': 'Select the region submitting this request.',
+                'helper-reqOwner': 'Who will be the primary contact for follow-up questions?',
+                'helper-oppSummary': 'Provide a high-level overview that anyone can quickly understand.',
+                'helper-problem': 'Articulate the specific pain point or gap this addresses.',
+                'helper-targetCust': 'Be as specific as possible. Who benefits most from this opportunity?',
+                'helper-strategic': 'Connect this to our strategic priorities and explain the timing.',
+                'helper-growth': 'How does this drive revenue, market share, or strategic positioning?',
+                'helper-evidence': 'Cite customer feedback, market research, competitive intelligence, or internal data.',
+                'helper-complexity': 'How complex is this opportunity technically or organizationally?',
+                'helper-dependencies': 'What blocking issues, dependencies, or constraints should we know about?',
+                'helper-priority': 'Make a compelling case for why this should be prioritized.',
+                'opt-newproduct': 'New product',
+                'opt-enhancement': 'Enhancement',
+                'opt-lineext': 'Line extension',
+                'opt-strategic': 'Strategic capability',
+                'opt-market': 'Market-specific request',
+                'opt-other': 'Other',
+                'radio-low': 'Low',
+                'radio-medium': 'Medium',
+                'radio-high': 'High',
+                'radio-unknown': 'Unknown',
+                'charcount-of': '/',
+                'charcount-chars': 'characters',
+                'btn-draft': 'Save Draft',
+                'btn-submit': 'Submit',
+                'success-title': 'Submission Complete',
+                'success-message': 'Your MOP Submission has been successfully submitted.\nRegional managers will review and prioritize your submission.',
+                'success-btn': 'OK',
+                'footer-title': 'Market Opportunity Process — Medit',
+                'footer-submitted': 'Submitted:',
+                'error-banner': 'Please fill in {count} missing field(s). Check the highlighted items.',
+                'error-default': 'Please fill this field.',
+            },
+            ko: {
+                'brand': 'Medit Digital Solutions',
+                'header-title': 'MOP 제출 양식',
+                'header-subtitle': '제품 발전을 위한 시장 기회 제안',
+                'progress-label': '진행 상황',
+                'sidebar-progress': '진행 상황',
+                'sidebar-checklist': '체크리스트',
+                'section1-title': '1. 기본 정보',
+                'section2-title': '2. 기회 정의',
+                'section3-title': '3. 시장 및 고객 맥락',
+                'section4-title': '4. 영향 및 근거',
+                'section5-title': '5. 우선순위 근거',
+                'label-oppTitle': '기회 제목',
+                'label-reqType': '요청 유형',
+                'label-division': '리전',
+                'label-reqOwner': '요청 담당자',
+                'label-oppSummary': '기회 요약',
+                'label-problem': '해결하려는 문제',
+                'label-targetCust': '대상 고객 / 세그먼트',
+                'label-strategic': '전략적 관련성',
+                'label-growth': '성장 영향 가설',
+                'label-evidence': '근거 자료',
+                'attach-label': '파일 첨부',
+                'label-competitor': '경쟁사 / 벤치마킹',
+                'label-revenuePotential': '매출 / 성장 잠재력',
+                'helper-competitor': '제안을 뒷받침하는 경쟁사 제품, 기능 또는 벤치마킹 데이터를 설명하세요.',
+                'helper-revenuePotential': '예상되는 매출 기여도 또는 성장 영향은 무엇인가요?',
+                'label-complexity': '초기 복잡도 평가',
+                'label-dependencies': '알려진 의존성 (선택)',
+                'label-priority': '상대적 우선순위 근거',
+                'helper-oppTitle': '이 기회의 본질을 포착하는 간결한 이름을 사용하세요.',
+                'helper-reqType': '요청의 성격을 분류하세요.',
+                'helper-division': '요청을 제출하는 리전을 선택하세요.',
+                'helper-reqOwner': '후속 질문을 위한 주요 연락처는 누구인가요?',
+                'helper-oppSummary': '누구나 빠르게 이해할 수 있는 높은 수준의 개요를 제공하세요.',
+                'helper-problem': '이것이 해결하는 구체적인 문제점이나 격차를 설명하세요.',
+                'helper-targetCust': '최대한 구체적으로 하세요. 이 기회에서 가장 많은 이점을 얻는 사람은?',
+                'helper-strategic': '이것을 우리의 전략적 우선순위에 연결하고 시기를 설명하세요.',
+                'helper-growth': '이것이 수익, 시장 점유율 또는 전략적 위치를 어떻게 추진하나요?',
+                'helper-evidence': '고객 피드백, 시장 조사, 경쟁 인텔리전스 또는 내부 데이터를 인용하세요.',
+                'helper-complexity': '이 기회가 기술적으로 또는 조직적으로 얼마나 복잡한가요?',
+                'helper-dependencies': '우리가 알아야 할 차단 문제, 의존성 또는 제약 조건이 무엇인가요?',
+                'helper-priority': '이것이 우선 순위가 지정되어야 하는 이유에 대한 강력한 사례를 제시하세요.',
+                'opt-newproduct': '신제품',
+                'opt-enhancement': '개선',
+                'opt-lineext': '라인 확장',
+                'opt-strategic': '전략적 기능',
+                'opt-market': '시장별 요청',
+                'opt-other': '기타',
+                'radio-low': '낮음',
+                'radio-medium': '중간',
+                'radio-high': '높음',
+                'radio-unknown': '알 수 없음',
+                'charcount-of': '/',
+                'charcount-chars': '자',
+                'btn-draft': '임시 저장',
+                'btn-submit': '제출',
+                'success-title': '제출 완료',
+                'success-message': 'MOP 제출이 성공적으로 완료되었습니다.\n리전별 담당 매니저가 우선순위를 검토할 예정입니다.',
+                'success-btn': '확인',
+                'footer-title': '시장 기회 프로세스 — Medit',
+                'footer-submitted': '제출:',
+                'error-banner': '입력되지 않은 항목이 {count}개 있습니다. 표시된 항목을 확인해 주세요.',
+                'error-default': '이 필드를 입력해 주세요.',
+            }
+        };
+
+        // Field-specific error messages
+        const fieldMessages = {
+            en: {
+                'opportunityTitle': 'Please enter the Opportunity Title.',
+                'requestType': 'Please select the Request Type.',
+                'division': 'Please select the Region.',
+                'requestOwner': 'Please enter the Request Owner name.',
+                'requestOwnerEmail': 'Please enter the Request Owner email.',
+                'opportunitySummary': 'Please enter the Opportunity Summary.',
+                'problemBeingSolved': 'Please enter the Problem Being Solved.',
+                'targetCustomer': 'Please enter the Target Customer / Segment.',
+                'strategicRelevance': 'Please enter the Strategic Relevance.',
+                'growthImpact': 'Please enter the Growth Impact Hypothesis.',
+                'evidence': 'Please enter the Evidence.',
+                'revenuePotential': 'Please select the Revenue / Growth Potential.',
+                'priorityArgument': 'Please enter the Relative Priority Argument.',
+            },
+            ko: {
+                'opportunityTitle': '기회 제목을 입력해 주세요.',
+                'requestType': '요청 유형을 선택해 주세요.',
+                'division': '리전을 선택해 주세요.',
+                'requestOwner': '요청 담당자 이름을 입력해 주세요.',
+                'requestOwnerEmail': '요청 담당자 이메일을 입력해 주세요.',
+                'opportunitySummary': '기회 요약을 입력해 주세요.',
+                'problemBeingSolved': '해결하려는 문제를 입력해 주세요.',
+                'targetCustomer': '대상 고객 / 세그먼트를 입력해 주세요.',
+                'strategicRelevance': '전략적 관련성을 입력해 주세요.',
+                'growthImpact': '성장 영향 가설을 입력해 주세요.',
+                'evidence': '근거 자료를 입력해 주세요.',
+                'revenuePotential': '매출 / 성장 잠재력을 선택해 주세요.',
+                'priorityArgument': '상대적 우선순위 근거를 입력해 주세요.',
+            }
+        };
+
+        // ====== FILE ATTACHMENT ======
+        var evidenceAttachments = []; // {name, dataUrl, type, size}
+
+        function handleEvidenceFiles(input) {
+            var files = input.files;
+            for (var i = 0; i < files.length; i++) {
+                (function(file) {
+                    var reader = new FileReader();
+                    reader.onload = function(e) {
+                        evidenceAttachments.push({
+                            name: file.name,
+                            dataUrl: e.target.result,
+                            type: file.type,
+                            size: file.size
+                        });
+                        renderEvidenceFiles();
+                    };
+                    reader.readAsDataURL(file);
+                })(files[i]);
+            }
+            input.value = '';
+        }
+
+        function renderEvidenceFiles() {
+            var list = document.getElementById('evidenceFileList');
+            if (!evidenceAttachments.length) { list.innerHTML = ''; return; }
+            list.innerHTML = evidenceAttachments.map(function(f, idx) {
+                return '<div class="file-item">'
+                    + '<span>📄</span>'
+                    + '<a onclick="previewFile(' + idx + ')">' + escHtml(f.name) + '</a>'
+                    + '<span style="color:#999;font-size:0.78rem">(' + formatFileSize(f.size) + ')</span>'
+                    + '<span class="file-remove" onclick="removeFile(' + idx + ')">&times;</span>'
+                    + '</div>';
+            }).join('');
+        }
+
+        function removeFile(idx) {
+            evidenceAttachments.splice(idx, 1);
+            renderEvidenceFiles();
+        }
+
+        function previewFile(idx) {
+            var f = evidenceAttachments[idx];
+            if (!f) return;
+            if (f.type && f.type.startsWith('image/')) {
+                var w = window.open('', '_blank');
+                w.document.write('<html><head><title>' + escHtml(f.name) + '</title></head><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#f0f0f0"><img src="' + f.dataUrl + '" style="max-width:95vw;max-height:95vh;object-fit:contain"></body></html>');
+                w.document.close();
+            } else if (f.type === 'application/pdf') {
+                var w = window.open('', '_blank');
+                w.document.write('<html><head><title>' + escHtml(f.name) + '</title></head><body style="margin:0"><iframe src="' + f.dataUrl + '" style="width:100%;height:100vh;border:none"></iframe></body></html>');
+                w.document.close();
+            } else {
+                var a = document.createElement('a');
+                a.href = f.dataUrl;
+                a.download = f.name;
+                a.click();
+            }
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / 1048576).toFixed(1) + ' MB';
+        }
+
+        function escHtml(s) {
+            var d = document.createElement('div');
+            d.textContent = s || '';
+            return d.innerHTML;
+        }
+
+        // ====== MAIN INITIALIZATION ======
+        (function() {
+        'use strict';
+
+        var form = document.getElementById('mopForm');
+        var submitBtn = document.getElementById('submitBtn');
+        var memoryStore = {};
+
+        if (!form) { console.error('MOP: form not found'); return; }
+        if (!submitBtn) { console.error('MOP: submitBtn not found'); return; }
+
+        // Set language implementation
+        var phI18n = {
+            en: {
+                opportunityTitle: 'Short and specific working title',
+                requestOwner: 'Name',
+                requestOwnerEmail: 'Email',
+                opportunitySummary: 'Three to five sentences describing the request in plain language',
+                problemBeingSolved: 'Customer pain point, unmet need, or business opportunity',
+                targetCustomer: 'Specific market, customer type, geography, or installed-base segment',
+                strategicRelevance: 'Which company priority the opportunity supports and why it matters now',
+                growthImpact: 'Primary growth pathway and directional estimate of impact',
+                evidence: 'Customer, market, competitive, or internal data supporting the request',
+                competitorBenchmark: 'Competitor products, features, or market benchmarks referenced',
+                priorityArgument: 'Why this opportunity should rank above others'
+            },
+            ko: {
+                opportunityTitle: '구체적인 기회 제목을 입력하세요',
+                requestOwner: '이름',
+                requestOwnerEmail: '이메일',
+                opportunitySummary: '요청 내용을 3~5문장으로 간결하게 작성하세요',
+                problemBeingSolved: '고객 불편사항, 미충족 니즈, 또는 비즈니스 기회를 기술하세요',
+                targetCustomer: '구체적인 시장, 고객 유형, 지역, 또는 기존 고객군을 기술하세요',
+                strategicRelevance: '이 기회가 지원하는 회사 우선순위와 지금 중요한 이유를 설명하세요',
+                growthImpact: '주요 성장 경로와 예상 영향을 기술하세요',
+                evidence: '고객, 시장, 경쟁, 또는 내부 데이터를 기술하세요',
+                competitorBenchmark: '참고한 경쟁 제품, 기능, 또는 시장 벤치마크를 기술하세요',
+                priorityArgument: '이 기회가 다른 기회보다 우선되어야 하는 이유를 설명하세요'
+            }
+        };
+        var _langFromSync = false;
+        window._setLangImpl = function(lang) {
+            currentLang = lang;
+            try { document.documentElement.lang = lang; } catch(e) {}
+
+            // Update all translatable elements
+            try {
+                Object.keys(i18n[lang]).forEach(function(key) {
+                    var el = document.getElementById('t-' + key);
+                    if (el) el.textContent = i18n[lang][key];
+                });
+            } catch(e) {}
+
+            // Update placeholders
+            try {
+                Object.keys(phI18n[lang]).forEach(function(id) {
+                    var el = document.getElementById(id);
+                    if (el) el.placeholder = phI18n[lang][id];
+                });
+            } catch(e) {}
+
+            // Update language toggle buttons
+            try {
+                document.getElementById('langEn').classList.toggle('active', lang === 'en');
+                document.getElementById('langKo').classList.toggle('active', lang === 'ko');
+            } catch(e) {}
+
+            // Update sidebar + checklist
+            try { updateProgress(); } catch(e) {}
+
+            // Store language preference
+            try { localStorage.setItem('mopLang', lang); } catch(e) {}
+
+            // Notify parent Gateway of language change (only if user clicked, not from sync)
+            if (!_langFromSync) {
+                try { if (window.parent !== window) window.parent.postMessage({ type: 'mop-lang-change', lang: lang }, '*'); } catch(e) {}
+            }
+            _langFromSync = false;
+        };
+
+        // Listen for language sync from Gateway
+        window.addEventListener('message', function(event) {
+            if (event.data && event.data.type && event.data.type.indexOf('mop-')===0 && !document.documentElement.classList.contains('in-iframe')) {
+                document.documentElement.classList.add('in-iframe');
+            }
+            if (event.data && event.data.type === 'mop-lang-sync') {
+                var lang = event.data.lang;
+                if ((lang === 'en' || lang === 'ko') && lang !== currentLang) {
+                    _langFromSync = true;
+                    if (window._setLangImpl) window._setLangImpl(lang);
+                }
+            }
+        });
+
+        // Form fields to track
+        var requiredFields = [
+            'opportunityTitle',
+            'requestType',
+            'division',
+            'requestOwner',
+            'requestOwnerEmail',
+            'opportunitySummary',
+            'problemBeingSolved',
+            'targetCustomer',
+            'strategicRelevance',
+            'growthImpact',
+            'evidence',
+            'revenuePotential',
+            'priorityArgument'
+        ];
+
+        // Track character counts for textareas
+        try {
+            var textareas = form.querySelectorAll('textarea');
+            textareas.forEach(function(textarea) {
+                var updateCharCount = function() {
+                    try {
+                        var currentCount = textarea.value.length;
+                        var maxLength = textarea.maxLength;
+                        var charCountSpan = textarea.parentElement.querySelector('.char-count');
+                        if (charCountSpan) {
+                            var countElement = charCountSpan.querySelector('.current-count');
+                            if (countElement) countElement.textContent = currentCount;
+                            charCountSpan.classList.add('updating');
+                            setTimeout(function() { charCountSpan.classList.remove('updating'); }, 300);
+                            if (currentCount > maxLength * 0.9) {
+                                charCountSpan.classList.add('critical');
+                            } else if (currentCount > maxLength * 0.75) {
+                                charCountSpan.classList.add('warning');
+                                charCountSpan.classList.remove('critical');
+                            } else {
+                                charCountSpan.classList.remove('warning', 'critical');
+                            }
+                        }
+                        updateProgress();
+                    } catch(e) {}
+                };
+                textarea.addEventListener('input', updateCharCount);
+                textarea.addEventListener('change', updateCharCount);
+            });
+        } catch(e) { console.error('MOP: textarea init error', e); }
+
+
+        // Update progress indicator
+        var fieldLabelMap = {
+            en: {
+                opportunityTitle: 'Opportunity Title',
+                requestType: 'Request Type',
+                division: 'Region',
+                requestOwner: 'Request Owner (Name)',
+                requestOwnerEmail: 'Request Owner (Email)',
+                opportunitySummary: 'Opportunity Summary',
+                problemBeingSolved: 'Problem Being Solved',
+                targetCustomer: 'Target Customer',
+                strategicRelevance: 'Strategic Relevance',
+                growthImpact: 'Growth Impact',
+                evidence: 'Evidence',
+                competitorBenchmark: 'Competitor / Benchmarking',
+                revenuePotential: 'Revenue / Growth Potential',
+                priorityArgument: 'Priority Argument'
+            },
+            ko: {
+                opportunityTitle: '기회 제목',
+                requestType: '요청 유형',
+                division: '리전',
+                requestOwner: '요청 담당자 (이름)',
+                requestOwnerEmail: '요청 담당자 (이메일)',
+                opportunitySummary: '기회 요약',
+                problemBeingSolved: '해결 문제',
+                targetCustomer: '대상 고객',
+                strategicRelevance: '전략적 관련성',
+                growthImpact: '성장 영향',
+                evidence: '근거 자료',
+                competitorBenchmark: '경쟁사 / 벤치마킹',
+                revenuePotential: '매출 / 성장 잠재력',
+                priorityArgument: '우선순위 근거'
+            }
+        };
+
+        function updateProgress() {
+            try {
+                var completedFields = 0;
+                var totalFields = requiredFields.length;
+                var fieldStatus = {};
+
+                requiredFields.forEach(function(fieldName) {
+                    var field = form.querySelector('[name="' + fieldName + '"]');
+                    var done = false;
+                    if (field) {
+                        if (field.type === 'radio') {
+                            done = !!document.querySelector('[name="' + fieldName + '"]:checked');
+                        } else {
+                            done = field.value.trim() !== '';
+                        }
+                    }
+                    fieldStatus[fieldName] = done;
+                    if (done) completedFields++;
+                });
+
+                var percentage = Math.round((completedFields / totalFields) * 100);
+
+                // Update circle
+                var arc = document.getElementById('progressArc');
+                var circumference = 2 * Math.PI * 52; // r=52
+                if (arc) arc.style.strokeDashoffset = circumference - (circumference * percentage / 100);
+                var pctEl = document.getElementById('progressPct');
+                if (pctEl) pctEl.textContent = percentage;
+
+                // Update checklist
+                var checklist = document.getElementById('fieldChecklist');
+                if (checklist) {
+                    var labels = (fieldLabelMap[currentLang] || fieldLabelMap.en);
+                    checklist.innerHTML = requiredFields.map(function(fn) {
+                        var done = fieldStatus[fn];
+                        return '<li class="' + (done ? 'done' : '') + '">' +
+                            '<span class="field-check-icon">' + (done ? '&#10003;' : '') + '</span>' +
+                            (labels[fn] || fn) +
+                            '</li>';
+                    }).join('');
+                }
+            } catch(e) { console.error('MOP: updateProgress error', e); }
+        }
+
+        // Add input event listeners for real-time progress tracking
+        try {
+            form.querySelectorAll('input[type="text"], input[type="email"], select').forEach(function(field) {
+                field.addEventListener('change', updateProgress);
+                field.addEventListener('input', updateProgress);
+            });
+        } catch(e) { console.error('MOP: field listener init error', e); }
+
+        // Form validation
+        function validateForm(showErrors) {
+            if (showErrors === undefined) showErrors = true;
+            var isValid = true;
+            var firstErrorField = null;
+
+            // Reset error states
+            try {
+                form.querySelectorAll('.error, .error-message, .error-banner').forEach(function(el) {
+                    if (el.classList.contains('error-message') || el.classList.contains('error-banner')) {
+                        el.remove();
+                    } else {
+                        el.classList.remove('error');
+                    }
+                });
+            } catch(e) {}
+
+            // Validate required fields
+            requiredFields.forEach(function(fieldName) {
+                var field = form.querySelector('[name="' + fieldName + '"]');
+                if (field) {
+                    var isFieldValid = false;
+                    if (field.type === 'radio') {
+                        isFieldValid = document.querySelector('[name="' + fieldName + '"]:checked') !== null;
+                    } else {
+                        isFieldValid = field.value.trim() !== '';
+                    }
+
+                    if (!isFieldValid) {
+                        isValid = false;
+                        if (showErrors) {
+                            field.classList.add('error');
+                            if (!firstErrorField) firstErrorField = field;
+                            var errorMsg = document.createElement('span');
+                            errorMsg.className = 'error-message';
+                            errorMsg.textContent = (fieldMessages[currentLang] && fieldMessages[currentLang][fieldName]) || (i18n[currentLang] && i18n[currentLang]['error-default']) || 'Required';
+                            if (field.type === 'radio' && field.closest('.form-group')) {
+                                field.closest('.form-group').appendChild(errorMsg);
+                            } else if (field.parentElement) {
+                                field.parentElement.appendChild(errorMsg);
+                            }
+                        }
+                    } else if (field.type !== 'radio') {
+                        field.classList.remove('error');
+                    }
+                }
+            });
+
+            // Show error banner and scroll
+            if (!isValid && showErrors) {
+                try {
+                    var emptyCount = requiredFields.filter(function(fn) {
+                        var f = form.querySelector('[name="' + fn + '"]');
+                        if (!f) return true;
+                        if (f.type === 'radio') return !document.querySelector('[name="' + fn + '"]:checked');
+                        return f.value.trim() === '';
+                    }).length;
+
+                    var banner = document.createElement('div');
+                    banner.className = 'error-banner';
+                    var msg = (i18n[currentLang] && i18n[currentLang]['error-banner'] || 'Please fill in {count} missing field(s).').replace('{count}', emptyCount);
+                    banner.innerHTML = '<span class="error-banner-icon">⚠️</span><span class="error-banner-text">' + msg + '</span>';
+
+                    var firstSection = form.querySelector('.form-section');
+                    if (firstSection) form.insertBefore(banner, firstSection);
+
+                    try { banner.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e) {
+                        try { banner.scrollIntoView(true); } catch(e2) {}
+                    }
+                } catch(e) { console.error('MOP: banner error', e); }
+            }
+
+            return isValid;
+        }
+
+        // ====== Core submission logic ======
+        function doSubmit() {
+            try {
+                if (!validateForm(true)) return;
+
+                var originalText = submitBtn.textContent;
+                submitBtn.textContent = currentLang === 'en' ? 'Submitting...' : '제출 중...';
+                submitBtn.disabled = true;
+
+                setTimeout(function() {
+                    try {
+                        var formData = new FormData(form);
+                        var submissionData = {};
+                        formData.forEach(function(value, key) { submissionData[key] = value; });
+                        // Attach evidence files metadata
+                        if (evidenceAttachments.length) {
+                            submissionData.evidenceFiles = evidenceAttachments.map(function(f) {
+                                return { name: f.name, dataUrl: f.dataUrl, type: f.type, size: f.size };
+                            });
+                        }
+
+                        // Save submission
+                        var timestamp = Date.now();
+                        var key = 'mop_submission_' + timestamp;
+                        var record = {
+                            id: timestamp,
+                            timestamp: new Date().toISOString(),
+                            date: new Date().toLocaleString(),
+                            data: submissionData
+                        };
+                        memoryStore[key] = record;
+                        try { localStorage.setItem(key, JSON.stringify(record)); } catch(e) {}
+                        try { localStorage.removeItem('mopFormDraft'); } catch(e) {}
+
+                        // Send full submission data to parent (Gateway)
+                        try {
+                            var msg = { type: 'mop-submission-data', payload: record };
+                            window.parent.postMessage(msg, '*');
+                        } catch(e) {}
+
+                        // Send email request to Gateway
+                        try {
+                            window.parent.postMessage({
+                                type: 'mop-send-email',
+                                payload: {
+                                    email: submissionData.requestOwnerEmail || '',
+                                    submitter: submissionData.requestOwner || '',
+                                    title: submissionData.opportunityTitle || '',
+                                    region: submissionData.division || '',
+                                    requestType: submissionData.requestType || '',
+                                    date: new Date().toLocaleString(),
+                                    submissionId: key
+                                }
+                            }, '*');
+                        } catch(e) {}
+
+                        // Show success overlay
+                        var overlay = document.getElementById('successOverlay');
+                        if (overlay) overlay.style.display = 'flex';
+
+                        // Reset form
+                        setTimeout(function() {
+                            try {
+                                form.reset();
+                                updateProgress();
+                                submitBtn.textContent = originalText;
+                                submitBtn.disabled = false;
+                            } catch(e) {}
+                        }, 500);
+                    } catch(e) {
+                        console.error('MOP: submission processing error', e);
+                        submitBtn.textContent = originalText;
+                        submitBtn.disabled = false;
+                    }
+                }, 800);
+            } catch(e) {
+                console.error('MOP: submit error', e);
+            }
+        }
+
+        // Form submit event (primary handler)
+        try {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                doSubmit();
+            });
+        } catch(e) { console.error('MOP: form submit listener error', e); }
+
+        // Button click event (backup handler - fires if form submit doesn't trigger)
+        try {
+            submitBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                doSubmit();
+            });
+        } catch(e) { console.error('MOP: button click listener error', e); }
+
+        // Close success overlay
+        window._closeSuccessImpl = function() {
+            try {
+                var overlay = document.getElementById('successOverlay');
+                if (overlay) overlay.style.display = 'none';
+            } catch(e) {}
+
+            // Send message to parent iframe
+            setTimeout(function() {
+                try {
+                    window.top.postMessage({type: 'mop-submitted'}, '*');
+                    window.parent.postMessage({type: 'mop-submitted'}, '*');
+                } catch(e) {}
+            }, 100);
+        };
+
+        // Load draft on page load
+        try {
+            window.addEventListener('load', function() {
+                try {
+                    // Default to 'en'; Gateway will send mop-lang-sync with correct language
+                    setLang('en');
+                } catch(e) {}
+
+                try {
+                    var draftData = null;
+                    try { draftData = localStorage.getItem('mopFormDraft'); } catch(e) {}
+                    if (draftData) {
+                        var draft = JSON.parse(draftData);
+                        Object.keys(draft.data).forEach(function(fieldName) {
+                            var value = draft.data[fieldName];
+                            var field = form.querySelector('[name="' + fieldName + '"]');
+                            if (field) {
+                                if (field.type === 'radio') {
+                                    var radioField = form.querySelector('[name="' + fieldName + '"][value="' + value + '"]');
+                                    if (radioField) {
+                                        radioField.checked = true;
+                                        radioField.dispatchEvent(new Event('change'));
+                                    }
+                                } else {
+                                    field.value = value;
+                                    field.dispatchEvent(new Event('input'));
+                                    field.dispatchEvent(new Event('change'));
+                                }
+                            }
+                        });
+                    }
+                } catch(e) { console.log('Could not load draft'); }
+
+                try { updateProgress(); } catch(e) {}
+            });
+        } catch(e) {}
+
+        // Prevent accidental navigation if form has unsaved changes
+        try {
+            window.addEventListener('beforeunload', function(e) {
+                try {
+                    var formData = new FormData(form);
+                    var hasChanges = false;
+                    formData.forEach(function(value) { if (value !== '') hasChanges = true; });
+                    if (hasChanges && !submitBtn.disabled) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                } catch(e2) {}
+            });
+        } catch(e) {}
+
+        })(); // END IIFE
+    </script>
+</body>
+</html>
