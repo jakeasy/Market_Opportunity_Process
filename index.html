@@ -950,7 +950,28 @@
                 };
                 console.log('AFC email payload ready. Reviewer:', ep.reviewerEmail, 'Gate:', _gateText);
                 gasPost(url, afcPayload,
-                    function(j){ console.log('✓ AFC custom-email sent:', JSON.stringify(j)); },
+                    function(j){
+                        console.log('✓ AFC custom-email response:', JSON.stringify(j));
+                        // Apps Script에 custom-email 핸들러가 없으면 j.sent가 없음 → fallback
+                        if (!j || j.sent !== true) {
+                            console.warn('⚠ custom-email not handled — falling back to type:email (Apps Script 재배포 필요)');
+                            var fallback = {
+                                type: 'email',
+                                email: ep.reviewerEmail,
+                                to: ep.reviewerEmail,
+                                recipientEmail: ep.reviewerEmail,
+                                submitter: _reviewer,
+                                title: _title,
+                                requestType: 'AFC Readiness Check — ' + _gateEmoji + ' ' + _gateText,
+                                region: _pct + ' Ready',
+                                date: _date
+                            };
+                            gasPost(url, fallback,
+                                function(j2){ console.log('✓ AFC fallback email sent:', JSON.stringify(j2)); },
+                                function(e2){ console.error('✗ AFC fallback email error:', e2); }
+                            );
+                        }
+                    },
                     function(e){ console.error('✗ AFC custom-email error:', e); }
                 );
             } else {
