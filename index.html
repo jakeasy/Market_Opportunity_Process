@@ -357,7 +357,7 @@
                     <div class="card-top"><div class="card-step">Step 2</div><div class="card-role" id="card2Role"></div></div><div class="card-icon">📊</div>
                     <h2>MOP Scoring Tool</h2><p id="card2Desc"></p><span class="card-link" id="card2Link"></span>
                 </div>
-                <div class="card" onclick="requirePw('afc', 'AFC_Readiness_Checklist.html')">
+                <div class="card" onclick="requirePw('afc')">
                     <div class="card-top"><div class="card-step">Step 3</div><div class="card-role" id="card3Role"></div></div><div class="card-icon">✅</div>
                     <h2 id="card3Title">AFI Readiness Checklist</h2><p id="card3Desc"></p><span class="card-link" id="card3Link"></span>
                 </div>
@@ -365,8 +365,8 @@
                     <div class="card-top"><div class="card-step">Step 4</div><div class="card-role" id="card4Role"></div></div><div class="card-icon">📋</div>
                     <h2 id="card4Title">Project Portfolio Board</h2><p id="card4Desc"></p>
                     <div style="display:flex;gap:8px;margin-top:12px">
-                        <button onclick="event.stopPropagation();window.location.href='MOP_Project_Portfolio.html'" style="flex:1;padding:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#cbd5e1;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">👁️ <span id="card4Guest">Guest</span></button>
-                        <button onclick="event.stopPropagation();requirePw('portfolio','MOP_Project_Portfolio.html')" style="flex:1;padding:8px 0;border-radius:8px;border:1px solid rgba(245,158,11,0.3);background:rgba(245,158,11,0.1);color:#f59e0b;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'">🔑 <span id="card4Admin">Admin</span></button>
+                        <button onclick="event.stopPropagation();openPortfolioGuest()" style="flex:1;padding:8px 0;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:#cbd5e1;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">👁️ <span id="card4Guest">Guest</span></button>
+                        <button onclick="event.stopPropagation();requirePw('portfolio')" style="flex:1;padding:8px 0;border-radius:8px;border:1px solid rgba(245,158,11,0.3);background:rgba(245,158,11,0.1);color:#f59e0b;font-size:0.82rem;font-weight:600;cursor:pointer;transition:all 0.2s" onmouseover="this.style.background='rgba(245,158,11,0.2)'" onmouseout="this.style.background='rgba(245,158,11,0.1)'">🔑 <span id="card4Admin">Admin</span></button>
                     </div>
                 </div>
             </div>
@@ -653,10 +653,8 @@
         if (val === getToolPw(pwPending)) {
             document.getElementById('pwOverlay').classList.remove('active');
             var key = pwPending;
-            var targetUrl = pwTargetUrl;
             pwPending = null;
             pwTargetUrl = null;
-            if (targetUrl) { window.location.href = targetUrl; return; }
             if (key === 'scoring') openToolWithSync('scoring','MOP Scoring Tool','Step 2','#8b5cf6');
             else if (key === 'afc') openAFC();
             else if (key === 'portfolio') openPortfolio();
