@@ -1,0 +1,1308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AFI Readiness Checklist - Medit</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin:0; padding:0; box-sizing:border-box; scrollbar-width:thin; scrollbar-color:#2a3450 #0f1525; }
+        ::-webkit-scrollbar { width:8px; height:8px; }
+        ::-webkit-scrollbar-track { background:#0f1525; }
+        ::-webkit-scrollbar-thumb { background:#2a3450; border-radius:4px; }
+        ::-webkit-scrollbar-thumb:hover { background:#3b4a6b; }
+        :root {
+            --primary: #3b82f6; --primary-light: #1e3a8a; --primary-dark: #1e40af;
+            --success: #34d399; --success-light: #064e3b;
+            --warning: #fbbf24; --warning-light: #78350f;
+            --danger: #ef4444; --danger-light: #7f1d1d;
+            --gray-50: #0f1525; --gray-100: #111827; --gray-200: rgba(255,255,255,0.08);
+            --gray-300: #334155; --gray-500: #94a3b8; --gray-700: #cbd5e1; --gray-900: #f0f2f5;
+            --radius: 12px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        body { font-family:'DM Sans',sans-serif; background:var(--gray-50); color:var(--gray-700); line-height:1.6; }
+
+        /* LANG TOGGLE */
+        .lang-toggle { position:fixed; top:20px; right:24px; z-index:200; display:flex; background:#111827; border:1px solid var(--gray-200); border-radius:20px; overflow:hidden; box-shadow:var(--shadow); }
+        .lang-btn { padding:8px 16px; font-family:'DM Sans',sans-serif; font-size:0.85rem; font-weight:500; border:none; background:transparent; color:var(--gray-500); cursor:pointer; transition:all 0.3s; }
+        .lang-btn.active { background:var(--primary); color:#fff; }
+
+        /* HEADER */
+        .page-header { background:#111827; padding:3rem 2rem; border-bottom:1px solid var(--gray-200); text-align:center; animation:slideDown 0.8s ease-out; }
+        @keyframes slideDown { from{transform:translateY(-30px);opacity:0} to{transform:translateY(0);opacity:1} }
+        .page-header .medit-brand { font-size:0.875rem; font-weight:500; letter-spacing:1px; text-transform:uppercase; margin-bottom:0.5rem; color:var(--primary); }
+        .page-header h1 { font-family:'DM Sans',sans-serif; font-size:2.5rem; font-weight:700; color:var(--gray-900); margin-bottom:0.5rem; letter-spacing:-0.5px; }
+        .page-header p { color:var(--gray-500); font-size:1rem; max-width:600px; margin:0 auto; }
+
+        /* VIEW TABS */
+        .view-tabs { display:flex; gap:0; max-width:1100px; margin:1.5rem auto 0; padding:0 1.5rem; }
+        .view-tab { padding:0.7rem 1.5rem; font-size:0.88rem; font-weight:600; border:1px solid var(--gray-200); background:#111827; color:var(--gray-500); cursor:pointer; transition:all 0.2s; }
+        .view-tab:first-child { border-radius:8px 0 0 8px; }
+        .view-tab:last-child { border-radius:0 8px 8px 0; border-left:none; }
+        .view-tab.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+        /* LAYOUT: content + sidebar */
+        .main-layout { max-width:1100px; margin:0 auto; padding:1.5rem; display:grid; grid-template-columns:1fr 260px; gap:24px; align-items:start; }
+        .main-content { min-width:0; }
+
+        /* SIDEBAR */
+        .sidebar { position:sticky; top:20px; }
+        .sidebar-card { background:#111827; border:1px solid var(--gray-200); border-radius:var(--radius); padding:20px; margin-bottom:14px; box-shadow:var(--shadow); }
+        .sidebar-label { font-size:0.78rem; font-weight:600; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:14px; }
+        .progress-circle-wrap { display:flex; justify-content:center; margin-bottom:8px; }
+        .progress-circle { position:relative; width:110px; height:110px; }
+        .progress-circle svg { transform:rotate(-90deg); width:110px; height:110px; }
+        .progress-circle .bg { fill:none; stroke:var(--gray-200); stroke-width:8; }
+        .progress-circle .fg { fill:none; stroke:var(--primary); stroke-width:8; stroke-linecap:round; stroke-dasharray:301.6; stroke-dashoffset:301.6; transition:stroke-dashoffset 0.5s ease; }
+        .progress-circle .pct { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); font-size:1.6rem; font-weight:700; color:var(--primary); }
+        .progress-circle .pct-sign { font-size:0.85rem; font-weight:400; color:var(--gray-500); }
+        .cat-checklist { list-style:none; padding:0; margin:0; }
+        .cat-checklist li { display:flex; align-items:center; gap:8px; padding:6px 0; font-size:0.82rem; color:var(--gray-500); border-bottom:1px solid var(--gray-100); }
+        .cat-checklist li:last-child { border-bottom:none; }
+        .cat-checklist li.done { color:var(--success); }
+        .cat-check-icon { width:16px; height:16px; border-radius:50%; border:2px solid var(--gray-300); display:flex; align-items:center; justify-content:center; font-size:0.6rem; flex-shrink:0; transition:all 0.2s; }
+        .cat-checklist li.done .cat-check-icon { background:var(--success); border-color:var(--success); color:#fff; }
+
+        /* SUBMISSION PANEL */
+        .submission-panel { background:#111827; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.5rem; margin-bottom:1.5rem; }
+        .submission-panel h2 { font-size:1.05rem; font-weight:600; color:var(--gray-900); margin-bottom:1rem; }
+        .no-reviews { text-align:center; padding:2.5rem 1rem; color:var(--gray-500); }
+        .no-reviews .icon { font-size:2.5rem; margin-bottom:0.75rem; }
+        .review-cards { display:flex; flex-direction:column; gap:0.75rem; }
+        .review-card { border:2px solid var(--gray-200); border-radius:10px; padding:1rem 1.25rem; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:space-between; gap:1rem; background:#1a2235; }
+        .review-card:hover { border-color:var(--primary); background:#1e3a8a; }
+        .review-card.selected { border-color:var(--primary); background:#1e3a8a; }
+        .review-card .rc-left { flex:1; min-width:0; }
+        .review-card .rc-title { font-weight:600; color:var(--gray-900); font-size:1rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .review-card .rc-meta { font-size:0.82rem; color:var(--gray-500); margin-top:0.25rem; }
+        .review-card .rc-score { flex-shrink:0; width:52px; height:52px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem; color:#fff; }
+        .score-high { background:var(--success); } .score-mid { background:var(--warning); } .score-low { background:var(--danger); }
+
+        /* SELECTED INFO */
+        .selected-info { background:linear-gradient(135deg,var(--primary),var(--primary-dark)); color:#fff; border-radius:var(--radius); padding:1.25rem 1.5rem; margin-bottom:1.5rem; display:none; }
+        .selected-info.show { display:block; }
+        .selected-info .si-title { font-size:1.1rem; font-weight:700; }
+        .selected-info .si-details { display:flex; gap:2rem; margin-top:0.5rem; font-size:0.85rem; opacity:0.9; flex-wrap:wrap; }
+
+        /* FILTER */
+        .filter-bar { display:none; gap:0.5rem; margin-bottom:1.5rem; flex-wrap:wrap; }
+        .filter-bar.show { display:flex; }
+        .filter-btn { padding:0.5rem 1.1rem; border-radius:20px; font-size:0.85rem; font-weight:500; border:1px solid var(--gray-200); background:#111827; color:var(--gray-500); cursor:pointer; transition:all 0.2s; }
+        .filter-btn.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+        /* CATEGORY */
+        .category-section { background:#111827; border-radius:var(--radius); box-shadow:var(--shadow); margin-bottom:1rem; overflow:hidden; }
+        .cat-header { padding:1rem 1.25rem; display:flex; align-items:center; justify-content:space-between; cursor:pointer; border-bottom:1px solid var(--gray-200); transition:background 0.2s; }
+        .cat-header:hover { background:#1a2235; }
+        .cat-header-left { display:flex; align-items:center; gap:0.75rem; }
+        .cat-icon { width:32px; height:32px; border-radius:8px; background:#1e3a8a; color:var(--primary); font-weight:700; font-size:0.85rem; display:flex; align-items:center; justify-content:center; }
+        .cat-name { font-weight:600; font-size:0.95rem; color:var(--gray-900); }
+        .cat-header-right { display:flex; align-items:center; gap:1rem; }
+        .cat-progress-bar { width:100px; height:6px; background:#334155; border-radius:3px; overflow:hidden; }
+        .cat-progress-fill { height:100%; background:var(--success); border-radius:3px; transition:width 0.4s; }
+        .cat-pct { font-size:0.82rem; font-weight:600; color:var(--gray-500); min-width:35px; text-align:right; }
+        .cat-toggle { color:var(--gray-300); font-size:1.2rem; transition:transform 0.3s; }
+        .cat-toggle.open { transform:rotate(180deg); }
+        .cat-body { display:none; }
+        .cat-body.open { display:block; }
+
+        /* OWNER PER SECTION */
+        .cat-owner { padding:10px 1.25rem; background:#1a2235; border-bottom:1px solid var(--gray-200); display:flex; align-items:center; gap:10px; }
+        .cat-owner label { font-size:0.78rem; font-weight:600; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.5px; white-space:nowrap; }
+        .cat-owner input { flex:1; padding:6px 10px; border:1px solid var(--gray-200); border-radius:6px; font-size:0.85rem; font-family:inherit; color:var(--gray-700); background:#111827; }
+        .cat-owner input:focus { outline:none; border-color:var(--primary); }
+
+        /* CHECKLIST ITEMS */
+        .cl-item { padding:10px 1.25rem; border-bottom:1px solid var(--gray-200); display:flex; align-items:flex-start; gap:10px; }
+        .cl-item:last-child { border-bottom:none; }
+        .cl-checkbox { width:20px; height:20px; border-radius:6px; border:2px solid var(--gray-200); cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:2px; transition:all 0.2s; }
+        .cl-checkbox.checked { background:var(--success); border-color:var(--success); }
+        .cl-checkbox.checked::after { content:'\2713'; color:#fff; font-size:0.7rem; font-weight:700; }
+        .cl-content { flex:1; min-width:0; }
+        .cl-text { font-size:0.9rem; color:var(--gray-700); }
+        .cl-text.done { color:var(--gray-500); }
+        .cl-bottom { display:flex; gap:8px; margin-top:6px; align-items:center; }
+        .status-btns { display:flex; gap:4px; }
+        .st-btn { padding:2px 8px; border-radius:4px; font-size:0.7rem; font-weight:500; border:1px solid var(--gray-200); background:#1a2235; color:var(--gray-500); cursor:pointer; transition:all 0.2s; }
+        .st-btn.s-complete.active { background:#064e3b; color:var(--success); border-color:var(--success); }
+        .st-btn.s-not-started.active { background:#7f1d1d; color:var(--danger); border-color:var(--danger); }
+        .cl-note { flex:1; min-width:120px; }
+        .cl-note input { width:100%; padding:4px 8px; border:1px solid var(--gray-200); border-radius:4px; font-size:0.78rem; font-family:inherit; color:var(--gray-700); background:#1a2235; }
+        .cl-note input:focus { outline:none; border-color:var(--primary); }
+        .cl-item.finalized { opacity:0.75; }
+        .cl-item.finalized .cl-checkbox { pointer-events:none; }
+        .cl-item.finalized .st-btn { pointer-events:none; opacity:0.7; cursor:default; }
+        .cl-item.finalized .cl-note input { pointer-events:none; opacity:0.7; }
+
+        /* READINESS INDICATOR — PASS RATE BOX */
+        .readiness-card { text-align:center; background:linear-gradient(135deg,#0f1a2e 0%,#152238 100%) !important; border:2px solid rgba(59,130,246,0.35) !important; border-radius:14px !important; position:relative; overflow:hidden; }
+        .readiness-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background:linear-gradient(90deg,#3b82f6,#8b5cf6,#3b82f6); }
+        .readiness-card .sidebar-label { font-size:0.85rem; font-weight:700; color:#60a5fa; letter-spacing:1.5px; margin-bottom:16px; }
+        .readiness-score { font-family:'JetBrains Mono',monospace; font-size:2.6rem; font-weight:800; line-height:1; margin-bottom:4px; text-shadow:0 0 20px rgba(59,130,246,0.3); }
+        .readiness-label { font-size:0.75rem; color:var(--gray-500); margin-bottom:14px; }
+        .readiness-bar { width:100%; height:12px; background:rgba(255,255,255,0.08); border-radius:6px; overflow:hidden; margin-bottom:14px; box-shadow:inset 0 1px 3px rgba(0,0,0,0.3); }
+        .readiness-bar-fill { height:100%; border-radius:6px; transition:width 0.5s ease; box-shadow:0 0 8px rgba(52,211,153,0.4); }
+        .readiness-stats { display:flex; justify-content:space-around; gap:4px; margin-bottom:14px; background:rgba(0,0,0,0.2); border-radius:10px; padding:10px 4px; }
+        .readiness-stat { text-align:center; }
+        .readiness-stat-num { font-family:'JetBrains Mono',monospace; font-size:1.2rem; font-weight:700; }
+        .readiness-stat-label { font-size:0.65rem; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.5px; }
+        .readiness-verdict { font-size:0.85rem; font-weight:700; padding:8px 18px; border-radius:20px; display:inline-block; letter-spacing:0.3px; }
+        .readiness-verdict.rdy-go { background:rgba(52,211,153,0.2); color:var(--success); border:1px solid rgba(52,211,153,0.3); }
+        .readiness-verdict.rdy-caution { background:rgba(251,191,36,0.2); color:var(--warning); border:1px solid rgba(251,191,36,0.3); }
+        .readiness-verdict.rdy-risk { background:rgba(239,68,68,0.2); color:var(--danger); border:1px solid rgba(239,68,68,0.3); }
+        .cat-readiness { list-style:none; padding:0; margin:0; }
+        .cat-readiness li { display:flex; justify-content:space-between; align-items:center; padding:5px 0; border-bottom:1px solid var(--gray-200); font-size:0.78rem; color:var(--gray-700); }
+        .cat-readiness li:last-child { border-bottom:none; }
+        .cat-rd-badge { font-size:0.68rem; font-weight:600; padding:1px 8px; border-radius:10px; }
+        .cat-rd-badge.rd-pass { background:rgba(52,211,153,0.15); color:var(--success); }
+        .cat-rd-badge.rd-fail { background:rgba(239,68,68,0.15); color:var(--danger); }
+        .cat-rd-badge.rd-pending { background:rgba(148,163,184,0.15); color:var(--gray-500); }
+
+        /* GATE READINESS SUMMARY (above gate decision) */
+        .gate-readiness-summary {
+            background:#111827; border:1px solid var(--gray-200); border-radius:var(--radius);
+            padding:20px 24px; margin-bottom:16px;
+        }
+        .gate-readiness-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+        .gate-readiness-header h3 { font-size:0.95rem; font-weight:700; color:var(--gray-900); }
+        .gate-readiness-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px; }
+        .gate-rd-item { display:flex; align-items:center; gap:8px; padding:8px 12px; background:var(--gray-50); border-radius:8px; border:1px solid var(--gray-200); }
+        .gate-rd-icon { font-size:1rem; flex-shrink:0; }
+        .gate-rd-info { flex:1; min-width:0; }
+        .gate-rd-name { font-size:0.8rem; font-weight:600; color:var(--gray-700); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        .gate-rd-detail { font-size:0.7rem; color:var(--gray-500); }
+
+        /* GATE */
+        .gate-section { background:#111827; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.5rem; margin-top:1.5rem; display:none; }
+        .gate-section.show { display:block; }
+        .gate-section h2 { font-size:1.05rem; font-weight:700; color:var(--gray-900); margin-bottom:1rem; }
+        .gate-btns { display:flex; gap:0.75rem; flex-wrap:wrap; }
+        .gate-btn { padding:0.6rem 1.4rem; border-radius:8px; font-weight:600; font-size:0.88rem; border:2px solid; cursor:pointer; transition:all 0.2s; }
+        .gate-go { border-color:var(--success); color:var(--success); background:#1a2235; }
+        .gate-go.active { background:var(--success); color:#fff; }
+        .gate-conditional { border-color:var(--warning); color:var(--warning); background:#1a2235; }
+        .gate-conditional.active { background:var(--warning); color:#fff; }
+        .gate-nogo { border-color:var(--danger); color:var(--danger); background:#1a2235; }
+        .gate-nogo.active { background:var(--danger); color:#fff; }
+        .gate-notes { margin-top:1rem; }
+        .gate-notes textarea { width:100%; min-height:70px; padding:0.7rem; border:1px solid var(--gray-200); border-radius:8px; font-family:inherit; font-size:0.88rem; resize:vertical; background:#1a2235; color:var(--gray-700); }
+        .gate-notes textarea:focus { outline:none; border-color:var(--primary); }
+
+        /* ACTIONS */
+        .actions { display:none; gap:0.75rem; margin-top:1.5rem; flex-wrap:wrap; justify-content:flex-end; }
+        .actions.show { display:flex; }
+        .act-btn { padding:0.55rem 1.3rem; border-radius:8px; font-weight:600; font-size:0.88rem; border:none; cursor:pointer; transition:all 0.2s; }
+        .act-btn.primary { background:var(--primary); color:#fff; }
+        .act-btn.primary:hover { background:var(--primary-dark); }
+        .act-btn.secondary { background:var(--gray-100); color:var(--gray-700); }
+        .act-btn.secondary:hover { background:var(--gray-200); }
+
+        /* COMPLETION MODAL */
+        .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
+        .modal-overlay.show { display:flex; }
+        .modal-box { background:#111827; border-radius:16px; padding:2.5rem; max-width:480px; width:90%; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.3); animation:modalIn 0.3s ease-out; }
+        @keyframes modalIn { from{transform:scale(0.9);opacity:0} to{transform:scale(1);opacity:1} }
+        .modal-icon { font-size:3rem; margin-bottom:1rem; }
+        .modal-title { font-size:1.3rem; font-weight:700; color:var(--gray-900); margin-bottom:0.5rem; }
+        .modal-desc { font-size:0.92rem; color:var(--gray-500); margin-bottom:1.5rem; line-height:1.6; }
+        .modal-btns { display:flex; gap:0.75rem; justify-content:center; }
+        .modal-btn { padding:0.6rem 1.5rem; border-radius:8px; font-weight:600; font-size:0.88rem; border:none; cursor:pointer; }
+        .modal-btn.confirm { background:var(--success); color:#fff; }
+        .modal-btn.cancel { background:var(--gray-100); color:var(--gray-700); }
+
+        /* REVIEW DETAIL POPUP */
+        .rd-overlay { display:none; position:fixed; inset:0; z-index:1100; background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); align-items:center; justify-content:center; }
+        .rd-overlay.show { display:flex; }
+        .rd-box { background:#111827; border:1px solid rgba(255,255,255,0.08); border-radius:16px; max-width:560px; width:92%; max-height:85vh; overflow-y:auto; box-shadow:0 24px 64px rgba(0,0,0,0.5); animation:modalIn 0.3s ease-out; }
+        .rd-header { padding:24px 28px 16px; border-bottom:1px solid rgba(255,255,255,0.06); }
+        .rd-header h3 { font-size:1.1rem; font-weight:700; color:#f0f2f5; margin-bottom:4px; }
+        .rd-header .rd-sub { font-size:0.8rem; color:#94a3b8; }
+        .rd-body { padding:20px 28px 24px; }
+        .rd-score-summary { display:flex; align-items:center; gap:16px; margin-bottom:20px; padding:16px; background:#1a2235; border-radius:12px; }
+        .rd-score-circle { width:64px; height:64px; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; font-weight:700; font-size:1.1rem; color:#fff; flex-shrink:0; }
+        .rd-score-detail { flex:1; }
+        .rd-score-detail .rd-score-text { font-size:0.85rem; color:#cbd5e1; font-weight:600; }
+        .rd-score-detail .rd-rec { display:inline-block; margin-top:4px; padding:2px 10px; border-radius:12px; font-size:0.72rem; font-weight:600; }
+        .rd-rec.rec-strong { background:rgba(16,185,129,0.15); color:#10b981; }
+        .rd-rec.rec-recommended { background:rgba(52,211,153,0.15); color:#34d399; }
+        .rd-rec.rec-further { background:rgba(251,191,36,0.15); color:#fbbf24; }
+        .rd-rec.rec-not { background:rgba(239,68,68,0.15); color:#ef4444; }
+        .rd-section-title { font-size:0.78rem; font-weight:600; color:#94a3b8; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:10px; }
+        .rd-criteria-row { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+        .rd-criteria-name { flex:1; font-size:0.82rem; color:#cbd5e1; min-width:0; }
+        .rd-criteria-bar { width:80px; height:6px; background:rgba(255,255,255,0.06); border-radius:3px; overflow:hidden; flex-shrink:0; }
+        .rd-criteria-bar-fill { height:100%; border-radius:3px; }
+        .rd-criteria-score { font-size:0.78rem; font-weight:600; color:#94a3b8; min-width:32px; text-align:right; }
+        .rd-info-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin-top:16px; padding-top:16px; border-top:1px solid rgba(255,255,255,0.06); }
+        .rd-info-item { }
+        .rd-info-label { font-size:0.68rem; color:#64748b; text-transform:uppercase; letter-spacing:0.3px; }
+        .rd-info-value { font-size:0.82rem; color:#cbd5e1; margin-top:2px; }
+        .rd-info-item.full { grid-column:1/-1; }
+        .rd-close { display:block; margin:16px auto 0; padding:8px 24px; border-radius:8px; background:#1a2235; color:#cbd5e1; border:1px solid rgba(255,255,255,0.08); font-size:0.85rem; font-weight:600; cursor:pointer; }
+        .rd-close:hover { background:#253352; border-color:#3b82f6; }
+
+        /* DASHBOARD VIEW */
+        .dashboard-view { max-width:1100px; margin:0 auto; padding:1.5rem; display:none; }
+        .dashboard-view.active { display:block; }
+        .checklist-view { display:block; }
+        .checklist-view.hidden { display:none; }
+        .dash-empty { text-align:center; padding:3rem; color:var(--gray-500); background:0; }
+        .dash-empty .icon { font-size:2.5rem; margin-bottom:0.75rem; }
+        .dash-table-wrap { background:#111827; border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; }
+        .dash-table { width:100%; border-collapse:collapse; }
+        .dash-table th { background:#1a2235; padding:0.8rem 1rem; font-size:0.78rem; font-weight:600; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.5px; text-align:left; border-bottom:2px solid var(--gray-200); white-space:nowrap; }
+        .dash-table td { padding:0.9rem 1rem; font-size:0.88rem; border-bottom:1px solid var(--gray-200); vertical-align:middle; }
+        .dash-table tr:last-child td { border-bottom:none; }
+        .dash-table tr:hover td { background:#1a2235; }
+        .dash-title { font-weight:600; color:var(--gray-900); }
+        .dash-meta { font-size:0.78rem; color:var(--gray-500); margin-top:2px; }
+        .dash-score-pill { display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:20px; font-weight:700; font-size:0.82rem; color:#fff; min-width:48px; }
+        .dash-gate-badge { display:inline-flex; align-items:center; gap:4px; padding:4px 12px; border-radius:20px; font-weight:600; font-size:0.78rem; white-space:nowrap; }
+        .gate-badge-go { background:#064e3b; color:var(--success); }
+        .gate-badge-conditional { background:#78350f; color:var(--warning); }
+        .gate-badge-nogo { background:#7f1d1d; color:var(--danger); }
+        .gate-badge-none { background:#334155; color:var(--gray-500); }
+        .dash-progress { display:flex; align-items:center; gap:8px; }
+        .dash-progress-bar { flex:1; height:6px; background:#334155; border-radius:3px; overflow:hidden; min-width:60px; }
+        .dash-progress-fill { height:100%; border-radius:3px; transition:width 0.4s; }
+        .dash-progress-text { font-size:0.82rem; font-weight:600; color:var(--gray-500); min-width:36px; text-align:right; }
+        .dash-action-btn { padding:4px 12px; border-radius:6px; font-size:0.78rem; font-weight:600; border:1px solid var(--gray-200); background:#1a2235; color:var(--primary); cursor:pointer; transition:all 0.2s; white-space:nowrap; }
+        .dash-action-btn:hover { background:#1e3a8a; border-color:var(--primary); }
+
+        /* FOOTER */
+        footer { background:#111827; color:var(--gray-700); padding:2rem; text-align:center; font-size:0.85rem; border-top:1px solid var(--gray-200); }
+        footer p { color:var(--gray-500); }
+
+        @media print { .lang-toggle,.submission-panel,.filter-bar,.actions,.sidebar,.st-btn,.gate-btns,.view-tabs,.dashboard-view { display:none!important; } .main-layout { grid-template-columns:1fr; } .selected-info { display:block!important; } .cat-body { display:block!important; } body { background:#fff; } }
+        @media (max-width:768px) { .main-layout { grid-template-columns:1fr; } .sidebar { position:static; display:grid; grid-template-columns:1fr 1fr; gap:12px; } .cl-bottom { flex-direction:column; align-items:flex-start; } .dash-table { font-size:0.82rem; } }
+        .in-iframe .lang-toggle { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="lang-toggle">
+    <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" id="langKo" onclick="setLang('ko')">한국어</button>
+</div>
+
+<div class="page-header">
+    <div class="medit-brand">Medit Digital Solutions</div>
+    <h1 data-i18n="afcTitle">AFI Readiness Checklist</h1>
+    <p data-i18n="afcSubtitle">Approval for Investment — Department Checklist</p>
+</div>
+
+<!-- VIEW TABS -->
+<div class="view-tabs">
+    <button class="view-tab active" onclick="switchView('dashboard')" data-i18n="tabDashboard" id="tabDashboard">Dashboard</button>
+    <button class="view-tab" onclick="switchView('checklist')" data-i18n="tabChecklist" id="tabChecklist">Checklist</button>
+</div>
+
+<!-- CHECKLIST VIEW -->
+<div class="checklist-view hidden" id="checklistView">
+<div class="main-layout">
+<div class="main-content">
+    <div class="submission-panel" id="submissionPanel" style="display:none">
+        <h2>📋 <span data-i18n="selectReview">Select a Reviewed Submission</span></h2>
+        <div id="reviewList"><div class="no-reviews"><div class="icon">📭</div><p data-i18n="noReviews">No reviewed submissions yet. Complete Steps 1–3 first.</p></div></div>
+    </div>
+    <div class="no-selection-guide" id="noSelectionGuide" style="display:none;text-align:center;padding:4rem 2rem">
+        <div style="font-size:3rem;margin-bottom:16px">📊</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#e2e8f0;margin-bottom:10px" id="guideTitle">Dashboard에서 Action을 열어주세요</div>
+        <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6" id="guideDesc">Dashboard 탭에서 검토할 항목의 Action 열에 있는 <strong style="color:#60a5fa">Open</strong> 버튼을 클릭하면<br>체크리스트가 표시됩니다.</div>
+        <button onclick="switchView('dashboard')" style="margin-top:24px;padding:10px 28px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer">← Dashboard로 이동</button>
+    </div>
+    <div class="selected-info" id="selectedInfo">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;">
+            <div style="flex:1;">
+                <div class="si-title" id="siTitle">—</div>
+                <div class="si-details">
+                    <div><strong data-i18n="lSubmitter">Submitter:</strong> <span id="siSubmitter">—</span></div>
+                    <div><strong data-i18n="lReviewer">Reviewer:</strong> <span id="siReviewer">—</span></div>
+                    <div><strong data-i18n="lScore">Score:</strong> <span id="siScore">—</span></div>
+                    <div><strong data-i18n="lDate">Date:</strong> <span id="siDate">—</span></div>
+                </div>
+            </div>
+            <button id="siDetailBtn" onclick="toggleSubmissionDetail()" style="background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);color:#fff;width:30px;height:30px;border-radius:6px;font-size:0.85rem;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-left:12px;transition:transform 0.2s;" title="Submission Details">▼</button>
+        </div>
+        <div id="siExpandedDetail" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.15);"></div>
+    </div>
+    <div class="filter-bar" id="filterBar" style="display:none!important;">
+        <button class="filter-btn active" data-filter="all" onclick="setFilter('all',this)" data-i18n="showAll">Show All</button>
+        <button class="filter-btn" data-filter="incomplete" onclick="setFilter('incomplete',this)" data-i18n="incompleteOnly">Incomplete Only</button>
+        <button class="filter-btn" data-filter="complete" onclick="setFilter('complete',this)" data-i18n="completeOnly">Complete Only</button>
+    </div>
+    <div id="checklistContainer"></div>
+    <div class="gate-section" id="gateSection">
+        <div id="gateReadinessSummary" style="display:none;margin-bottom:16px;padding:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px">
+            <div id="gateRdTitle" style="font-size:0.85rem;font-weight:700;color:#e2e8f0;margin-bottom:10px"></div>
+            <div id="gateRdVerdict" style="margin-bottom:10px"></div>
+            <div id="gateRdGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:6px"></div>
+        </div>
+        <h2 data-i18n="gateDecision">Gate Decision</h2>
+        <div class="gate-btns">
+            <button class="gate-btn gate-go" onclick="setGate('go',this)" data-i18n="gateGo">GO — Approved</button>
+            <button class="gate-btn gate-conditional" onclick="setGate('conditional',this)" data-i18n="gateCond">Conditional — Proceed with Actions</button>
+            <button class="gate-btn gate-nogo" onclick="setGate('nogo',this)" data-i18n="gateNoGo">NO GO — Defer</button>
+        </div>
+        <div class="gate-notes"><textarea id="gateNotes" placeholder="Decision notes..." data-i18n-placeholder="gateNotesPlaceholder"></textarea></div>
+    </div>
+    <div class="actions" id="actionsBar">
+        <button class="act-btn secondary" id="btnPrint" onclick="printChecklist()" data-i18n="btnPrint" style="display:none">🖨️ Print</button>
+        <button class="act-btn primary" onclick="confirmGate()" data-i18n="btnConfirm" id="btnConfirm" style="display:none">✔ Confirm &amp; Finalize</button>
+    </div>
+</div>
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebarWrap" style="display:none">
+    <div class="sidebar-card">
+        <div class="sidebar-label" data-i18n="sProgress">REVIEW PROGRESS</div>
+        <div class="progress-circle-wrap">
+            <div class="progress-circle">
+                <svg viewBox="0 0 110 110"><circle class="bg" cx="55" cy="55" r="48"/><circle class="fg" id="progressArc" cx="55" cy="55" r="48"/></svg>
+                <div class="pct"><span id="progressPct">0</span><span class="pct-sign">%</span></div>
+            </div>
+        </div>
+        <div id="progressDesc" style="text-align:center;font-size:0.72rem;color:var(--gray-500);margin-top:4px"></div>
+    </div>
+    <div class="sidebar-card">
+        <div class="sidebar-label" data-i18n="sChecklist">CHECKLIST</div>
+        <ul class="cat-checklist" id="catChecklist"></ul>
+    </div>
+    <div class="sidebar-card readiness-card" id="readinessCard" style="display:none">
+        <div class="sidebar-label" id="readinessTitle">READINESS</div>
+        <div class="readiness-score" id="readinessScore">-</div>
+        <div class="readiness-label" id="readinessScoreLabel">Readiness Score</div>
+        <div class="readiness-bar"><div class="readiness-bar-fill" id="readinessBarFill"></div></div>
+        <div class="readiness-stats">
+            <div class="readiness-stat"><div class="readiness-stat-num" id="rdYes" style="color:var(--success)">0</div><div class="readiness-stat-label" id="rdYesLabel">Yes</div></div>
+            <div class="readiness-stat"><div class="readiness-stat-num" id="rdNo" style="color:var(--danger)">0</div><div class="readiness-stat-label" id="rdNoLabel">No</div></div>
+            <div class="readiness-stat"><div class="readiness-stat-num" id="rdPending" style="color:var(--gray-500)">0</div><div class="readiness-stat-label" id="rdPendingLabel">Pending</div></div>
+        </div>
+        <div id="readinessVerdict"></div>
+    </div>
+</aside>
+</div>
+</div>
+
+<!-- DASHBOARD VIEW -->
+<div class="dashboard-view active" id="dashboardView">
+    <div id="dashContent"></div>
+</div>
+
+<!-- COMPLETION MODAL -->
+<div class="modal-overlay" id="completionModal">
+    <div class="modal-box">
+        <div class="modal-icon" id="modalIcon">🎉</div>
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-desc" id="modalDesc"></div>
+        <div class="modal-btns">
+            <button class="modal-btn confirm" onclick="finalizeGate()" id="modalConfirmBtn"></button>
+            <button class="modal-btn cancel" onclick="closeModal()" id="modalCancelBtn"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Review Detail Popup -->
+<div class="rd-overlay" id="rdOverlay" onclick="if(event.target===this)closeRdPopup()">
+    <div class="rd-box">
+        <div class="rd-header"><h3 id="rdTitle"></h3><div class="rd-sub" id="rdSub"></div></div>
+        <div class="rd-body" id="rdBody"></div>
+    </div>
+</div>
+
+<footer><p>Copyright &copy; 2026 MEDIT Corp. All rights reserved.</p></footer>
+
+<script>
+try { if (window !== window.top || window.self !== window.top) { document.documentElement.classList.add('in-iframe'); } } catch(e) { document.documentElement.classList.add('in-iframe'); }
+var i18n = {
+    en: {
+        'afcTitle':'AFI Readiness Checklist','afcSubtitle':'Approval for Investment — Department Checklist',
+        'tabChecklist':'Checklist','tabDashboard':'Dashboard',
+        'selectReview':'Select a Reviewed Submission','noReviews':'No reviewed submissions yet. Complete Steps 1–3 first.',
+        'lSubmitter':'Submitter:','lReviewer':'Reviewer:','lScore':'Score:','lDate':'Date:',
+        'showAll':'Show All','incompleteOnly':'Not Reviewed','completeOnly':'Reviewed',
+        'gateDecision':'Gate Decision','gateGo':'GO — Approved','gateCond':'Conditional — Proceed with Actions','gateNoGo':'NO GO — Defer',
+        'gateNotesPlaceholder':'Decision notes...','btnPrint':'🖨️ Print','btnConfirm':'✔ Confirm & Finalize',
+        'sProgress':'REVIEW PROGRESS','sChecklist':'CHECKLIST','sReadiness':'PASS RATE',
+        'sProgressDesc':'Items reviewed out of total','owner':'OWNER','notStarted':'Not Reviewed','yes':'Yes','no':'No','memo':'Memo',
+        'rdScore':'Yes / (Yes + No)','rdYes':'Yes','rdNo':'No','rdPending':'Pending',
+        'rdReady':'Ready to Go','rdCaution':'Needs Attention','rdRisk':'High Risk — Not Ready',
+        'rdOverview':'📊 Readiness Overview','rdAllPass':'All Passed','rdSomeFail':'Issues Found','rdNotReviewed':'Not Reviewed',
+        'Product Readiness':'Product Readiness','Regulatory & Compliance':'Regulatory & Compliance',
+        'Manufacturing & Supply Chain':'Manufacturing & Supply Chain','Commercial Readiness':'Commercial Readiness',
+        'Marketing Readiness':'Marketing Readiness','Beta Test & Clinical Validation':'Beta Test & Clinical Validation',
+        'Customer Support Readiness':'Customer Support Readiness',
+        'Financial Sign-off':'Financial Sign-off','Legal & IP':'Legal & IP',
+        'stronglyRecommended':'Strongly Recommended','recommended':'Recommended','furtherDevelopment':'Further Development','notRecommended':'Not Recommended',
+        'Product meets all defined requirements and specifications':'Product meets all defined requirements and specifications',
+        'All critical and major bugs resolved':'All critical and major bugs resolved',
+        'Performance benchmarks met (scanning accuracy, speed, etc.)':'Performance benchmarks met (scanning accuracy, speed, etc.)',
+        'Compatibility testing completed (hardware, OS, integrations)':'Compatibility testing completed (hardware, OS, integrations)',
+        'User acceptance testing (UAT) completed and signed off':'User acceptance testing (UAT) completed and signed off',
+        'Product documentation finalized (user manual, quick start guide)':'Product documentation finalized (user manual, quick start guide)',
+        'FDA 510(k) clearance obtained (if applicable)':'FDA 510(k) clearance obtained (if applicable)',
+        'CE marking / MDR compliance confirmed (if applicable)':'CE marking / MDR compliance confirmed (if applicable)',
+        'Quality management system (QMS) documentation complete':'Quality management system (QMS) documentation complete',
+        'Risk management file (ISO 14971) finalized':'Risk management file (ISO 14971) finalized',
+        'Biocompatibility testing completed (if applicable)':'Biocompatibility testing completed (if applicable)',
+        'Cybersecurity documentation completed':'Cybersecurity documentation completed',
+        'Manufacturing process validated':'Manufacturing process validated',
+        'Supply chain secured for launch volumes':'Supply chain secured for launch volumes',
+        'Quality control procedures in place':'Quality control procedures in place',
+        'Packaging and labeling finalized and compliant':'Packaging and labeling finalized and compliant',
+        'Inventory plan for launch quantities confirmed':'Inventory plan for launch quantities confirmed',
+        'Pricing strategy finalized and approved':'Pricing strategy finalized and approved',
+        'Sales enablement materials prepared (Sales Sheet, intro deck, demo)':'Sales enablement materials prepared (Sales Sheet, intro deck, demo)',
+        'Distribution channel strategy confirmed':'Distribution channel strategy confirmed',
+        'Partner/dealer training completed':'Partner/dealer training completed',
+        'CRM and order management systems configured':'CRM and order management systems configured',
+        'GTM plan finalized':'GTM plan finalized',
+        'Launch messaging and positioning approved (incl. Legal/Regulatory clearance)':'Launch messaging and positioning approved (incl. Legal/Regulatory clearance)',
+        'Website and digital channels updated (webpage, App Store, E-Shop)':'Website and digital channels updated (webpage, App Store, E-Shop)',
+        'Marketing collateral produced (images, videos, brochures, Sales Sheet)':'Marketing collateral produced (images, videos, brochures, Sales Sheet)',
+        'PR and media plan in place':'PR and media plan in place',
+        'Trade show / event / webinar launch plan':'Trade show / event / webinar launch plan',
+        'Beta Test & Clinical Validation':'Beta Test & Clinical Validation',
+        'Beta testers selected':'Beta testers selected',
+        'Test version distributed':'Test version distributed',
+        'Feedback collected and organized':'Feedback collected and organized',
+        'Key issues addressed and reflected':'Key issues addressed and reflected',
+        'Marketing materials updated with results':'Marketing materials updated with results',
+        'Support team trained on new product':'Support team trained on new product',
+        'Knowledge base / FAQ articles created':'Knowledge base / FAQ articles created',
+        'Escalation procedures defined':'Escalation procedures defined',
+        'Warranty and service policies finalized':'Warranty and service policies finalized',
+        'Feedback collection mechanism in place':'Feedback collection mechanism in place',
+        'Final business case review completed':'Final business case review completed',
+        'Launch budget approved':'Launch budget approved',
+        'Revenue forecast updated with latest data':'Revenue forecast updated with latest data',
+        'Cost structure validated':'Cost structure validated',
+        'Patent filings completed (if applicable)':'Patent filings completed (if applicable)',
+        'Trademark registrations confirmed':'Trademark registrations confirmed',
+        'License agreements finalized':'License agreements finalized',
+        'Terms of service / EULA updated':'Terms of service / EULA updated',
+        'modalGoTitle':'Approve for Commercialization?','modalGoDesc':'You are about to approve this task for commercialization.<br>Checklist completion: {pct}%.<br>This action will finalize the gate decision.',
+        'modalConfirm':'Confirm','modalCancel':'Cancel',
+        'dashTitle':'Task Overview','dashNoData':'No tasks available yet. Complete Steps 1–4 to see the dashboard.',
+        'dTitle':'Title','dSubmitter':'Submitter','dReviewer':'Reviewer','dScore':'Score','dDecision':'Decision',
+        'dChecklist':'Checklist','dAction':'Action','dOpen':'Open',
+        'dFinalized':'Finalized','dPending':'Pending',
+        'finalizedMsg':'This task has been finalized as GO — Approved.',
+        'gateNone':'—'
+    },
+    ko: {
+        'afcTitle':'AFI 준비 체크리스트','afcSubtitle':'투자 승인 — 부서별 체크리스트',
+        'tabChecklist':'체크리스트','tabDashboard':'대시보드',
+        'selectReview':'리뷰 완료된 요구사항 선택','noReviews':'리뷰 완료된 요구사항이 없습니다. Step 1–3을 먼저 완료해 주세요.',
+        'lSubmitter':'입력자:','lReviewer':'리뷰어:','lScore':'점수:','lDate':'날짜:',
+        'showAll':'전체','incompleteOnly':'미검토','completeOnly':'검토 완료',
+        'gateDecision':'Gate Decision (최종 결정)','gateGo':'GO — 승인','gateCond':'Conditional — 조건부 진행','gateNoGo':'NO GO — 보류',
+        'gateNotesPlaceholder':'결정 메모...','btnPrint':'🖨️ 인쇄','btnConfirm':'✔ 확정하기',
+        'sProgress':'검토 진행률','sChecklist':'체크리스트','sReadiness':'충족률',
+        'sProgressDesc':'전체 항목 중 검토 완료 수','rdScore':'충족 / (충족 + 미충족)','rdYes':'충족','rdNo':'미충족','rdPending':'미검토',
+        'rdReady':'진행 가능','rdCaution':'주의 필요','rdRisk':'고위험 — 진행 불가',
+        'rdOverview':'📊 준비도 요약','rdAllPass':'모두 충족','rdSomeFail':'미충족 있음','rdNotReviewed':'미검토',
+        'owner':'담당자','notStarted':'미검토','yes':'충족','no':'미충족','memo':'메모',
+        'Product Readiness':'제품 준비','Regulatory & Compliance':'규제 및 컴플라이언스',
+        'Manufacturing & Supply Chain':'제조 및 공급망','Commercial Readiness':'상업화 준비',
+        'Marketing Readiness':'마케팅 준비','Customer Support':'고객 지원',
+        'Financial Feasibility':'재무 타당성','Legal & IP':'법무 및 지적재산',
+        'stronglyRecommended':'강력 권장','recommended':'권장','furtherDevelopment':'추가 검토','notRecommended':'비권장',
+        'Is the proposed product technically feasible with current capabilities?':'현재 역량으로 제안된 제품을 기술적으로 구현 가능한가?',
+        'Can the product be developed within the expected timeline and budget?':'예상 일정과 예산 내에 개발 가능한가?',
+        'Does the product have a clear differentiation from competitors?':'경쟁사 대비 명확한 차별화 요소가 있는가?',
+        'Are there any regulatory barriers that could block market entry?':'시장 진입을 막을 수 있는 규제 장벽이 있는가?',
+        'Can required certifications (FDA/CE/MDR) be obtained in time?':'필요한 인증(FDA/CE/MDR)을 적시에 취득할 수 있는가?',
+        'Can the product be manufactured at scale with existing infrastructure?':'기존 인프라로 대규모 제조가 가능한가?',
+        'Are critical components and supply chains available and secured?':'핵심 부품과 공급망이 확보되어 있는가?',
+        'Is there a viable go-to-market and pricing strategy?':'실행 가능한 GTM 및 가격 전략이 있는가?',
+        'Are existing sales channels sufficient for distribution?':'기존 영업 채널로 유통이 충분한가?',
+        'Is the target market clearly defined with validated demand?':'타겟 시장이 명확하고 수요가 검증되었는가?',
+        'Can launch marketing be executed within the planned budget?':'계획된 예산 내에 출시 마케팅을 실행할 수 있는가?',
+        'Can the support team handle this product without major resource additions?':'대규모 추가 인력 없이 지원팀이 이 제품을 담당할 수 있는가?',
+        'Are service/warranty requirements clearly defined?':'서비스/보증 요구사항이 명확히 정의되어 있는가?',
+        'Does the business case show positive ROI within the target period?':'비즈니스 케이스가 목표 기간 내 양의 ROI를 보여주는가?',
+        'Is the development and launch budget approved?':'개발 및 출시 예산이 승인되었는가?',
+        'Are there any IP or patent risks that could prevent launch?':'출시를 막을 수 있는 IP 또는 특허 리스크가 있는가?',
+        'Are all necessary license agreements in place?':'필요한 모든 라이선스 계약이 체결되어 있는가?',
+        'modalGoTitle':'상용화를 승인하시겠습니까?','modalGoDesc':'이 태스크를 투자 승인합니다.<br>체크리스트 완료율: {pct}%.<br>이 작업은 Gate 결정을 확정합니다.',
+        'modalConfirm':'확정','modalCancel':'취소',
+        'dashTitle':'태스크 현황','dashNoData':'아직 태스크가 없습니다. Step 1–4를 완료하면 대시보드가 표시됩니다.',
+        'dTitle':'제목','dSubmitter':'제출자','dReviewer':'검토자','dScore':'점수','dDecision':'판정',
+        'dChecklist':'체크리스트','dAction':'작업','dOpen':'열기',
+        'dFinalized':'확정됨','dPending':'대기',
+        'finalizedMsg':'이 태스크는 GO — 승인으로 확정되었습니다.',
+        'gateNone':'—'
+    }
+};
+var currentLang='en';
+function t(k){return (i18n[currentLang]&&i18n[currentLang][k])||k;}
+var _langFromSync=false;
+var _stateRestored=false;
+function setLang(lang){
+    currentLang=lang;
+    document.getElementById('langEn').classList.toggle('active',lang==='en');
+    document.getElementById('langKo').classList.toggle('active',lang==='ko');
+    document.querySelectorAll('[data-i18n]').forEach(function(el){el.innerHTML=t(el.getAttribute('data-i18n'));});
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(function(el){el.placeholder=t(el.getAttribute('data-i18n-placeholder'));});
+    renderReviewCards();
+    if(selectedReview){renderChecklist();updateSidebar();}
+    renderDashboard();
+    if(!_langFromSync){try{if(window.parent!==window)window.parent.postMessage({type:'mop-lang-change',lang:lang},'*');}catch(e){}}
+    _langFromSync=false;
+}
+
+var checklistData=[
+    {category:"Product Readiness",icon:"1",items:["Is the proposed product technically feasible with current capabilities?","Can the product be developed within the expected timeline and budget?","Does the product have a clear differentiation from competitors?"]},
+    {category:"Regulatory & Compliance",icon:"2",items:["Are there any regulatory barriers that could block market entry?","Can required certifications (FDA/CE/MDR) be obtained in time?"]},
+    {category:"Manufacturing & Supply Chain",icon:"3",items:["Can the product be manufactured at scale with existing infrastructure?","Are critical components and supply chains available and secured?"]},
+    {category:"Commercial Readiness",icon:"4",items:["Is there a viable go-to-market and pricing strategy?","Are existing sales channels sufficient for distribution?"]},
+    {category:"Marketing Readiness",icon:"5",items:["Is the target market clearly defined with validated demand?","Can launch marketing be executed within the planned budget?"]},
+    {category:"Customer Support",icon:"6",items:["Can the support team handle this product without major resource additions?","Are service/warranty requirements clearly defined?"]},
+    {category:"Financial Feasibility",icon:"7",items:["Does the business case show positive ROI within the target period?","Is the development and launch budget approved?"]},
+    {category:"Legal & IP",icon:"8",items:["Are there any IP or patent risks that could prevent launch?","Are all necessary license agreements in place?"]}
+];
+
+var reviews=[],selectedReview=null,checklistState={},currentFilter='all',openCategories={},currentView='dashboard',_restoring=false;
+
+window.addEventListener('message',function(e){
+    if(!e.data)return;
+    if(e.data.type==='mop-lang-sync'){var l=e.data.lang;if((l==='en'||l==='ko')&&l!==currentLang){_langFromSync=true;setLang(l);}}
+    if(e.data.type==='mop-reviews-sync'){reviews=e.data.payload||[];renderReviewCards();renderDashboard();}
+});
+
+function switchView(v){
+    currentView=v;
+    document.querySelectorAll('.view-tab').forEach(function(t){t.classList.remove('active');});
+    var guide=document.getElementById('noSelectionGuide');
+    if(v==='checklist'){
+        document.getElementById('tabChecklist').classList.add('active');
+        document.getElementById('checklistView').classList.remove('hidden');
+        document.getElementById('dashboardView').classList.remove('active');
+        // Auto-select last review if none selected
+        if(!selectedReview){
+            if(reviews.length>0){
+                var lastReview=reviews[reviews.length-1];
+                selectReview(lastReview.id);
+                if(guide)guide.style.display='none';
+            } else {
+                guide.style.display='';
+                var isKo=currentLang==='ko';
+                document.getElementById('guideTitle').textContent=isKo?'등록된 항목이 없습니다':'No items available';
+                document.getElementById('guideDesc').innerHTML=isKo
+                    ?'MOP Scoring에서 검토가 완료되면 여기에 표시됩니다.'
+                    :'Items will appear here once MOP Scoring reviews are completed.';
+            }
+        } else {
+            guide.style.display='none';
+        }
+    } else {
+        document.getElementById('tabDashboard').classList.add('active');
+        document.getElementById('checklistView').classList.add('hidden');
+        document.getElementById('dashboardView').classList.add('active');
+        if(guide)guide.style.display='none';
+        renderDashboard();
+    }
+}
+
+function renderReviewCards(){
+    var c=document.getElementById('reviewList');
+    if(!reviews.length){c.innerHTML='<div class="no-reviews"><div class="icon">📭</div><p data-i18n="noReviews">'+t('noReviews')+'</p></div>';return;}
+    var h='<div class="review-cards">';
+    reviews.forEach(function(r){
+        var sel=selectedReview&&selectedReview.id==r.id;
+        var sc=r.percentage>=80?'score-high':r.percentage>=60?'score-mid':'score-low';
+        var st=checklistState[r.id]||checklistState[String(r.id)];
+        var finalized=st&&st.finalized;
+        h+='<div class="review-card'+(sel?' selected':'')+'" onclick="selectReview('+r.id+')">';
+        h+='<div class="rc-left"><div class="rc-title">'+esc(r.title)+(finalized?' ✅':'')+'</div>';
+        h+='<div class="rc-meta">'+t('lSubmitter')+' '+esc(r.submitter||'-')+' · '+t('lReviewer')+' '+esc(r.reviewer)+'</div></div>';
+        h+='<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0" onclick="showReviewDetail('+r.id+',event)"><div class="rc-score '+sc+'" style="cursor:pointer" title="'+(currentLang==='ko'?'클릭하여 평가 상세 보기':'Click to view review details')+'">'+r.percentage+'%</div><div style="font-size:0.6rem;color:var(--gray-500);margin-top:3px">'+t('lScore').replace(':','')+'</div></div></div>';
+    });
+    c.innerHTML=h+'</div>';
+}
+function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
+function escAttr(s){return(s||'').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
+
+function getChecklistPct(id){
+    var st=checklistState[id]||checklistState[String(id)];
+    if(!st)return 0;
+    var total=0,reviewed=0;
+    checklistData.forEach(function(cat,ci){
+        cat.items.forEach(function(_,ii){
+            var s=st.items[ci+'-'+ii];
+            if(s&&(s.status==='complete'||s.status==='no'))reviewed++;
+            total++;
+        });
+    });
+    return total>0?Math.round(reviewed/total*100):0;
+}
+
+function _el(id){return document.getElementById(id);}
+function _setText(id,txt){var e=_el(id);if(e)e.textContent=txt;}
+function _show(id){var e=_el(id);if(e)e.classList.add('show');}
+function _setStyle(id,prop,val){var e=_el(id);if(e)e.style[prop]=val;}
+
+function selectReview(id){
+    try{
+    selectedReview=reviews.find(function(r){return String(r.id)===String(id);});
+    if(!selectedReview)return;
+    id=selectedReview.id;
+    if(!checklistState[id]){
+        checklistState[id]={items:{},owners:{},gate:'',gateNotes:'',finalized:false};
+        checklistData.forEach(function(cat,ci){
+            checklistState[id].owners[ci]='';
+            cat.items.forEach(function(_,ii){checklistState[id].items[ci+'-'+ii]={checked:false,status:'not-started',notes:''};});
+        });
+    }
+    var needSwitch=currentView==='dashboard'&&!_restoring;
+    _detailExpanded=false;var _dbtn=document.getElementById('siDetailBtn');if(_dbtn)_dbtn.textContent='▼';var _dpnl=document.getElementById('siExpandedDetail');if(_dpnl){_dpnl.style.display='none';_dpnl.innerHTML='';}
+    // Render all content FIRST (while checklist may still be hidden)
+    _setStyle('noSelectionGuide','display','none');
+    renderReviewCards();
+    _setText('siTitle',selectedReview.title||'');
+    _setText('siSubmitter',selectedReview.submitter||'-');
+    _setText('siReviewer',selectedReview.reviewer||'-');
+    _setText('siScore',(selectedReview.score||0)+'/'+(selectedReview.maxScore||0)+' ('+(selectedReview.percentage||0)+'%)');
+    _setText('siDate',selectedReview.date||'');
+    _show('selectedInfo');
+    _show('filterBar');
+    _show('gateSection');
+    _show('actionsBar');
+    _setStyle('sidebarWrap','display','');
+    var st=checklistState[id];
+    if(st){
+        var fin=!!st.finalized;
+        document.querySelectorAll('.gate-btn').forEach(function(b){b.classList.remove('active');b.disabled=fin;b.style.opacity=fin?'0.6':'';b.style.pointerEvents=fin?'none':'';});
+        if(st.gate){var ge=document.querySelector('.gate-'+st.gate);if(ge)ge.classList.add('active');}
+        var gn=_el('gateNotes');if(gn){gn.value=st.gateNotes||'';gn.disabled=fin;gn.readOnly=fin;gn.style.opacity=fin?'0.6':'';}
+    }
+    updateConfirmBtn();
+    renderChecklist();updateSidebar();
+    // THEN switch view (content already rendered, no flicker)
+    if(needSwitch){
+        switchView('checklist');
+        requestAnimationFrame(function(){window.scrollTo(0,0);});
+    }
+    }catch(err){console.error('selectReview error:',err);}
+}
+
+function renderChecklist(){
+    if(!selectedReview)return;
+    var st=checklistState[selectedReview.id];
+    if(!st)return;
+    var container=document.getElementById('checklistContainer'),html='';
+    var isFinalized=st&&st.finalized;
+    checklistData.forEach(function(cat,ci){
+        var isOpen=openCategories[ci]!==false;
+        var items=cat.items,doneCount=0;
+        items.forEach(function(_,ii){var s=st.items[ci+'-'+ii];if(s&&(s.status==='complete'||s.status==='no'))doneCount++;});
+        var pct=items.length>0?Math.round(doneCount/items.length*100):0;
+        var hasVisible=false;
+        var disabledAttr=isFinalized?' disabled style="opacity:0.6;pointer-events:none"':'';
+        var itemsHtml=items.map(function(item,ii){
+            var key=ci+'-'+ii,s=st.items[key],isDone=s.status==='complete'||s.status==='no';
+            if(currentFilter==='complete'&&!isDone)return '';
+            if(currentFilter==='incomplete'&&isDone)return '';
+            hasVisible=true;
+            return '<div class="cl-item'+(isFinalized?' finalized':'')+'">'+
+                '<div class="cl-checkbox'+(s.checked?' checked':'')+'"'+(isFinalized?'':' onclick="toggleCheck(\''+key+'\')"')+'></div>'+
+                '<div class="cl-content">'+
+                    '<div class="cl-text'+(isDone?' done':'')+'">'+esc(t(item))+'</div>'+
+                    '<div class="cl-bottom">'+
+                        '<div class="status-btns">'+
+                            '<button class="st-btn s-complete'+(s.status==='complete'?' active':'')+'"'+(isFinalized?' disabled':' onclick="setStatus(\''+key+'\',\'complete\')"')+'>✅ '+t('yes')+'</button>'+
+                            '<button class="st-btn s-not-started'+(s.status==='no'?' active':'')+'"'+(isFinalized?' disabled':' onclick="setStatus(\''+key+'\',\'no\')"')+' style="'+(s.status==='no'?'background:#7f1d1d;color:#ef4444;border-color:#ef4444':'')+'">❌ '+t('no')+'</button>'+
+                        '</div>'+
+                        '<div class="cl-note"><input type="text" value="'+escAttr(s.notes)+'"'+(isFinalized?' disabled readonly':' onchange="setNotes(\''+key+'\',this.value)"')+' placeholder="'+t('memo')+'..."></div>'+
+                    '</div>'+
+                '</div></div>';
+        }).join('');
+        if(currentFilter!=='all'&&!hasVisible)return;
+        html+='<div class="category-section">'+
+            '<div class="cat-header" onclick="toggleCat('+ci+')">'+
+                '<div class="cat-header-left"><div class="cat-icon">'+cat.icon+'</div><div class="cat-name">'+t(cat.category)+'</div></div>'+
+                '<div class="cat-header-right"><div class="cat-progress-bar"><div class="cat-progress-fill" style="width:'+pct+'%"></div></div><div class="cat-pct">'+pct+'%</div><div class="cat-toggle'+(isOpen?' open':'')+'">▼</div></div>'+
+            '</div>'+
+            '<div class="cat-body'+(isOpen?' open':'')+'">'+itemsHtml+'</div>'+
+        '</div>';
+    });
+    container.innerHTML=html;
+}
+
+function updateSidebar(){
+    if(!selectedReview)return;
+    var st=checklistState[selectedReview.id],total=0,done=0;
+    var yesCount=0,noCount=0,pendingCount=0;
+    var catStatus=[];
+    checklistData.forEach(function(cat,ci){
+        var catDone=0,catYes=0,catNo=0,catPending=0,catTotal=cat.items.length;
+        cat.items.forEach(function(_,ii){
+            var s=st.items[ci+'-'+ii];
+            if(s&&s.status==='complete'){catDone++;done++;catYes++;yesCount++;}
+            else if(s&&s.status==='no'){catDone++;done++;catNo++;noCount++;}
+            else {catPending++;pendingCount++;}
+            total++;
+        });
+        catStatus.push({name:cat.category,done:catDone,total:catTotal,yes:catYes,no:catNo,pending:catPending});
+    });
+    var pct=total>0?Math.round(done/total*100):0;
+    _setText('progressPct',pct);
+    var circ=2*Math.PI*48;
+    var arcEl=_el('progressArc');if(arcEl)arcEl.style.strokeDashoffset=circ-(circ*pct/100);
+    _setText('progressDesc',done+' / '+total+' '+(currentLang==='ko'?'항목 검토 완료':'items reviewed'));
+    var cl=_el('catChecklist');
+    cl.innerHTML=catStatus.map(function(c){
+        var isDone=c.done===c.total&&c.total>0;
+        var detail=c.yes+(currentLang==='ko'?'충족':'Y')+' / '+c.no+(currentLang==='ko'?'미충족':'N');
+        return '<li class="'+(isDone?'done':'')+'"><span class="cat-check-icon">'+(isDone?'✓':'')+'</span><span style="flex:1">'+t(c.name)+'</span><span style="font-size:0.68rem;color:#94a3b8">'+detail+'</span></li>';
+    }).join('');
+    updateReadiness(yesCount,noCount,pendingCount,catStatus);
+    updateConfirmBtn();
+}
+
+function updateReadiness(yesCount,noCount,pendingCount,catStatus){
+    var reviewed=yesCount+noCount;
+    var rdPct=reviewed>0?Math.round(yesCount/reviewed*100):0;
+    var total=yesCount+noCount+pendingCount;
+    var isKo=currentLang==='ko';
+
+    // Sidebar readiness card
+    var card=_el('readinessCard');
+    if(card)card.style.display='';
+    _setText('readinessTitle',t('sReadiness'));
+    _setText('readinessScoreLabel',t('rdScore'));
+    _setText('rdYesLabel',t('rdYes'));
+    _setText('rdNoLabel',t('rdNo'));
+    _setText('rdPendingLabel',t('rdPending'));
+
+    // Score
+    var scoreEl=_el('readinessScore');
+    if(scoreEl){
+        if(reviewed===0){scoreEl.textContent='-';scoreEl.style.color='var(--gray-500)';}
+        else{scoreEl.textContent=rdPct+'%';scoreEl.style.color=rdPct>=80?'var(--success)':rdPct>=60?'var(--warning)':'var(--danger)';}
+    }
+
+    // Bar
+    var barFill=_el('readinessBarFill');
+    if(barFill){
+        barFill.style.width=(reviewed>0?rdPct:0)+'%';
+        barFill.style.background=rdPct>=80?'var(--success)':rdPct>=60?'var(--warning)':'var(--danger)';
+    }
+
+    // Counts
+    _setText('rdYes',yesCount);
+    _setText('rdNo',noCount);
+    _setText('rdPending',pendingCount);
+
+    // Verdict
+    var verdictEl=_el('readinessVerdict');
+    if(verdictEl){
+        if(reviewed===0){verdictEl.innerHTML='<span class="readiness-verdict rdy-caution">'+t('rdPending')+'</span>';}
+        else if(rdPct>=80&&noCount===0){verdictEl.innerHTML='<span class="readiness-verdict rdy-go">✅ '+t('rdReady')+'</span>';}
+        else if(rdPct>=60){verdictEl.innerHTML='<span class="readiness-verdict rdy-caution">⚠️ '+t('rdCaution')+'</span>';}
+        else{verdictEl.innerHTML='<span class="readiness-verdict rdy-risk">🚫 '+t('rdRisk')+'</span>';}
+    }
+
+    // Gate readiness summary (above gate decision)
+    var summaryEl=_el('gateReadinessSummary');
+    if(reviewed>0&&summaryEl){
+        summaryEl.style.display='';
+        _setText('gateRdTitle',t('rdOverview'));
+        var gvEl=_el('gateRdVerdict');
+        if(gvEl){
+            if(rdPct>=80&&noCount===0){gvEl.innerHTML='<span class="readiness-verdict rdy-go" style="font-size:0.78rem">✅ '+rdPct+'% — '+t('rdReady')+'</span>';}
+            else if(rdPct>=60){gvEl.innerHTML='<span class="readiness-verdict rdy-caution" style="font-size:0.78rem">⚠️ '+rdPct+'% — '+t('rdCaution')+'</span>';}
+            else{gvEl.innerHTML='<span class="readiness-verdict rdy-risk" style="font-size:0.78rem">🚫 '+rdPct+'% — '+t('rdRisk')+'</span>';}
+        }
+
+        var gridHtml='';
+        catStatus.forEach(function(c){
+            var icon,badge,badgeClass;
+            if(c.pending===c.total){icon='⬜';badge=t('rdNotReviewed');badgeClass='rd-pending';}
+            else if(c.no>0){icon='❌';badge=c.no+' '+t('rdNo');badgeClass='rd-fail';}
+            else{icon='✅';badge=t('rdAllPass');badgeClass='rd-pass';}
+            gridHtml+='<div class="gate-rd-item">'+
+                '<div class="gate-rd-icon">'+icon+'</div>'+
+                '<div class="gate-rd-info"><div class="gate-rd-name">'+t(c.name)+'</div>'+
+                '<div class="gate-rd-detail">'+c.yes+'/'+c.total+' '+t('rdYes')+'</div></div>'+
+                '<span class="cat-rd-badge '+badgeClass+'">'+badge+'</span></div>';
+        });
+        document.getElementById('gateRdGrid').innerHTML=gridHtml;
+    } else { summaryEl.style.display='none'; }
+}
+
+function updateConfirmBtn(){
+    if(!selectedReview)return;
+    var st=checklistState[selectedReview.id];
+    var btn=document.getElementById('btnConfirm');
+    if(btn&&st){btn.style.display=(st.gate&&!st.finalized)?'inline-block':'none';}
+    var pb=document.getElementById('btnPrint');
+    if(pb&&st){pb.style.display=st.finalized?'inline-block':'none';}
+}
+
+function isCurrentFinalized(){return selectedReview&&checklistState[selectedReview.id]&&checklistState[selectedReview.id].finalized;}
+function toggleCheck(key){if(isCurrentFinalized())return;var st=checklistState[selectedReview.id];st.items[key].checked=!st.items[key].checked;if(st.items[key].checked&&st.items[key].status==='not-started')st.items[key].status='complete';renderChecklist();updateSidebar();autoSave();}
+function setStatus(key,status){if(isCurrentFinalized())return;var st=checklistState[selectedReview.id];st.items[key].status=status;st.items[key].checked=(status==='complete');renderChecklist();updateSidebar();autoSave();}
+function setNotes(key,val){if(isCurrentFinalized())return;checklistState[selectedReview.id].items[key].notes=val;autoSave();}
+function setOwner(ci,val){checklistState[selectedReview.id].owners[ci]=val;autoSave();}
+function toggleCat(ci){openCategories[ci]=openCategories[ci]===false?true:false;renderChecklist();}
+function setFilter(f,btn){currentFilter=f;document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');renderChecklist();}
+function setGate(d,btn){if(!selectedReview||isCurrentFinalized())return;checklistState[selectedReview.id].gate=d;document.querySelectorAll('.gate-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');updateConfirmBtn();autoSave();}
+document.getElementById('gateNotes').addEventListener('input',function(){if(selectedReview){checklistState[selectedReview.id].gateNotes=this.value;autoSave();}});
+
+// Gate Confirm Flow
+function confirmGate(){
+    if(!selectedReview)return;
+    var st=checklistState[selectedReview.id];
+    var pct=getChecklistPct(selectedReview.id);
+    var isKo=currentLang==='ko';
+    if(pct<100){
+        var incCount=0;
+        var listItems=[];
+        checklistData.forEach(function(cat,ci){
+            cat.items.forEach(function(item,ii){
+                var s=st.items[ci+'-'+ii];
+                if(s&&s.status!=='complete'&&s.status!=='no'){
+                    incCount++;
+                    if(listItems.length<5) listItems.push(t(cat.category)+' \u2014 '+t(item));
+                }
+            });
+        });
+        var mIcon=document.getElementById('modalIcon');
+        var mTitle=document.getElementById('modalTitle');
+        var mDesc=document.getElementById('modalDesc');
+        var mConfirm=document.getElementById('modalConfirmBtn');
+        var mCancel=document.getElementById('modalCancelBtn');
+        mIcon.textContent='\u26A0\uFE0F';
+        mTitle.textContent=isKo?'\uCCB4\uD06C\uB9AC\uC2A4\uD2B8\uAC00 \uC644\uB8CC\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4':'Checklist Not Complete';
+        var descHtml=isKo?'\uBAA8\uB4E0 \uD56D\uBAA9\uC744 \uC644\uB8CC\uD574\uC57C \uD655\uC815\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.<br>\uD604\uC7AC \uC9C4\uD589\uB960: <strong>'+pct+'%</strong> (\uBBF8\uC644\uB8CC '+incCount+'\uAC74)':'All items must be completed before finalizing.<br>Progress: <strong>'+pct+'%</strong> ('+incCount+' incomplete)';
+        descHtml+='<div style="text-align:left;font-size:0.8rem;color:#666;margin-top:12px;max-height:150px;overflow-y:auto;background:#f7f8fa;padding:10px;border-radius:8px">';
+        listItems.forEach(function(x){descHtml+='<div style="padding:2px 0">\u2022 '+esc(x)+'</div>';});
+        if(incCount>5) descHtml+='<div style="padding:2px 0;color:#999">'+(isKo?'... \uC678 '+(incCount-5)+'\uAC74':'... and '+(incCount-5)+' more')+'</div>';
+        descHtml+='</div>';
+        mDesc.innerHTML=descHtml;
+        mConfirm.style.display='none';
+        mCancel.textContent=isKo?'\uD655\uC778':'OK';
+        document.getElementById('completionModal').classList.add('show');
+        return;
+    }
+    var gateLabel=st.gate==='go'?(isKo?'GO — 승인':'GO — Approved'):st.gate==='conditional'?(isKo?'Conditional — 조건부 진행':'Conditional — Proceed'):(isKo?'NO GO — 보류':'NO GO — Defer');
+    document.getElementById('modalIcon').textContent=st.gate==='go'?'🎉':st.gate==='conditional'?'⚠️':'🚫';
+    document.getElementById('modalTitle').textContent=isKo?'"'+selectedReview.title+'" '+gateLabel+' 확정':'"'+selectedReview.title+'" — '+gateLabel;
+    document.getElementById('modalDesc').innerHTML=t('modalGoDesc').replace('{pct}',pct);
+    document.getElementById('modalConfirmBtn').style.display='';
+    document.getElementById('modalConfirmBtn').textContent=t('modalConfirm');
+    document.getElementById('modalCancelBtn').textContent=t('modalCancel');
+    document.getElementById('completionModal').classList.add('show');
+}
+function finalizeGate(){
+    if(!selectedReview)return;
+    checklistState[selectedReview.id].finalized=true;
+    checklistState[selectedReview.id].finalizedDate=new Date().toISOString();
+    closeModal();
+    renderReviewCards();
+    updateConfirmBtn();
+    renderDashboard();
+    autoSave();
+    // Show portfolio link modal after finalization
+    var isKo=currentLang==='ko';
+    setTimeout(function(){
+        var title=selectedReview.title||'';
+        document.getElementById('modalIcon').textContent='🎉';
+        document.getElementById('modalTitle').textContent=isKo?'GO — 승인 완료!':'GO — Approved!';
+        document.getElementById('modalDesc').innerHTML=isKo
+            ?'<strong>'+esc(title)+'</strong> 이(가) 확정되었습니다.<br><br>Project Portfolio Board에서 프로젝트를 관리하시겠습니까?'
+            :'<strong>'+esc(title)+'</strong> has been finalized.<br><br>Would you like to manage this project in the Portfolio Board?';
+        document.getElementById('modalConfirmBtn').style.display='';
+        document.getElementById('modalConfirmBtn').textContent=isKo?'📋 포트폴리오 보드 열기':'📋 Open Portfolio Board';
+        document.getElementById('modalConfirmBtn').onclick=function(){
+            closeModal();
+            try{
+                if(window.parent!==window){
+                    var sd=selectedReview.submissionData||{};
+                    window.parent.postMessage({type:'mop-open-portfolio',payload:{
+                        title:title,
+                        reviewId:selectedReview.id,
+                        mopId:String(selectedReview.id),
+                        owner:selectedReview.reviewer||sd.requestOwner||'',
+                        score:selectedReview.score||0,
+                        maxScore:selectedReview.maxScore||0,
+                        percentage:selectedReview.percentage||0,
+                        region:sd.division||'',
+                        submitter:sd.requestOwner||'',
+                        date:selectedReview.date||''
+                    }},'*');
+                }
+            }catch(e){}
+        };
+        document.getElementById('modalCancelBtn').textContent=isKo?'나중에':'Later';
+        document.getElementById('completionModal').classList.add('show');
+    },500);
+}
+function closeModal(){document.getElementById('completionModal').classList.remove('show');}
+
+var _detailExpanded=false;
+function toggleSubmissionDetail(){
+    if(!selectedReview)return;
+    _detailExpanded=!_detailExpanded;
+    var btn=document.getElementById('siDetailBtn');
+    var panel=document.getElementById('siExpandedDetail');
+    btn.textContent=_detailExpanded?'▲':'▼';
+    if(!_detailExpanded){panel.style.display='none';return;}
+    var r=selectedReview;
+    var isKo=currentLang==='ko';
+    var sd=r.submissionData||{};
+    var _criteriaKo={'Strategic Alignment':'전략적 부합도','Market Opportunity Size':'시장 기회 규모','Customer Impact':'고객 영향도','Competitive Advantage':'경쟁 우위','Revenue / Growth Potential':'매출/성장 잠재력','Feasibility':'실현 가능성','Time to Market':'출시 소요 기간','Risk Profile':'리스크 수준'};
+    var h='';
+    // Score breakdown
+    var cs=r.criteriaScores||r.scores||{};
+    var keys=Object.keys(cs);
+    if(keys.length){
+        h+='<div style="font-size:0.75rem;font-weight:700;color:#93bbff;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">'+(isKo?'항목별 점수':'Score Breakdown')+'</div>';
+        keys.forEach(function(name){
+            var s=cs[name]||0;
+            var barPct=(s/5)*100;
+            var barColor=barPct>=80?'#10b981':barPct>=60?'#34d399':barPct>=40?'#fbbf24':'#ef4444';
+            var displayName=isKo?(_criteriaKo[name]||name):name;
+            h+='<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:0.8rem;">';
+            h+='<span style="flex:1;color:#e2e8f0;">'+esc(displayName)+'</span>';
+            h+='<div style="width:80px;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;flex-shrink:0;"><div style="height:100%;border-radius:3px;width:'+barPct+'%;background:'+barColor+';"></div></div>';
+            h+='<span style="width:32px;text-align:right;color:#94a3b8;font-size:0.75rem;flex-shrink:0;">'+s+'/5</span>';
+            h+='</div>';
+        });
+    }
+    // Submission details
+    var fields=[];
+    if(sd.requestType)fields.push([isKo?'요청 유형':'Request Type',sd.requestType]);
+    if(sd.division)fields.push([isKo?'리전':'Region',sd.division]);
+    if(sd.requestOwner)fields.push([isKo?'요청 담당자':'Request Owner',sd.requestOwner]);
+    if(sd.requestOwnerEmail)fields.push([isKo?'이메일':'Email',sd.requestOwnerEmail]);
+    if(sd.targetCustomer)fields.push([isKo?'대상 고객':'Target Customer',sd.targetCustomer]);
+    if(sd.opportunitySummary)fields.push([isKo?'기회 요약':'Opportunity Summary',sd.opportunitySummary,true]);
+    if(sd.problemBeingSolved)fields.push([isKo?'해결하려는 문제':'Problem Being Solved',sd.problemBeingSolved,true]);
+    if(sd.strategicRelevance)fields.push([isKo?'전략적 관련성':'Strategic Relevance',sd.strategicRelevance,true]);
+    if(sd.growthImpact)fields.push([isKo?'성장 영향 가설':'Growth Impact',sd.growthImpact,true]);
+    if(sd.evidence)fields.push([isKo?'근거 자료':'Evidence',sd.evidence,true]);
+    if(sd.priorityArgument)fields.push([isKo?'우선순위 근거':'Priority Argument',sd.priorityArgument,true]);
+    if(fields.length){
+        h+='<div style="font-size:0.75rem;font-weight:700;color:#93bbff;text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px;">'+(isKo?'제출 상세':'Submission Details')+'</div>';
+        h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
+        fields.forEach(function(f){
+            var span=f[2]?'grid-column:1/-1;':'';
+            h+='<div style="'+span+'"><div style="font-size:0.68rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">'+f[0]+'</div><div style="font-size:0.82rem;color:#e2e8f0;line-height:1.5;">'+esc(f[1])+'</div></div>';
+        });
+        h+='</div>';
+    }
+    panel.innerHTML=h;
+    panel.style.display='block';
+}
+
+// Review Detail Popup
+function showReviewDetail(reviewId,evt){
+    if(evt)evt.stopPropagation();
+    var r=reviews.find(function(rv){return String(rv.id)===String(reviewId);});
+    if(!r)return;
+    var isKo=currentLang==='ko';
+    document.getElementById('rdTitle').textContent=r.title||'';
+    document.getElementById('rdSub').textContent=(isKo?'리뷰어: ':'Reviewer: ')+(r.reviewer||'-')+' · '+(r.date||'');
+    var pct=r.percentage||0;
+    var sc=pct>=80?'background:#10b981':pct>=60?'background:#34d399':pct>=40?'background:#fbbf24':'background:#ef4444';
+    var recKey=r.recKey||'notRecommended';
+    var recClass=r.recClass||'rec-not';
+    var recLabels={stronglyRecommended:isKo?'강력 권장':'Strongly Recommended',recommended:isKo?'권장':'Recommended',furtherDevelopment:isKo?'추가 검토':'Further Development',notRecommended:isKo?'비권장':'Not Recommended'};
+    var recLabel=recLabels[recKey]||recKey;
+    var html='';
+    // Score summary
+    html+='<div class="rd-score-summary">';
+    html+='<div class="rd-score-circle" style="'+sc+'">'+(r.score||0)+'<div style="font-size:0.55rem;font-weight:400;opacity:0.8">/ '+(r.maxScore||100)+'</div></div>';
+    html+='<div class="rd-score-detail"><div class="rd-score-text">'+pct+'%</div><div><span class="rd-rec '+recClass+'">'+recLabel+'</span></div></div>';
+    html+='</div>';
+    // Criteria breakdown
+    var cs=r.criteriaScores||r.scores||{};
+    var keys=Object.keys(cs);
+    var _criteriaKo={'Strategic Alignment':'전략적 부합도','Market Opportunity Size':'시장 기회 규모','Customer Impact':'고객 영향도','Competitive Advantage':'경쟁 우위','Revenue / Growth Potential':'매출/성장 잠재력','Feasibility':'실현 가능성','Time to Market':'출시 소요 기간','Risk Profile':'리스크 수준'};
+    if(keys.length){
+        html+='<div class="rd-section-title">'+(isKo?'항목별 점수':'Score Breakdown')+'</div>';
+        keys.forEach(function(name){
+            var s=cs[name]||0;
+            var barPct=(s/5)*100;
+            var barColor=barPct>=80?'#10b981':barPct>=60?'#34d399':barPct>=40?'#fbbf24':'#ef4444';
+            var displayName=isKo?(_criteriaKo[name]||name):name;
+            html+='<div class="rd-criteria-row">';
+            html+='<span class="rd-criteria-name">'+esc(displayName)+'</span>';
+            html+='<div class="rd-criteria-bar"><div class="rd-criteria-bar-fill" style="width:'+barPct+'%;background:'+barColor+'"></div></div>';
+            html+='<span class="rd-criteria-score">'+s+' / 5</span>';
+            html+='</div>';
+        });
+    }
+    // Submission info
+    var sd=r.submissionData||{};
+    var infoFields=[];
+    if(sd.requestType)infoFields.push([isKo?'요청 유형':'Request Type',sd.requestType]);
+    if(sd.division)infoFields.push([isKo?'리전':'Region',sd.division]);
+    if(sd.requestOwner)infoFields.push([isKo?'요청 담당자':'Request Owner',sd.requestOwner]);
+    if(sd.requestOwnerEmail)infoFields.push([isKo?'이메일':'Email',sd.requestOwnerEmail]);
+    if(sd.targetCustomer)infoFields.push([isKo?'대상 고객':'Target Customer',sd.targetCustomer]);
+    if(sd.opportunitySummary)infoFields.push([isKo?'기회 요약':'Opportunity Summary',sd.opportunitySummary,true]);
+    if(sd.problemBeingSolved)infoFields.push([isKo?'해결하려는 문제':'Problem Being Solved',sd.problemBeingSolved,true]);
+    if(sd.strategicRelevance)infoFields.push([isKo?'전략적 관련성':'Strategic Relevance',sd.strategicRelevance,true]);
+    if(sd.growthImpact)infoFields.push([isKo?'성장 영향 가설':'Growth Impact Hypothesis',sd.growthImpact,true]);
+    if(sd.evidence)infoFields.push([isKo?'근거 자료':'Evidence',sd.evidence,true]);
+    if(sd.priorityArgument)infoFields.push([isKo?'우선순위 근거':'Priority Argument',sd.priorityArgument,true]);
+    if(infoFields.length){
+        html+='<div class="rd-info-grid">';
+        infoFields.forEach(function(f){
+            html+='<div class="rd-info-item'+(f[2]?' full':'')+'"><div class="rd-info-label">'+f[0]+'</div><div class="rd-info-value">'+esc(f[1])+'</div></div>';
+        });
+        html+='</div>';
+    }
+    html+='<button class="rd-close" onclick="closeRdPopup()">'+(isKo?'닫기':'Close')+'</button>';
+    document.getElementById('rdBody').innerHTML=html;
+    document.getElementById('rdOverlay').classList.add('show');
+}
+function closeRdPopup(){document.getElementById('rdOverlay').classList.remove('show');}
+
+// Print Preview Popup
+function printChecklist(){
+    if(!selectedReview)return;
+    var isKo=currentLang==='ko';
+    var r=selectedReview;
+    var st=checklistState[r.id]||checklistState[String(r.id)];
+    var pct=getChecklistPct(r.id);
+    var body='';
+    body+='<table><tr><td class="label-col">'+(isKo?'제목':'Title')+'</td><td class="val-col"><strong>'+esc(r.title)+'</strong></td></tr>';
+    body+='<tr><td class="label-col">'+(isKo?'입력자':'Submitter')+'</td><td class="val-col">'+esc(r.submitter||'-')+'</td></tr>';
+    body+='<tr><td class="label-col">'+(isKo?'리뷰어':'Reviewer')+'</td><td class="val-col">'+esc(r.reviewer)+'</td></tr>';
+    body+='<tr><td class="label-col">'+(isKo?'점수':'Score')+'</td><td class="val-col">'+r.score+'/'+r.maxScore+' ('+r.percentage+'%)</td></tr>';
+    body+='<tr><td class="label-col">'+(isKo?'날짜':'Date')+'</td><td class="val-col">'+esc(r.date)+'</td></tr>';
+    body+='<tr><td class="label-col">'+(isKo?'체크리스트 완료율':'Checklist Progress')+'</td><td class="val-col"><strong>'+pct+'%</strong></td></tr>';
+    var gateLabel=st.gate==='go'?'GO — Approved':st.gate==='conditional'?'Conditional':st.gate==='nogo'?'NO GO':'—';
+    body+='<tr><td class="label-col">'+(isKo?'Gate 결정':'Gate Decision')+'</td><td class="val-col"><strong>'+gateLabel+'</strong></td></tr>';
+    if(st.gateNotes)body+='<tr><td class="label-col">'+(isKo?'결정 메모':'Decision Notes')+'</td><td class="val-col">'+esc(st.gateNotes)+'</td></tr>';
+    body+='</table>';
+
+    checklistData.forEach(function(cat,ci){
+        body+='<h3>'+cat.icon+'. '+t(cat.category)+'</h3>';
+        body+='<table>';
+        cat.items.forEach(function(item,ii){
+            var s=st.items[ci+'-'+ii];
+            var statusLabel=s.status==='complete'?'✅ Yes':s.status==='no'?'❌ No':'○';
+            var notes=s.notes?'<div style="font-size:0.82rem;color:#666;margin-top:3px;padding-left:4px">📝 '+esc(s.notes)+'</div>':'';
+            body+='<tr><td style="width:28px;text-align:center">'+statusLabel+'</td><td>'+esc(t(item))+notes+'</td></tr>';
+        });
+        body+='</table>';
+    });
+
+    var popupHtml='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>AFI Report</title>'+
+        '<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">'+
+        '<style>'+
+        '* { margin:0; padding:0; box-sizing:border-box; }'+
+        'body { font-family:"Roboto",sans-serif; color:#333; padding:40px; max-width:900px; margin:0 auto; }'+
+        '.report-header { border-bottom:3px solid #004fec; padding-bottom:16px; margin-bottom:24px; }'+
+        '.report-header h1 { font-size:1.5rem; color:#004fec; margin-bottom:4px; }'+
+        '.report-header .date { color:#666; font-size:0.9rem; }'+
+        'h3 { font-size:1rem; color:#004fec; margin:24px 0 10px; border-bottom:2px solid #004fec; padding-bottom:6px; }'+
+        'table { width:100%; border-collapse:collapse; margin-bottom:16px; table-layout:fixed; }'+
+        'td { padding:8px 10px; border-bottom:1px solid #e0e3e8; font-size:0.88rem; vertical-align:top; }'+
+        '.label-col { width:160px; color:#666; font-weight:500; white-space:nowrap; }'+
+        '.val-col { word-wrap:break-word; overflow-wrap:break-word; }'+
+        '.actions-bar { margin-top:32px; text-align:center; }'+
+        '.actions-bar button { padding:10px 28px; border-radius:8px; font-family:"Roboto",sans-serif; font-size:0.95rem; font-weight:600; cursor:pointer; margin:0 6px; }'+
+        '.btn-print { background:#004fec; color:#fff; border:none; }'+
+        '.btn-print:hover { background:#0039b3; }'+
+        '.btn-close { background:#f0f2f5; color:#333; border:1px solid #e0e3e8; }'+
+        '.btn-close:hover { background:#e0e3e8; }'+
+        '@page { margin:15mm 10mm; size:auto; }'+
+        '@media print { .actions-bar { display:none; } }'+
+        '</style></head><body>'+
+        '<div class="report-header"><h1>AFI Readiness Report — Medit</h1><div class="date">'+esc(r.date)+'</div></div>'+
+        body+
+        '<div class="actions-bar">'+
+        '<button class="btn-print" onclick="window.print()">🖨️ '+(isKo?'인쇄':'Print')+'</button>'+
+        '<button class="btn-close" onclick="window.close()">'+(isKo?'닫기':'Close')+'</button>'+
+        '</div></body></html>';
+
+    var popup=window.open('','AFIPrintPreview','width=900,height=700,scrollbars=yes,resizable=yes');
+    if(popup){popup.document.write(popupHtml);popup.document.close();popup.focus();}
+    else{alert(isKo?'팝업이 차단되었습니다. 팝업 차단을 해제해 주세요.':'Popup was blocked. Please allow popups.');}
+}
+
+// Dashboard
+var _dashRegionFilter='all';
+function setDashRegion(rgn){_dashRegionFilter=rgn;renderDashboard();}
+
+function renderDashboard(){
+    var c=document.getElementById('dashContent');
+    if(!reviews.length){
+        c.innerHTML='<div class="dash-empty"><div class="icon">📭</div><p>'+t('dashNoData')+'</p></div>';
+        return;
+    }
+    var isKo=currentLang==='ko';
+
+    // Collect regions
+    var regionMap={};
+    reviews.forEach(function(r){
+        var rgn=(r.submissionData&&r.submissionData.division)||r.region||'';
+        if(rgn) regionMap[rgn]=(regionMap[rgn]||0)+1;
+    });
+    var regions=Object.keys(regionMap).sort();
+
+    // Region filter tabs
+    var h='<div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap">';
+    var allActive=_dashRegionFilter==='all';
+    h+='<button onclick="setDashRegion(\'all\')" style="padding:6px 16px;border-radius:20px;border:1px solid '+(allActive?'#3b82f6':'rgba(255,255,255,0.1)')+';background:'+(allActive?'#3b82f6':'transparent')+';color:'+(allActive?'#fff':'#94a3b8')+';font-size:0.8rem;font-weight:600;cursor:pointer">'+(isKo?'전체':'All')+' <span style="font-size:0.7rem;opacity:0.8;margin-left:2px">'+reviews.length+'</span></button>';
+    regions.forEach(function(rgn){
+        var active=_dashRegionFilter===rgn;
+        h+='<button onclick="setDashRegion(\''+rgn+'\')" style="padding:6px 16px;border-radius:20px;border:1px solid '+(active?'#3b82f6':'rgba(255,255,255,0.1)')+';background:'+(active?'#3b82f6':'transparent')+';color:'+(active?'#fff':'#94a3b8')+';font-size:0.8rem;font-weight:600;cursor:pointer">'+rgn+' <span style="font-size:0.7rem;opacity:0.8;margin-left:2px">'+regionMap[rgn]+'</span></button>';
+    });
+    h+='</div>';
+
+    h+='<div class="dash-table-wrap"><table class="dash-table"><thead><tr>';
+    h+='<th>'+t('dTitle')+'</th><th>'+t('dSubmitter')+'</th><th>'+t('dReviewer')+'</th>';
+    h+='<th>'+(isKo?'평가점수':'Review Score')+'</th><th>'+(isKo?'검토 진행':'Progress')+'</th><th>'+(isKo?'충족률':'Pass Rate')+'</th><th>'+t('dDecision')+'</th><th>'+t('dAction')+'</th>';
+    h+='</tr></thead><tbody>';
+    var sortedReviews=reviews.slice().reverse().filter(function(r){
+        if(_dashRegionFilter==='all') return true;
+        var rgn=(r.submissionData&&r.submissionData.division)||r.region||'';
+        return rgn===_dashRegionFilter;
+    });
+    sortedReviews.forEach(function(r){
+        var st=checklistState[r.id]||checklistState[String(r.id)];
+        var pct=getChecklistPct(r.id);
+        var gate=st?st.gate:'';
+        var finalized=st&&st.finalized;
+        var sc=r.percentage>=80?'background:#22a861':r.percentage>=60?'background:#f59e0b':'background:#ef4444';
+        var gateClass=gate==='go'?'gate-badge-go':gate==='conditional'?'gate-badge-conditional':gate==='nogo'?'gate-badge-nogo':'gate-badge-none';
+        var gateText=gate==='go'?'GO':gate==='conditional'?'COND':gate==='nogo'?'NO GO':t('gateNone');
+        var pctColor=pct>=80?'#22a861':pct>=50?'#f59e0b':'#ef4444';
+        var statusText=finalized?'<span style="color:#22a861;font-weight:600;font-size:0.78rem">✅ '+t('dFinalized')+'</span>':'<span style="color:#f59e0b;font-size:0.78rem">'+t('dPending')+'</span>';
+
+        h+='<tr>';
+        h+='<td><div class="dash-title">'+esc(r.title)+'</div>'+statusText+'</td>';
+        h+='<td>'+esc(r.submitter||'-')+'</td>';
+        h+='<td>'+esc(r.reviewer)+'</td>';
+        var yc=0,nc=0;
+        if(st&&st.items){Object.keys(st.items).forEach(function(k){if(st.items[k].status==='complete')yc++;else if(st.items[k].status==='no')nc++;});}
+        var passRate=(yc+nc)>0?Math.round(yc/(yc+nc)*100):0;
+        var prColor=passRate>=80?'#22a861':passRate>=60?'#f59e0b':'#ef4444';
+        h+='<td style="cursor:pointer" onclick="showReviewDetail('+r.id+',event)"><span class="dash-score-pill" style="'+sc+'">'+r.score+'/'+r.maxScore+'</span><div style="font-size:0.65rem;color:#94a3b8;margin-top:2px;text-align:center">'+r.percentage+'%</div></td>';
+        h+='<td><div class="dash-progress"><div class="dash-progress-bar"><div class="dash-progress-fill" style="width:'+pct+'%;background:'+pctColor+'"></div></div><span class="dash-progress-text">'+pct+'%</span></div></td>';
+        h+='<td><span style="font-weight:700;color:'+prColor+'">'+passRate+'%</span><div style="font-size:0.65rem;color:#94a3b8">'+yc+(isKo?'충족 / ':'Y / ')+nc+(isKo?'미충족':'N')+'</div></td>';
+        h+='<td><span class="dash-gate-badge '+gateClass+'">'+gateText+'</span></td>';
+        h+='<td><button class="dash-action-btn" onclick="selectReview('+r.id+')">'+t('dOpen')+'</button></td>';
+        h+='</tr>';
+    });
+    h+='</tbody></table></div>';
+    h+='<div style="text-align:right;margin-top:20px"><button onclick="printDashboard()" style="background:none;border:1px solid rgba(255,255,255,0.15);color:#94a3b8;padding:8px 24px;border-radius:8px;cursor:pointer;font-size:0.82rem">🖨️ '+(isKo?'인쇄':'Print')+'</button></div>';
+    c.innerHTML=h;
+}
+
+function printDashboard(){
+    var isKo=currentLang==='ko';
+    var regionLabel=_dashRegionFilter==='all'?(isKo?'전체':'All'):_dashRegionFilter;
+    var sortedReviews=reviews.slice().reverse().filter(function(r){
+        if(_dashRegionFilter==='all') return true;
+        var rgn=(r.submissionData&&r.submissionData.division)||r.region||'';
+        return rgn===_dashRegionFilter;
+    });
+    var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>AFI Readiness Checklist — Dashboard</title><style>';
+    html+='*{margin:0;padding:0;box-sizing:border-box}';
+    html+='body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:30px;color:#1e293b;font-size:11px}';
+    html+='.header{text-align:center;margin-bottom:24px;border-bottom:2px solid #1e293b;padding-bottom:16px}';
+    html+='.header h1{font-size:18px;margin-bottom:4px}';
+    html+='.header p{font-size:12px;color:#64748b}';
+    html+='.region-tag{display:inline-block;background:#e0e7ff;color:#3b52b6;padding:2px 10px;border-radius:10px;font-size:11px;font-weight:600;margin-top:6px}';
+    html+='table{width:100%;border-collapse:collapse;margin-top:12px}';
+    html+='th{background:#f1f5f9;padding:8px 6px;text-align:left;font-size:10px;text-transform:uppercase;color:#64748b;border-bottom:2px solid #e2e8f0}';
+    html+='td{padding:8px 6px;border-bottom:1px solid #e2e8f0;vertical-align:middle}';
+    html+='.score{display:inline-block;padding:2px 8px;border-radius:10px;color:#fff;font-weight:700;font-size:11px}';
+    html+='.score-green{background:#22a861} .score-yellow{background:#f59e0b} .score-red{background:#ef4444}';
+    html+='.gate{display:inline-block;padding:2px 8px;border-radius:4px;font-weight:700;font-size:10px}';
+    html+='.gate-go{background:#dcfce7;color:#16a34a} .gate-cond{background:#fef3c7;color:#d97706} .gate-nogo{background:#fee2e2;color:#dc2626} .gate-none{background:#f1f5f9;color:#94a3b8}';
+    html+='.bar-wrap{width:60px;height:6px;background:#e2e8f0;border-radius:3px;display:inline-block;vertical-align:middle;margin-right:4px}';
+    html+='.bar-fill{height:100%;border-radius:3px}';
+    html+='.status-fin{color:#16a34a;font-weight:600} .status-pend{color:#d97706}';
+    html+='.actions-bar{text-align:center;margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0}';
+    html+='.actions-bar button{padding:8px 28px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;margin:0 6px;border:1px solid #ccc}';
+    html+='.btn-print{background:#1e40af;color:#fff;border:none} .btn-close{background:#fff;color:#64748b}';
+    html+='@page{margin:15mm 10mm;size:auto}';
+html+='@media print{.actions-bar{display:none}}';
+    html+='</style></head><body>';
+    html+='<div class="header"><p style="font-size:10px;color:#3b82f6;letter-spacing:2px;font-weight:700;margin-bottom:4px">MEDIT DIGITAL SOLUTIONS</p>';
+    html+='<h1>AFI Readiness Checklist — Dashboard</h1>';
+    html+='<p>Approval for Investment — Department Checklist</p>';
+    html+='<span class="region-tag">Region: '+regionLabel+'</span>';
+    html+='<p style="margin-top:6px;font-size:10px;color:#94a3b8">Printed: '+new Date().toLocaleDateString()+'</p></div>';
+    html+='<table><thead><tr><th>'+(isKo?'제목':'Title')+'</th><th>'+(isKo?'상태':'Status')+'</th><th>'+(isKo?'제출자':'Submitter')+'</th><th>'+(isKo?'검토자':'Reviewer')+'</th><th>'+(isKo?'평가점수':'Score')+'</th><th>'+(isKo?'검토 진행':'Progress')+'</th><th>'+(isKo?'충족률':'Pass Rate')+'</th><th>'+(isKo?'판정':'Decision')+'</th></tr></thead><tbody>';
+
+    sortedReviews.forEach(function(r){
+        var st=checklistState[r.id]||checklistState[String(r.id)];
+        var pct=getChecklistPct(r.id);
+        var gate=st?st.gate:'';
+        var finalized=st&&st.finalized;
+        var scCls=r.percentage>=80?'score-green':r.percentage>=60?'score-yellow':'score-red';
+        var gateCls=gate==='go'?'gate-go':gate==='conditional'?'gate-cond':gate==='nogo'?'gate-nogo':'gate-none';
+        var gateText=gate==='go'?'GO':gate==='conditional'?'COND':gate==='nogo'?'NO GO':'—';
+        var pctColor=pct>=80?'#22a861':pct>=50?'#f59e0b':'#ef4444';
+        var yc=0,nc=0;
+        if(st&&st.items){Object.keys(st.items).forEach(function(k){if(st.items[k].status==='complete')yc++;else if(st.items[k].status==='no')nc++;});}
+        var passRate=(yc+nc)>0?Math.round(yc/(yc+nc)*100):0;
+        var prColor=passRate>=80?'#22a861':passRate>=60?'#f59e0b':'#ef4444';
+        var statusHtml=finalized?'<span class="status-fin">✅ '+(isKo?'확정됨':'Finalized')+'</span>':'<span class="status-pend">'+(isKo?'대기':'Pending')+'</span>';
+        html+='<tr>';
+        html+='<td style="font-weight:600">'+esc(r.title)+'</td>';
+        html+='<td>'+statusHtml+'</td>';
+        html+='<td>'+esc(r.submitter||'-')+'</td>';
+        html+='<td>'+esc(r.reviewer)+'</td>';
+        html+='<td><span class="score '+scCls+'">'+r.score+'/'+r.maxScore+'</span></td>';
+        html+='<td><span class="bar-wrap"><span class="bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></span></span>'+pct+'%</td>';
+        html+='<td style="font-weight:700;color:'+prColor+'">'+passRate+'%</td>';
+        html+='<td><span class="gate '+gateCls+'">'+gateText+'</span></td>';
+        html+='</tr>';
+    });
+    html+='</tbody></table>';
+    html+='<div class="actions-bar"><button class="btn-print" onclick="window.print()">🖨️ '+(isKo?'인쇄':'Print')+'</button> <button class="btn-close" onclick="window.close()">✕ '+(isKo?'닫기':'Close')+'</button></div>';
+    html+='</body></html>';
+    var w=window.open('','_blank','width=900,height=700');
+    w.document.write(html);
+    w.document.close();
+}
+
+// State persistence
+function saveStateToGateway(){
+    try{
+        var payload={checklistState:checklistState,selectedReviewId:selectedReview?selectedReview.id:null};
+        if(window.parent!==window)window.parent.postMessage({type:'mop-afc-state-save',payload:payload},'*');
+    }catch(e){}
+}
+var _saveTimer=null;
+function autoSave(){clearTimeout(_saveTimer);_saveTimer=setTimeout(saveStateToGateway,500);}
+
+window.addEventListener('message',function(e){
+    if(!e.data)return;
+    if(e.data.type&&e.data.type.indexOf('mop-')===0&&!document.documentElement.classList.contains('in-iframe')){
+        document.documentElement.classList.add('in-iframe');
+    }
+    if(e.data.type==='mop-afc-state-restore'&&e.data.payload&&!_stateRestored){
+        _stateRestored=true;
+        var p=e.data.payload;
+        if(p.checklistState){
+            Object.keys(p.checklistState).forEach(function(k){if(!checklistState[k])checklistState[k]=p.checklistState[k];});
+        }
+        if(p.selectedReviewId&&reviews.length){
+            var r=reviews.find(function(rv){return rv.id===p.selectedReviewId;});
+            if(r){_restoring=true;selectReview(r.id);_restoring=false;}
+        }
+        switchView('dashboard');
+        renderDashboard();
+    }
+});
+// Signal parent that AFI is ready to receive data
+try{if(window.parent!==window)window.parent.postMessage({type:'mop-afc-ready'},'*');}catch(e){}
+</script>
+</body>
+</html>
