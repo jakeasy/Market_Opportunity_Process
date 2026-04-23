@@ -973,15 +973,11 @@
             try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(ex) {}
         }
 
-        // merge된 최종 값을 클라우드에 즉시 업로드 (양쪽 동기화)
+        // merge된 최종 값을 GET으로 클라우드 업로드
         if (url) {
-            var merged = {
-                adminEmails: _adminEmails,
-                pw: { form:TOOL_PW_FORM, scoring:TOOL_PW_SCORING, afc:TOOL_PW_AFC, portfolio:TOOL_PW_PORTFOLIO },
-                pwOn: { form:PW_ON_FORM, scoring:PW_ON_SCORING, afc:PW_ON_AFC, portfolio:PW_ON_PORTFOLIO }
-            };
-            gasPost(url, { type:'settings', payload:merged }, null, null);
-            gasPost(url, { type:'accounts', payload:_accounts }, null, null);
+            var merged = { adminEmails:_adminEmails, pw:{form:TOOL_PW_FORM,scoring:TOOL_PW_SCORING,afc:TOOL_PW_AFC,portfolio:TOOL_PW_PORTFOLIO}, pwOn:{form:PW_ON_FORM,scoring:PW_ON_SCORING,afc:PW_ON_AFC,portfolio:PW_ON_PORTFOLIO} };
+            _cloudSaveViaGet('settings', merged);
+            _cloudSaveViaGet('accounts', _accounts);
         }
     }
 
@@ -1031,8 +1027,9 @@
         if (newSPw && newSPw.trim()) { SETTINGS_PW = newSPw.trim(); localStorage.setItem('mop_settings_pw', SETTINGS_PW); }
         // 관리자 이메일 저장
         localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails));
-        // 클라우드 즉시 동기화 (all 타입으로 settings + accounts 포함)
-        cloudSaveNow();
+        // Settings 클라우드 저장 (GET 방식)
+        var sp = { adminEmails:_adminEmails, pw:{form:TOOL_PW_FORM,scoring:TOOL_PW_SCORING,afc:TOOL_PW_AFC,portfolio:TOOL_PW_PORTFOLIO}, pwOn:{form:PW_ON_FORM,scoring:PW_ON_SCORING,afc:PW_ON_AFC,portfolio:PW_ON_PORTFOLIO} };
+        _cloudSaveViaGet('settings', sp);
         document.getElementById('settingsOverlay').classList.remove('active');
     }
     function clearAccountsExceptAdmin() {
@@ -1074,14 +1071,21 @@
         try { var s = sessionStorage.getItem('mop_session'); return s ? JSON.parse(s) : null; } catch(e) { return null; }
     })();
 
-    function saveAccounts() {
-        localStorage.setItem('mop_accounts', JSON.stringify(_accounts));
+    function _cloudSaveViaGet(type, data) {
+        // POST가 안 되는 환경에서 GET으로 저장 (doGet에서 처리)
         var url = getAppsScriptUrl();
         if (!url) return;
-        gasPost(url, { type: 'accounts', payload: _accounts },
-            function(j) { showCloudBadge(j && j.success ? 'saved' : 'error'); },
-            function() { showCloudBadge('error'); }
-        );
+        var encoded = encodeURIComponent(JSON.stringify(data));
+        var reqUrl = url + (url.indexOf('?') < 0 ? '?' : '&')
+            + 'action=save&type=' + type + '&data=' + encoded + '&_t=' + Date.now();
+        fetch(reqUrl, { mode: 'no-cors' })
+            .then(function(){ showCloudBadge('saved'); })
+            .catch(function(e){ console.warn('cloudSaveGet error:', e); });
+    }
+
+    function saveAccounts() {
+        localStorage.setItem('mop_accounts', JSON.stringify(_accounts));
+        _cloudSaveViaGet('accounts', _accounts);
     }
 
     function forceSyncAccounts() {
@@ -1089,26 +1093,22 @@
         var statusEl = document.getElementById('syncStatus');
         var url = getAppsScriptUrl();
         if (!url) {
-            if (statusEl) { statusEl.style.display='block'; statusEl.style.background='rgba(239,68,68,0.1)'; statusEl.style.color='#ef4444'; statusEl.textContent='❌ Apps Script URL이 설정되지 않았습니다.'; }
+            if (statusEl) { statusEl.style.display='block'; statusEl.style.background='rgba(239,68,68,0.1)'; statusEl.style.color='#ef4444'; statusEl.textContent='❌ Apps Script URL 없음'; }
             return;
         }
         if (btn) { btn.textContent = '⏳ 저장 중...'; btn.disabled = true; }
-        if (statusEl) { statusEl.style.display='block'; statusEl.style.background='rgba(59,130,246,0.1)'; statusEl.style.color='#60a5fa'; statusEl.textContent='☁️ 클라우드에 저장 중...'; }
+        if (statusEl) { statusEl.style.display='block'; statusEl.style.background='rgba(59,130,246,0.1)'; statusEl.style.color='#60a5fa'; statusEl.textContent='☁️ 저장 요청 전송 중...'; }
 
-        gasPost(url, { type: 'accounts', payload: _accounts },
-            function(j) {
-                if (btn) { btn.textContent = '☁️ 클라우드 동기화'; btn.disabled = false; }
-                if (j && j.success) {
-                    if (statusEl) { statusEl.style.background='rgba(52,211,153,0.1)'; statusEl.style.color='#34d399'; statusEl.textContent='✅ 저장 완료! Google Sheets Accounts 시트를 확인하세요.'; }
-                } else {
-                    if (statusEl) { statusEl.style.background='rgba(239,68,68,0.1)'; statusEl.style.color='#ef4444'; statusEl.textContent='❌ 저장 실패: ' + JSON.stringify(j); }
-                }
-            },
-            function(err) {
-                if (btn) { btn.textContent = '☁️ 클라우드 동기화'; btn.disabled = false; }
-                if (statusEl) { statusEl.style.background='rgba(239,68,68,0.1)'; statusEl.style.color='#ef4444'; statusEl.textContent='❌ 네트워크 오류: ' + err; }
-            }
-        );
+        var encoded = encodeURIComponent(JSON.stringify(_accounts));
+        var reqUrl = url + (url.indexOf('?') < 0 ? '?' : '&')
+            + 'action=save&type=accounts&data=' + encoded + '&_t=' + Date.now();
+        fetch(reqUrl, { mode: 'no-cors' }).then(function() {
+            if (btn) { btn.textContent = '☁️ 클라우드 동기화'; btn.disabled = false; }
+            if (statusEl) { statusEl.style.background='rgba(52,211,153,0.1)'; statusEl.style.color='#34d399'; statusEl.textContent='✅ 저장 완료! Google Sheets Accounts 시트를 확인하세요.'; }
+        }).catch(function(e) {
+            if (btn) { btn.textContent = '☁️ 클라우드 동기화'; btn.disabled = false; }
+            if (statusEl) { statusEl.style.background='rgba(239,68,68,0.1)'; statusEl.style.color='#ef4444'; statusEl.textContent='❌ 오류: ' + e; }
+        });
     }
     function saveSession(user) {
         _currentUser = user;
