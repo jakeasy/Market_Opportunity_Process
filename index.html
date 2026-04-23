@@ -937,52 +937,65 @@
         renderAdminEmailList();
     }
 
+    function applyCloudSettings(d) {
+        if (!d) return;
+        if (d.settings) {
+            var cs = d.settings;
+            if (cs.adminEmails && cs.adminEmails.length) {
+                _adminEmails = cs.adminEmails;
+                try { localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails)); } catch(e) {}
+            }
+            if (cs.pw) {
+                if (cs.pw.form      !== undefined) { TOOL_PW_FORM=cs.pw.form;         localStorage.setItem('mop_pw_form',      cs.pw.form); }
+                if (cs.pw.scoring   !== undefined) { TOOL_PW_SCORING=cs.pw.scoring;   localStorage.setItem('mop_pw_scoring',   cs.pw.scoring); }
+                if (cs.pw.afc       !== undefined) { TOOL_PW_AFC=cs.pw.afc;           localStorage.setItem('mop_pw_afc',       cs.pw.afc); }
+                if (cs.pw.portfolio !== undefined) { TOOL_PW_PORTFOLIO=cs.pw.portfolio; localStorage.setItem('mop_pw_portfolio', cs.pw.portfolio); }
+            }
+            if (cs.pwOn !== undefined) {
+                PW_ON_FORM=!!cs.pwOn.form;           localStorage.setItem('mop_pw_on_form',      String(!!cs.pwOn.form));
+                PW_ON_SCORING=!!cs.pwOn.scoring;     localStorage.setItem('mop_pw_on_scoring',   String(!!cs.pwOn.scoring));
+                PW_ON_AFC=!!cs.pwOn.afc;             localStorage.setItem('mop_pw_on_afc',       String(!!cs.pwOn.afc));
+                PW_ON_PORTFOLIO=!!cs.pwOn.portfolio; localStorage.setItem('mop_pw_on_portfolio', String(!!cs.pwOn.portfolio));
+            }
+        }
+        if (d.accounts && d.accounts.length) {
+            try { var _s=localStorage.getItem('mop_accounts'); if(_s) _accounts=JSON.parse(_s); } catch(e) {}
+            d.accounts.forEach(function(ca) {
+                var ix=-1; _accounts.forEach(function(la,i){if(la.id===ca.id)ix=i;});
+                if(ix<0) _accounts.push(ca); else _accounts[ix]=ca;
+            });
+            try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
+        }
+    }
+
     function openSettings() {
         if (!_currentUser || _currentUser.role !== 'admin') return;
-        // 로컬 값으로 먼저 표시
+        var _url = getAppsScriptUrl();
+        if (_url) {
+            // 클라우드에서 먼저 받은 후 모달 열기
+            showCloudBadge('loading');
+            gasGet(_url, function(j) {
+                if (j.success && j.data) applyCloudSettings(j.data);
+                // 클라우드에 설정이 없으면 현재 로컬 설정을 업로드해서 초기화
+                if (j.success && j.data && !j.data.settings) {
+                    var sp = { adminEmails:_adminEmails, pw:{form:TOOL_PW_FORM,scoring:TOOL_PW_SCORING,afc:TOOL_PW_AFC,portfolio:TOOL_PW_PORTFOLIO}, pwOn:{form:PW_ON_FORM,scoring:PW_ON_SCORING,afc:PW_ON_AFC,portfolio:PW_ON_PORTFOLIO} };
+                    gasPost(_url, { type:'settings', payload:sp }, null, null);
+                }
+                showCloudBadge('loaded');
+                _doOpenSettings();
+            }, function() {
+                // 클라우드 실패해도 로컬 값으로 열기
+                _doOpenSettings();
+            });
+        } else {
+            _doOpenSettings();
+        }
+    }
+
+    function _doOpenSettings() {
         applySettingsToForm();
         switchSettingsTab('general');
         document.getElementById('settingsOverlay').classList.add('active');
-
-        // 클라우드에서 최신 값 가져와 폼 업데이트
-        var _url = getAppsScriptUrl();
-        if (_url) {
-            gasGet(_url, function(j) {
-                if (!j.success || !j.data) return;
-                var d = j.data;
-                // Settings 동기화
-                if (d.settings) {
-                    var cs = d.settings;
-                    if (cs.adminEmails && cs.adminEmails.length) {
-                        _adminEmails = cs.adminEmails;
-                        try { localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails)); } catch(e) {}
-                    }
-                    if (cs.pw) {
-                        if (cs.pw.form)      { TOOL_PW_FORM=cs.pw.form;         localStorage.setItem('mop_pw_form', cs.pw.form); }
-                        if (cs.pw.scoring)   { TOOL_PW_SCORING=cs.pw.scoring;   localStorage.setItem('mop_pw_scoring', cs.pw.scoring); }
-                        if (cs.pw.afc)       { TOOL_PW_AFC=cs.pw.afc;           localStorage.setItem('mop_pw_afc', cs.pw.afc); }
-                        if (cs.pw.portfolio) { TOOL_PW_PORTFOLIO=cs.pw.portfolio; localStorage.setItem('mop_pw_portfolio', cs.pw.portfolio); }
-                    }
-                    if (cs.pwOn !== undefined) {
-                        PW_ON_FORM=!!cs.pwOn.form;       localStorage.setItem('mop_pw_on_form', cs.pwOn.form);
-                        PW_ON_SCORING=!!cs.pwOn.scoring; localStorage.setItem('mop_pw_on_scoring', cs.pwOn.scoring);
-                        PW_ON_AFC=!!cs.pwOn.afc;         localStorage.setItem('mop_pw_on_afc', cs.pwOn.afc);
-                        PW_ON_PORTFOLIO=!!cs.pwOn.portfolio; localStorage.setItem('mop_pw_on_portfolio', cs.pwOn.portfolio);
-                    }
-                    applySettingsToForm(); // 폼 필드 업데이트
-                }
-                // 계정 동기화
-                if (d.accounts && d.accounts.length) {
-                    try { var _s=localStorage.getItem('mop_accounts'); if(_s) _accounts=JSON.parse(_s); } catch(e) {}
-                    d.accounts.forEach(function(ca) {
-                        var ix=-1; _accounts.forEach(function(la,i){if(la.id===ca.id)ix=i;});
-                        if(ix<0) _accounts.push(ca); else _accounts[ix]=ca;
-                    });
-                    try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
-                    renderAccList();
-                }
-            }, null);
-        }
     }
     function closeSettings() { document.getElementById('settingsOverlay').classList.remove('active'); }
     function saveSettings() {
