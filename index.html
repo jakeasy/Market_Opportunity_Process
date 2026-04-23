@@ -1792,8 +1792,9 @@
         saveAccounts();
         renderAccList();
         sendPasswordResetEmail(acc);
+        _syncAccountsToCloud('비번초기화');
         // 현재 로그인 중인 계정이라면 즉시 비밀번호 변경 화면으로
-        if (_currentUser && _currentUser.id === id) {
+        if (_currentUser && _currentUser.username === username) {
             saveSession(acc);
             document.getElementById('settingsOverlay').classList.remove('active');
             document.getElementById('gateway-view').style.display = 'none';
