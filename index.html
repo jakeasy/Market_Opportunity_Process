@@ -1370,43 +1370,29 @@
             btn.style.transform = 'rotate(360deg)'; btn.style.transition = 'transform 0.4s ease';
             setTimeout(function(){ if(btn){btn.style.transform='';btn.style.transition='';} }, 450); }
 
-        // Step 1: 현재 계정을 클라우드에 먼저 업로드 (Accounts 시트 생성 포함)
-        gasPost(url, { type: 'accounts', payload: _accounts }, function() {
-            // Step 2: 클라우드에서 최신 계정 다운로드 후 병합
-            gasGet(url, function(j) {
-                if (btn) { btn.textContent = '↻'; btn.style.color = '#34d399'; btn.disabled = false;
-                    setTimeout(function(){ if(btn) btn.style.color = '#94a3b8'; }, 2000); }
-                if (j.success && j.data && j.data.accounts && j.data.accounts.length) {
-                    j.data.accounts.forEach(function(ca) {
-                        var idx = -1;
-                        _accounts.forEach(function(la, i){ if(la.id === ca.id) idx = i; });
-                        if (idx < 0) _accounts.push(ca);
-                        else _accounts[idx] = ca;
-                    });
-                    try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
-                }
-                renderAccList();
-            }, function() {
-                if (btn) { btn.textContent = '↻'; btn.style.color = '#ef4444'; btn.disabled = false; }
-                renderAccList();
-            });
+        // 올바른 순서: 1) 클라우드에서 다운로드 → 2) 병합 → 3) 병합 결과 업로드
+        gasGet(url, function(j) {
+            // 1. 클라우드 계정을 로컬에 병합 (클라우드에만 있는 계정 추가)
+            if (j.success && j.data && j.data.accounts && j.data.accounts.length) {
+                j.data.accounts.forEach(function(ca) {
+                    var idx = -1;
+                    _accounts.forEach(function(la, i){ if (la.id === ca.id) idx = i; });
+                    if (idx < 0) _accounts.push(ca); // 클라우드에만 있는 계정 추가
+                    // 로컬에 있는 계정은 로컬 버전 유지 (더 최신)
+                });
+                try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
+            }
+            // 2. 병합된 전체 계정을 클라우드에 업로드
+            gasPost(url, { type: 'accounts', payload: _accounts }, null, null);
+
+            if (btn) { btn.textContent = '↻'; btn.style.color = '#34d399'; btn.disabled = false;
+                setTimeout(function(){ if(btn) btn.style.color = '#94a3b8'; }, 2000); }
+            renderAccList();
         }, function() {
-            // 업로드 실패해도 다운로드는 시도
-            gasGet(url, function(j) {
-                if (btn) { btn.textContent = '↻'; btn.style.color = '#fbbf24'; btn.disabled = false; }
-                if (j.success && j.data && j.data.accounts && j.data.accounts.length) {
-                    j.data.accounts.forEach(function(ca) {
-                        var idx = -1;
-                        _accounts.forEach(function(la, i){ if(la.id === ca.id) idx = i; });
-                        if (idx < 0) _accounts.push(ca);
-                    });
-                    try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
-                }
-                renderAccList();
-            }, function() {
-                if (btn) { btn.textContent = '↻'; btn.style.color = '#ef4444'; btn.disabled = false; }
-                renderAccList();
-            });
+            // 다운로드 실패 시 로컬 계정만 업로드 (시트 생성 목적)
+            gasPost(url, { type: 'accounts', payload: _accounts }, null, null);
+            if (btn) { btn.textContent = '↻'; btn.style.color = '#ef4444'; btn.disabled = false; }
+            renderAccList();
         });
     }
 
