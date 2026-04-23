@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOP — Market Opportunity Process — Medit</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%233b82f6'/%3E%3Ctext x='5' y='25' font-size='20' font-family='Arial,sans-serif' font-weight='900' fill='white'%3EM%3C/text%3E%3C/svg%3E">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1000 783' fill='none'%3E%3Cpath d='M780.77 670.84C673.47 670.84 673.47 608.81 673.47 608.81H666.68V684.81C666.68 704.64 674.62 782.65 774.78 782.65H999.99V670.84H780.76H780.77Z' fill='%233b82f6'/%3E%3Cpath d='M730.26 335.46H999.97V223.65H774.75C700.08 223.65 677.27 266.05 669.52 297.24C669.52 297.24 665.97 310.16 663.99 317.55C662 324.94 658.86 343.04 631 343.04H368.99C341.13 343.04 337.99 324.94 336 317.55C334.01 310.16 330.47 297.24 330.47 297.24C322.72 266.06 299.91 223.65 225.24 223.65H0.03V335.46H269.74C303.58 335.46 323.96 340.88 333.22 375.01C334.79 380.78 343.05 410.72 344.52 416.07C354.74 453.24 407.32 454.85 434.88 454.85H565.11C592.67 454.85 645.25 453.24 655.47 416.07C656.94 410.72 665.2 380.78 666.77 375.01C676.04 340.88 696.41 335.46 730.25 335.46H730.26Z' fill='%233b82f6'/%3E%3Cpath d='M999.98 447.23H666.7V559.07H999.98V447.23Z' fill='%233b82f6'/%3E%3Cpath d='M219.23 670.84H0V782.65H225.21C325.37 782.65 333.31 704.63 333.31 684.81V608.81H326.52C326.52 608.81 326.52 670.84 219.22 670.84H219.23Z' fill='%233b82f6'/%3E%3Cpath d='M333.22 151.35C334.79 157.12 343.05 187.06 344.52 192.4C354.74 229.57 407.32 231.18 434.88 231.18H565.11C592.67 231.18 645.25 229.57 655.47 192.4C656.94 187.05 665.2 157.12 666.77 151.35C676.04 117.22 696.41 111.8 730.25 111.8H999.96V0H774.74C700.07 0 677.26 42.4 669.51 73.58L663.98 93.89C661.99 101.28 658.85 119.38 630.99 119.38H368.98C341.12 119.38 337.98 101.28 335.99 93.89L330.46 73.58C322.73 42.4 299.92 0 225.25 0H0.03V111.81H269.74C303.58 111.81 323.96 117.23 333.22 151.36V151.35Z' fill='%233b82f6'/%3E%3Cpath d='M333.3 447.23H0.02V559.07H333.3V447.23Z' fill='%233b82f6'/%3E%3C/svg%3E">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -776,7 +776,13 @@
             try {
                 iframe.contentWindow.postMessage({ type: 'mop-lang-sync', lang: currentLang }, '*');
                 if (_currentUser) {
-                    iframe.contentWindow.postMessage({ type: 'mop-user-info', payload: { name: _currentUser.name || '', email: _currentUser.username || '' } }, '*');
+                    // _accounts에서 최신 데이터 사용 (region 등 최신 필드 포함)
+                    var freshUser = _accounts.find(function(a){ return a.username === _currentUser.username; }) || _currentUser;
+                    iframe.contentWindow.postMessage({ type: 'mop-user-info', payload: {
+                        name: freshUser.name || '',
+                        email: freshUser.username || '',
+                        region: freshUser.region || ''
+                    }}, '*');
                 }
             } catch(e) {}
         }
