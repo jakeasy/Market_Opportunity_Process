@@ -716,9 +716,11 @@
             </div><!-- /settingsTabGeneral -->
             <!-- Accounts Tab -->
             <div id="settingsTabAccounts" style="display:none;">
-                <div style="margin-bottom:12px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
                     <span style="font-size:0.82rem;font-weight:600;color:#94a3b8;">👥 계정 목록</span>
+                    <button id="syncAccountsBtn" onclick="forceSyncAccounts()" style="padding:6px 14px;background:rgba(59,130,246,0.15);color:#60a5fa;border:1px solid rgba(59,130,246,0.3);border-radius:8px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;">☁️ 클라우드 동기화</button>
                 </div>
+                <div id="syncStatus" style="display:none;padding:8px 12px;border-radius:8px;font-size:0.78rem;margin-bottom:10px;"></div>
                 <div id="accListContainer" style="max-height:520px;overflow-y:auto;display:flex;flex-direction:column;"></div>
             </div><!-- /settingsTabAccounts -->
             <!-- Accounts tab bottom close button -->
@@ -1074,13 +1076,36 @@
         localStorage.setItem('mop_accounts', JSON.stringify(_accounts));
         var url = getAppsScriptUrl();
         if (!url) return;
-        // accounts만 독립 요청으로 전송 (type:'all' body 크기 문제 회피)
+        gasPost(url, { type: 'accounts', payload: _accounts },
+            function(j) { showCloudBadge(j && j.success ? 'saved' : 'error'); },
+            function() { showCloudBadge('error'); }
+        );
+    }
+
+    function forceSyncAccounts() {
+        var btn = document.getElementById('syncAccountsBtn');
+        var statusEl = document.getElementById('syncStatus');
+        var url = getAppsScriptUrl();
+        if (!url) {
+            if (statusEl) { statusEl.style.display='block'; statusEl.style.background='rgba(239,68,68,0.1)'; statusEl.style.color='#ef4444'; statusEl.textContent='❌ Apps Script URL이 설정되지 않았습니다.'; }
+            return;
+        }
+        if (btn) { btn.textContent = '⏳ 저장 중...'; btn.disabled = true; }
+        if (statusEl) { statusEl.style.display='block'; statusEl.style.background='rgba(59,130,246,0.1)'; statusEl.style.color='#60a5fa'; statusEl.textContent='☁️ 클라우드에 저장 중...'; }
+
         gasPost(url, { type: 'accounts', payload: _accounts },
             function(j) {
-                if (j && j.success) showCloudBadge('saved');
-                else showCloudBadge('error');
+                if (btn) { btn.textContent = '☁️ 클라우드 동기화'; btn.disabled = false; }
+                if (j && j.success) {
+                    if (statusEl) { statusEl.style.background='rgba(52,211,153,0.1)'; statusEl.style.color='#34d399'; statusEl.textContent='✅ 저장 완료! Google Sheets Accounts 시트를 확인하세요.'; }
+                } else {
+                    if (statusEl) { statusEl.style.background='rgba(239,68,68,0.1)'; statusEl.style.color='#ef4444'; statusEl.textContent='❌ 저장 실패: ' + JSON.stringify(j); }
+                }
             },
-            function() { showCloudBadge('error'); }
+            function(err) {
+                if (btn) { btn.textContent = '☁️ 클라우드 동기화'; btn.disabled = false; }
+                if (statusEl) { statusEl.style.background='rgba(239,68,68,0.1)'; statusEl.style.color='#ef4444'; statusEl.textContent='❌ 네트워크 오류: ' + err; }
+            }
         );
     }
     function saveSession(user) {
