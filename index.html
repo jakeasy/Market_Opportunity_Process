@@ -706,6 +706,8 @@
             <div style="text-align:left;margin-bottom:20px;">
                 <button onclick="clearAllData()" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;">🗑️ Reset All Data</button>
                 <span style="font-size:0.72rem;color:#64748b;margin-left:8px;">모든 Submission/Review 데이터 초기화</span>
+                <button onclick="clearAccountsExceptAdmin()" style="background:rgba(245,158,11,0.08);color:#fbbf24;border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;margin-left:8px;">👥 계정 초기화</button>
+                <span style="font-size:0.72rem;color:#64748b;margin-left:6px;">Admin 계정만 남기고 모두 제거</span>
             </div>
             <div class="pw-btns">
                 <button class="pw-btn pw-btn-cancel" onclick="closeSettings()">Cancel</button>
@@ -970,6 +972,14 @@
         localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails));
         document.getElementById('settingsOverlay').classList.remove('active');
     }
+    function clearAccountsExceptAdmin() {
+        if (!confirm('Admin 계정을 제외한 모든 계정을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) return;
+        _accounts = _accounts.filter(function(a){ return a.id === 1; });
+        saveAccounts();
+        alert('계정 초기화 완료. Admin 계정만 남아있습니다.');
+        renderAccList();
+    }
+
     function clearAllData() {
         var isKo = currentLang === 'ko';
         if (!confirm(isKo ? '모든 MOP 데이터를 초기화하시겠습니까?\n(Submissions, Reviews, AFI, Portfolio 모두 삭제됩니다)' : 'Reset ALL MOP data?\n(Submissions, Reviews, AFI, Portfolio will be deleted)')) return;
