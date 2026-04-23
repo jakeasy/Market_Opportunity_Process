@@ -1072,11 +1072,16 @@
 
     function saveAccounts() {
         localStorage.setItem('mop_accounts', JSON.stringify(_accounts));
-        // Cloud에도 즉시 저장 (브라우저 간 공유)
         var url = getAppsScriptUrl();
-        if (url) {
-            gasPost(url, { type: 'accounts', payload: _accounts }, null, null);
-        }
+        if (!url) return;
+        // accounts만 독립 요청으로 전송 (type:'all' body 크기 문제 회피)
+        gasPost(url, { type: 'accounts', payload: _accounts },
+            function(j) {
+                if (j && j.success) showCloudBadge('saved');
+                else showCloudBadge('error');
+            },
+            function() { showCloudBadge('error'); }
+        );
     }
     function saveSession(user) {
         _currentUser = user;
@@ -2448,22 +2453,25 @@
 
     function cloudSaveNow() {
         var url = getAppsScriptUrl(); if (!url) return;
-        var body = {
-            type: 'all',
-            submissions: mopSubmissions,
-            reviews: mopReviews,
-            afcState: mopAfcState,
-            portfolio: mopPortfolioState,
-            accounts: _accounts,
-            settings: {
-                adminEmails: _adminEmails,
-                pw: { form:TOOL_PW_FORM, scoring:TOOL_PW_SCORING, afc:TOOL_PW_AFC, portfolio:TOOL_PW_PORTFOLIO },
-                pwOn: { form:PW_ON_FORM, scoring:PW_ON_SCORING, afc:PW_ON_AFC, portfolio:PW_ON_PORTFOLIO }
-            }
-        };
         showCloudBadge('saving');
-        gasPost(url, body,
+        // 1) 기존 데이터 저장
+        gasPost(url, { type:'all', submissions:mopSubmissions, reviews:mopReviews, afcState:mopAfcState, portfolio:mopPortfolioState },
             function(j) { showCloudBadge(j.success ? 'saved' : 'error'); },
+            function() { showCloudBadge('error'); }
+        );
+        // 2) accounts 별도 저장 (body 크기 문제 방지)
+        gasPost(url, { type:'accounts', payload:_accounts },
+            function(j) { if (!j||!j.success) showCloudBadge('error'); },
+            function() { showCloudBadge('error'); }
+        );
+        // 3) settings 별도 저장
+        var settingsPayload = {
+            adminEmails: _adminEmails,
+            pw: { form:TOOL_PW_FORM, scoring:TOOL_PW_SCORING, afc:TOOL_PW_AFC, portfolio:TOOL_PW_PORTFOLIO },
+            pwOn: { form:PW_ON_FORM, scoring:PW_ON_SCORING, afc:PW_ON_AFC, portfolio:PW_ON_PORTFOLIO }
+        };
+        gasPost(url, { type:'settings', payload:settingsPayload },
+            function(j) { if (!j||!j.success) showCloudBadge('error'); },
             function() { showCloudBadge('error'); }
         );
     }
