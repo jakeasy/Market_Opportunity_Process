@@ -1586,12 +1586,12 @@
                 + '</div>'
                 + '</div>'
                 + '<div class="acc-row-btns">'
-                + (isPending ? '<button class="acc-edit-btn" style="background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.3);" onclick="approveAcc(' + acc.id + ')">승인</button>' : '')
-                + (isPending ? '<button class="acc-edit-btn" style="background:rgba(239,68,68,0.1);color:#f87171;border-color:rgba(239,68,68,0.25);" onclick="rejectAcc(' + acc.id + ')">미승인</button>' : '')
-                + (isRejected ? '<button class="acc-edit-btn" style="background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.3);" onclick="approveAcc(' + acc.id + ')">재승인</button>' : '')
-                + '<button class="acc-edit-btn" onclick="openAccEdit(' + acc.id + ')">편집</button>'
-                + (acc.id === 1 ? '' : '<button class="acc-edit-btn" style="background:rgba(245,158,11,0.08);color:#fbbf24;border-color:rgba(245,158,11,0.25);" onclick="resetAccPw(' + acc.id + ')">비번초기화</button>')
-                + (acc.id === 1 ? '' : '<button class="acc-del-btn" onclick="deleteAcc(' + acc.id + ')">삭제</button>')
+                + (isPending ? '<button class="acc-edit-btn" style="background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.3);" onclick="approveAcc(\'' + acc.username + '\')">승인</button>' : '')
+                + (isPending ? '<button class="acc-edit-btn" style="background:rgba(239,68,68,0.1);color:#f87171;border-color:rgba(239,68,68,0.25);" onclick="rejectAcc(\'' + acc.username + '\')">미승인</button>' : '')
+                + (isRejected ? '<button class="acc-edit-btn" style="background:rgba(245,158,11,0.15);color:#fbbf24;border-color:rgba(245,158,11,0.3);" onclick="approveAcc(\'' + acc.username + '\')">재승인</button>' : '')
+                + '<button class="acc-edit-btn" onclick="openAccEdit(\'' + acc.username + '\')">편집</button>'
+                + (acc.username === 'admin' ? '' : '<button class="acc-edit-btn" style="background:rgba(245,158,11,0.08);color:#fbbf24;border-color:rgba(245,158,11,0.25);" onclick="resetAccPw(\'' + acc.username + '\')">비번초기화</button>')
+                + (acc.username === 'admin' ? '' : '<button class="acc-del-btn" onclick="deleteAcc(\'' + acc.username + '\')">삭제</button>')
                 + '</div></div>';
         }).join('');
     }
@@ -1796,9 +1796,10 @@
 
     var _accEditNextId = (function(){ var mx=0; _accounts.forEach(function(a){if(a.id>mx)mx=a.id;}); return mx+1; })();
 
-    function openAccEdit(id) {
-        var acc = id ? _accounts.find(function(a){ return a.id===id; }) : null;
-        document.getElementById('accEditId').value = id || '';
+    function openAccEdit(username) {
+        // username 기준으로 찾기 (ID 충돌 방지)
+        var acc = username ? _accounts.find(function(a){ return a.username === username; }) : null;
+        document.getElementById('accEditId').value = username || '';
         document.getElementById('accEditTitle').textContent = acc ? '계정 편집' : '계정 추가';
         document.getElementById('accEditName').value = acc ? acc.name : '';
         document.getElementById('accEditUsername').value = acc ? acc.username : '';
@@ -1824,7 +1825,7 @@
     }
 
     function saveAccEdit() {
-        var id    = document.getElementById('accEditId').value;
+        var origUsername = document.getElementById('accEditId').value; // 원래 username
         var name  = document.getElementById('accEditName').value.trim();
         var uname = document.getElementById('accEditUsername').value.trim().toLowerCase();
         var region= document.getElementById('accEditRegion').value;
@@ -1833,12 +1834,13 @@
         if (!name || !uname) { alert('이름과 이메일을 입력하세요.'); return; }
         var emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
         if (!emailRegex.test(uname)) { alert('올바른 이메일 주소를 입력하세요.'); return; }
-        var dupCheck = _accounts.find(function(a){ return a.username.toLowerCase() === uname && String(a.id) !== String(id); });
+        var dupCheck = _accounts.find(function(a){ return a.username.toLowerCase() === uname && a.username.toLowerCase() !== origUsername.toLowerCase(); });
         if (dupCheck) { alert('이미 사용 중인 이메일입니다.'); return; }
-        if (id) {
-            var acc = _accounts.find(function(a){ return String(a.id) === String(id); });
+        if (origUsername) {
+            // username 기준으로 찾기
+            var acc = _accounts.find(function(a){ return a.username.toLowerCase() === origUsername.toLowerCase(); });
             if (acc) { acc.name=name; acc.username=uname; acc.region=region; acc.dept=dept; acc.role=role; acc.approved=true; }
-            if (_currentUser && String(_currentUser.id) === String(id)) saveSession(acc);
+            if (_currentUser && _currentUser.username && _currentUser.username.toLowerCase() === origUsername.toLowerCase()) saveSession(acc);
         }
         saveAccounts();
         closeAccEdit();
