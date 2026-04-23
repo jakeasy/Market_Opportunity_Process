@@ -1027,16 +1027,8 @@
         if (newSPw && newSPw.trim()) { SETTINGS_PW = newSPw.trim(); localStorage.setItem('mop_settings_pw', SETTINGS_PW); }
         // 관리자 이메일 저장
         localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails));
-        // 클라우드 동기화
-        var _settingsUrl = getAppsScriptUrl();
-        if (_settingsUrl) {
-            var _settingsPayload = {
-                adminEmails: _adminEmails,
-                pw: { form: pw1, scoring: pw2, afc: pw3, portfolio: pw4 },
-                pwOn: { form: on1, scoring: on2, afc: on3, portfolio: on4 }
-            };
-            gasPost(_settingsUrl, { type: 'settings', payload: _settingsPayload }, null, null);
-        }
+        // 클라우드 즉시 동기화 (all 타입으로 settings + accounts 포함)
+        cloudSaveNow();
         document.getElementById('settingsOverlay').classList.remove('active');
     }
     function clearAccountsExceptAdmin() {
@@ -2427,7 +2419,7 @@
 
     function gasGet(url, onSuccess, onError) {
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
+        xhr.open('GET', url + (url.indexOf('?') < 0 ? '?' : '&') + '_t=' + Date.now(), true);
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
                 if (xhr.status === 200) {
@@ -2457,7 +2449,13 @@
             submissions: mopSubmissions,
             reviews: mopReviews,
             afcState: mopAfcState,
-            portfolio: mopPortfolioState
+            portfolio: mopPortfolioState,
+            accounts: _accounts,
+            settings: {
+                adminEmails: _adminEmails,
+                pw: { form:TOOL_PW_FORM, scoring:TOOL_PW_SCORING, afc:TOOL_PW_AFC, portfolio:TOOL_PW_PORTFOLIO },
+                pwOn: { form:PW_ON_FORM, scoring:PW_ON_SCORING, afc:PW_ON_AFC, portfolio:PW_ON_PORTFOLIO }
+            }
         };
         showCloudBadge('saving');
         gasPost(url, body,
