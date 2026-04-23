@@ -918,8 +918,10 @@
     }
     function openSettings() {
         if (!_currentUser || _currentUser.role !== 'admin') return;
-        // 항상 최신 계정 목록을 localStorage에서 로드
+        // 항상 최신 계정 목록 로드 (localStorage + cloud)
         try { var _s = localStorage.getItem('mop_accounts'); if (_s) _accounts = JSON.parse(_s); } catch(e) {}
+        var _url = getAppsScriptUrl();
+        if (_url) { gasGet(_url, function(j){ if(j.success&&j.data&&j.data.accounts&&j.data.accounts.length){ j.data.accounts.forEach(function(ca){ var ix=-1; _accounts.forEach(function(la,i){if(la.id===ca.id)ix=i;}); if(ix<0)_accounts.push(ca); else _accounts[ix]=ca; }); try{localStorage.setItem('mop_accounts',JSON.stringify(_accounts));}catch(e){} renderAccList(); } }, null); }
         document.getElementById('settingsPwForm').value = TOOL_PW_FORM;
         document.getElementById('settingsPwScoring').value = TOOL_PW_SCORING;
         document.getElementById('settingsPwAfc').value = TOOL_PW_AFC;
@@ -1349,11 +1351,32 @@
 
     /* ── Settings Tabs ── */
     function reloadAccounts() {
-        try {
-            var s = localStorage.getItem('mop_accounts');
-            if (s) _accounts = JSON.parse(s);
-        } catch(e) {}
-        renderAccList();
+        try { var s = localStorage.getItem('mop_accounts'); if (s) _accounts = JSON.parse(s); } catch(e) {}
+        var btn = document.querySelector('[onclick="reloadAccounts()"]');
+        var url = getAppsScriptUrl();
+        if (!url) { renderAccList(); return; }
+
+        // 버튼 로딩 상태
+        if (btn) { btn.textContent = '…'; btn.style.color = '#60a5fa'; btn.disabled = true; }
+
+        gasGet(url, function(j) {
+            if (btn) { btn.textContent = '↻'; btn.style.color = '#34d399'; btn.disabled = false;
+                setTimeout(function(){ if(btn) btn.style.color = '#94a3b8'; }, 2000); }
+            if (j.success && j.data && j.data.accounts && j.data.accounts.length) {
+                j.data.accounts.forEach(function(ca) {
+                    var idx = -1;
+                    _accounts.forEach(function(la, i){ if(la.id === ca.id) idx = i; });
+                    if (idx < 0) _accounts.push(ca);
+                    else _accounts[idx] = ca;
+                });
+                try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
+            }
+            renderAccList();
+        }, function() {
+            if (btn) { btn.textContent = '↻'; btn.style.color = '#ef4444'; btn.disabled = false;
+                setTimeout(function(){ if(btn) btn.style.color = '#94a3b8'; }, 3000); }
+            renderAccList();
+        });
         // 버튼 회전 애니메이션
         var btn = document.querySelector('[onclick="reloadAccounts()"]');
         if (btn) {
