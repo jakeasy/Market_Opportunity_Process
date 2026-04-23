@@ -918,12 +918,7 @@
         if(lbl){ lbl.textContent = on?'ON':'OFF'; lbl.style.color = on?'#10b981':'#64748b'; }
         if(inp){ inp.disabled = !on; inp.style.opacity = on?'1':'0.35'; }
     }
-    function openSettings() {
-        if (!_currentUser || _currentUser.role !== 'admin') return;
-        // 항상 최신 계정 목록 로드 (localStorage + cloud)
-        try { var _s = localStorage.getItem('mop_accounts'); if (_s) _accounts = JSON.parse(_s); } catch(e) {}
-        var _url = getAppsScriptUrl();
-        if (_url) { gasGet(_url, function(j){ if(j.success&&j.data&&j.data.accounts&&j.data.accounts.length){ j.data.accounts.forEach(function(ca){ var ix=-1; _accounts.forEach(function(la,i){if(la.id===ca.id)ix=i;}); if(ix<0)_accounts.push(ca); else _accounts[ix]=ca; }); try{localStorage.setItem('mop_accounts',JSON.stringify(_accounts));}catch(e){} renderAccList(); } }, null); }
+    function applySettingsToForm() {
         document.getElementById('settingsPwForm').value = TOOL_PW_FORM;
         document.getElementById('settingsPwScoring').value = TOOL_PW_SCORING;
         document.getElementById('settingsPwAfc').value = TOOL_PW_AFC;
@@ -940,10 +935,54 @@
             if(inp) inp.style.opacity = on ? '1' : '0.35';
         });
         renderAdminEmailList();
-        var spEl = document.getElementById('settingsAccessPw');
-        if (spEl) spEl.value = SETTINGS_PW;
+    }
+
+    function openSettings() {
+        if (!_currentUser || _currentUser.role !== 'admin') return;
+        // 로컬 값으로 먼저 표시
+        applySettingsToForm();
         switchSettingsTab('general');
         document.getElementById('settingsOverlay').classList.add('active');
+
+        // 클라우드에서 최신 값 가져와 폼 업데이트
+        var _url = getAppsScriptUrl();
+        if (_url) {
+            gasGet(_url, function(j) {
+                if (!j.success || !j.data) return;
+                var d = j.data;
+                // Settings 동기화
+                if (d.settings) {
+                    var cs = d.settings;
+                    if (cs.adminEmails && cs.adminEmails.length) {
+                        _adminEmails = cs.adminEmails;
+                        try { localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails)); } catch(e) {}
+                    }
+                    if (cs.pw) {
+                        if (cs.pw.form)      { TOOL_PW_FORM=cs.pw.form;         localStorage.setItem('mop_pw_form', cs.pw.form); }
+                        if (cs.pw.scoring)   { TOOL_PW_SCORING=cs.pw.scoring;   localStorage.setItem('mop_pw_scoring', cs.pw.scoring); }
+                        if (cs.pw.afc)       { TOOL_PW_AFC=cs.pw.afc;           localStorage.setItem('mop_pw_afc', cs.pw.afc); }
+                        if (cs.pw.portfolio) { TOOL_PW_PORTFOLIO=cs.pw.portfolio; localStorage.setItem('mop_pw_portfolio', cs.pw.portfolio); }
+                    }
+                    if (cs.pwOn !== undefined) {
+                        PW_ON_FORM=!!cs.pwOn.form;       localStorage.setItem('mop_pw_on_form', cs.pwOn.form);
+                        PW_ON_SCORING=!!cs.pwOn.scoring; localStorage.setItem('mop_pw_on_scoring', cs.pwOn.scoring);
+                        PW_ON_AFC=!!cs.pwOn.afc;         localStorage.setItem('mop_pw_on_afc', cs.pwOn.afc);
+                        PW_ON_PORTFOLIO=!!cs.pwOn.portfolio; localStorage.setItem('mop_pw_on_portfolio', cs.pwOn.portfolio);
+                    }
+                    applySettingsToForm(); // 폼 필드 업데이트
+                }
+                // 계정 동기화
+                if (d.accounts && d.accounts.length) {
+                    try { var _s=localStorage.getItem('mop_accounts'); if(_s) _accounts=JSON.parse(_s); } catch(e) {}
+                    d.accounts.forEach(function(ca) {
+                        var ix=-1; _accounts.forEach(function(la,i){if(la.id===ca.id)ix=i;});
+                        if(ix<0) _accounts.push(ca); else _accounts[ix]=ca;
+                    });
+                    try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
+                    renderAccList();
+                }
+            }, null);
+        }
     }
     function closeSettings() { document.getElementById('settingsOverlay').classList.remove('active'); }
     function saveSettings() {
