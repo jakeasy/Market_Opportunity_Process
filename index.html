@@ -910,6 +910,8 @@
         renderAdminEmailList();
     }
     function removeAdminEmail(i) {
+        var email = _adminEmails[i] || '';
+        if (!confirm('"' + email + '"\n\n이 이메일을 삭제하시겠습니까?')) return;
         _adminEmails.splice(i, 1);
         renderAdminEmailList();
     }
