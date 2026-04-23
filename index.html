@@ -937,34 +937,47 @@
         renderAdminEmailList();
     }
 
-    function applyCloudSettings(d) {
-        if (!d) return;
-        if (d.settings) {
-            var cs = d.settings;
-            if (cs.adminEmails && cs.adminEmails.length) {
-                _adminEmails = cs.adminEmails;
-                try { localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails)); } catch(e) {}
-            }
-            if (cs.pw) {
-                if (cs.pw.form      !== undefined) { TOOL_PW_FORM=cs.pw.form;         localStorage.setItem('mop_pw_form',      cs.pw.form); }
-                if (cs.pw.scoring   !== undefined) { TOOL_PW_SCORING=cs.pw.scoring;   localStorage.setItem('mop_pw_scoring',   cs.pw.scoring); }
-                if (cs.pw.afc       !== undefined) { TOOL_PW_AFC=cs.pw.afc;           localStorage.setItem('mop_pw_afc',       cs.pw.afc); }
-                if (cs.pw.portfolio !== undefined) { TOOL_PW_PORTFOLIO=cs.pw.portfolio; localStorage.setItem('mop_pw_portfolio', cs.pw.portfolio); }
-            }
-            if (cs.pwOn !== undefined) {
-                PW_ON_FORM=!!cs.pwOn.form;           localStorage.setItem('mop_pw_on_form',      String(!!cs.pwOn.form));
-                PW_ON_SCORING=!!cs.pwOn.scoring;     localStorage.setItem('mop_pw_on_scoring',   String(!!cs.pwOn.scoring));
-                PW_ON_AFC=!!cs.pwOn.afc;             localStorage.setItem('mop_pw_on_afc',       String(!!cs.pwOn.afc));
-                PW_ON_PORTFOLIO=!!cs.pwOn.portfolio; localStorage.setItem('mop_pw_on_portfolio', String(!!cs.pwOn.portfolio));
-            }
+    function mergeAndUploadSettings(cloudData, url) {
+        // 관리자 이메일: 로컬 + 클라우드 합집합
+        var cloudEmails = (cloudData && cloudData.settings && cloudData.settings.adminEmails) || [];
+        cloudEmails.forEach(function(e) { if (_adminEmails.indexOf(e) < 0) _adminEmails.push(e); });
+        try { localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails)); } catch(e2) {}
+
+        // 비밀번호/ON-OFF: 클라우드 값이 있으면 클라우드 우선, 없으면 로컬 유지
+        if (cloudData && cloudData.settings && cloudData.settings.pw) {
+            var cp = cloudData.settings.pw;
+            if (cp.form)      { TOOL_PW_FORM=cp.form;         localStorage.setItem('mop_pw_form',      cp.form); }
+            if (cp.scoring)   { TOOL_PW_SCORING=cp.scoring;   localStorage.setItem('mop_pw_scoring',   cp.scoring); }
+            if (cp.afc)       { TOOL_PW_AFC=cp.afc;           localStorage.setItem('mop_pw_afc',       cp.afc); }
+            if (cp.portfolio) { TOOL_PW_PORTFOLIO=cp.portfolio; localStorage.setItem('mop_pw_portfolio', cp.portfolio); }
         }
-        if (d.accounts && d.accounts.length) {
-            try { var _s=localStorage.getItem('mop_accounts'); if(_s) _accounts=JSON.parse(_s); } catch(e) {}
-            d.accounts.forEach(function(ca) {
+        if (cloudData && cloudData.settings && cloudData.settings.pwOn) {
+            var co = cloudData.settings.pwOn;
+            PW_ON_FORM=!!co.form;           localStorage.setItem('mop_pw_on_form',      String(!!co.form));
+            PW_ON_SCORING=!!co.scoring;     localStorage.setItem('mop_pw_on_scoring',   String(!!co.scoring));
+            PW_ON_AFC=!!co.afc;             localStorage.setItem('mop_pw_on_afc',       String(!!co.afc));
+            PW_ON_PORTFOLIO=!!co.portfolio; localStorage.setItem('mop_pw_on_portfolio', String(!!co.portfolio));
+        }
+
+        // 계정: 클라우드 계정 merge
+        if (cloudData && cloudData.accounts && cloudData.accounts.length) {
+            try { var _s=localStorage.getItem('mop_accounts'); if(_s) _accounts=JSON.parse(_s); } catch(ex) {}
+            cloudData.accounts.forEach(function(ca) {
                 var ix=-1; _accounts.forEach(function(la,i){if(la.id===ca.id)ix=i;});
                 if(ix<0) _accounts.push(ca); else _accounts[ix]=ca;
             });
-            try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
+            try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(ex) {}
+        }
+
+        // merge된 최종 값을 클라우드에 즉시 업로드 (양쪽 동기화)
+        if (url) {
+            var merged = {
+                adminEmails: _adminEmails,
+                pw: { form:TOOL_PW_FORM, scoring:TOOL_PW_SCORING, afc:TOOL_PW_AFC, portfolio:TOOL_PW_PORTFOLIO },
+                pwOn: { form:PW_ON_FORM, scoring:PW_ON_SCORING, afc:PW_ON_AFC, portfolio:PW_ON_PORTFOLIO }
+            };
+            gasPost(url, { type:'settings', payload:merged }, null, null);
+            gasPost(url, { type:'accounts', payload:_accounts }, null, null);
         }
     }
 
@@ -972,20 +985,14 @@
         if (!_currentUser || _currentUser.role !== 'admin') return;
         var _url = getAppsScriptUrl();
         if (_url) {
-            // 클라우드에서 먼저 받은 후 모달 열기
             showCloudBadge('loading');
             gasGet(_url, function(j) {
-                if (j.success && j.data) applyCloudSettings(j.data);
-                // 클라우드에 설정이 없으면 현재 로컬 설정을 업로드해서 초기화
-                if (j.success && j.data && !j.data.settings) {
-                    var sp = { adminEmails:_adminEmails, pw:{form:TOOL_PW_FORM,scoring:TOOL_PW_SCORING,afc:TOOL_PW_AFC,portfolio:TOOL_PW_PORTFOLIO}, pwOn:{form:PW_ON_FORM,scoring:PW_ON_SCORING,afc:PW_ON_AFC,portfolio:PW_ON_PORTFOLIO} };
-                    gasPost(_url, { type:'settings', payload:sp }, null, null);
-                }
+                // merge: 클라우드 + 로컬 → 통합 후 클라우드 업로드
+                mergeAndUploadSettings(j.success ? j.data : null, _url);
                 showCloudBadge('loaded');
                 _doOpenSettings();
             }, function() {
-                // 클라우드 실패해도 로컬 값으로 열기
-                _doOpenSettings();
+                _doOpenSettings(); // 실패시 로컬값으로
             });
         } else {
             _doOpenSettings();
