@@ -1357,6 +1357,10 @@
         roleEl.className = 'user-badge-role ' + _currentUser.role;
         // Settings: admin only
         document.getElementById('settingsBtn').style.display = _currentUser.role === 'admin' ? '' : 'none';
+        // 관리자 로그인 시 현재 데이터를 클라우드에 즉시 업로드 (초기 동기화)
+        if (_currentUser.role === 'admin') {
+            setTimeout(function() { cloudSaveNow(); }, 1500);
+        }
     }
 
     function updateAllCardAccess() {
