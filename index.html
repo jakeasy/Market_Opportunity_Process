@@ -970,6 +970,16 @@
         if (newSPw && newSPw.trim()) { SETTINGS_PW = newSPw.trim(); localStorage.setItem('mop_settings_pw', SETTINGS_PW); }
         // 관리자 이메일 저장
         localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails));
+        // 클라우드 동기화
+        var _settingsUrl = getAppsScriptUrl();
+        if (_settingsUrl) {
+            var _settingsPayload = {
+                adminEmails: _adminEmails,
+                pw: { form: pw1, scoring: pw2, afc: pw3, portfolio: pw4 },
+                pwOn: { form: on1, scoring: on2, afc: on3, portfolio: on4 }
+            };
+            gasPost(_settingsUrl, { type: 'settings', payload: _settingsPayload }, null, null);
+        }
         document.getElementById('settingsOverlay').classList.remove('active');
     }
     function clearAccountsExceptAdmin() {
@@ -2410,6 +2420,26 @@
                     if (d.reviews && d.reviews.length) { mopReviews = d.reviews; try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(e) {} }
                     if (d.afcState) { mopAfcState = d.afcState; try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(e) {} }
                     if (d.portfolio) { mopPortfolioState = d.portfolio; try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(e) {} }
+                    // Settings 복원 (관리자 이메일, 비밀번호)
+                    if (d.settings) {
+                        var cs = d.settings;
+                        if (cs.adminEmails && cs.adminEmails.length) {
+                            _adminEmails = cs.adminEmails;
+                            try { localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails)); } catch(e) {}
+                        }
+                        if (cs.pw) {
+                            if (cs.pw.form)     { TOOL_PW_FORM=cs.pw.form;     localStorage.setItem('mop_pw_form', cs.pw.form); }
+                            if (cs.pw.scoring)  { TOOL_PW_SCORING=cs.pw.scoring; localStorage.setItem('mop_pw_scoring', cs.pw.scoring); }
+                            if (cs.pw.afc)      { TOOL_PW_AFC=cs.pw.afc;       localStorage.setItem('mop_pw_afc', cs.pw.afc); }
+                            if (cs.pw.portfolio){ TOOL_PW_PORTFOLIO=cs.pw.portfolio; localStorage.setItem('mop_pw_portfolio', cs.pw.portfolio); }
+                        }
+                        if (cs.pwOn) {
+                            PW_ON_FORM=cs.pwOn.form;         localStorage.setItem('mop_pw_on_form', cs.pwOn.form);
+                            PW_ON_SCORING=cs.pwOn.scoring;   localStorage.setItem('mop_pw_on_scoring', cs.pwOn.scoring);
+                            PW_ON_AFC=cs.pwOn.afc;           localStorage.setItem('mop_pw_on_afc', cs.pwOn.afc);
+                            PW_ON_PORTFOLIO=cs.pwOn.portfolio; localStorage.setItem('mop_pw_on_portfolio', cs.pwOn.portfolio);
+                        }
+                    }
                     if (d.accounts && d.accounts.length) {
                         // Cloud 계정과 로컬 계정을 병합 (로컬 우선, 없는 것만 추가)
                         d.accounts.forEach(function(ca) {
