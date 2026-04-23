@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOP — Market Opportunity Process — Medit</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230a0e1a'/><text y='.9em' font-size='80' x='10'>🔵</text></svg>">
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -963,22 +964,30 @@
             PW_ON_PORTFOLIO=!!co.portfolio; localStorage.setItem('mop_pw_on_portfolio', String(!!co.portfolio));
         }
 
-        // 계정: 클라우드 계정 merge (username 기준 - ID 충돌 방지)
+        // 계정: 클라우드를 소스 오브 트루스로 사용 (username 기준 매칭)
         if (cloudData && cloudData.accounts && cloudData.accounts.length) {
             try { var _s=localStorage.getItem('mop_accounts'); if(_s) _accounts=JSON.parse(_s); } catch(ex) {}
             cloudData.accounts.forEach(function(ca) {
-                // username으로 매칭 (ID가 브라우저마다 달라질 수 있음)
                 var ix=-1;
                 _accounts.forEach(function(la,i){
                     if(la.username && ca.username && la.username.toLowerCase()===ca.username.toLowerCase()) ix=i;
                 });
                 if(ix<0) {
-                    // 없는 계정: ID 충돌 방지를 위해 새 ID 부여
+                    // 없는 계정: 새 ID 부여 후 추가
                     var maxId=0; _accounts.forEach(function(la){if(la.id>maxId)maxId=la.id;});
                     ca.id = maxId + 1;
                     _accounts.push(ca);
+                } else {
+                    // 있는 계정: 이름/이메일은 클라우드 우선, approved/role은 로컬 유지
+                    var local = _accounts[ix];
+                    _accounts[ix] = Object.assign({}, ca, {
+                        id: local.id,  // 로컬 ID 유지
+                        approved: local.approved !== undefined ? local.approved : ca.approved,
+                        mustChangePw: local.mustChangePw || ca.mustChangePw,
+                        loginCount: local.loginCount || ca.loginCount,
+                        lastLogin: local.lastLogin || ca.lastLogin
+                    });
                 }
-                // 있는 계정: 로컬 버전 유지 (approved, role 등 최신 상태 보존)
             });
             try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(ex) {}
         }
@@ -1119,12 +1128,19 @@
                         if (la.username && ca.username && la.username.toLowerCase() === ca.username.toLowerCase()) ix = i;
                     });
                     if (ix < 0) {
-                        // 없는 계정: ID 충돌 방지
                         var mx=0; _accounts.forEach(function(la){if(la.id>mx)mx=la.id;});
                         ca.id = mx + 1;
                         _accounts.push(ca);
+                    } else {
+                        var local = _accounts[ix];
+                        _accounts[ix] = Object.assign({}, ca, {
+                            id: local.id,
+                            approved: local.approved !== undefined ? local.approved : ca.approved,
+                            mustChangePw: local.mustChangePw || ca.mustChangePw,
+                            loginCount: local.loginCount || ca.loginCount,
+                            lastLogin: local.lastLogin || ca.lastLogin
+                        });
                     }
-                    // 있는 계정: 로컬 버전 유지 (approved, role 최신 상태 보존)
                 });
                 try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
             }
@@ -1340,7 +1356,7 @@
         else if (pw2 && pw.length < 8) { /* already flagged above */ }
         if (hasErr) return;
         var newAcc = {
-            id: _accEditNextId++,
+            id: Date.now() + Math.floor(Math.random() * 1000),
             username: email,
             password: pw,
             name: name,
@@ -1602,8 +1618,8 @@
         } catch(e) { return 0; }
     }
 
-    function approveAcc(id) {
-        var acc = _accounts.find(function(a){ return a.id === id; });
+    function approveAcc(username) {
+        var acc = _accounts.find(function(a){ return a.username === username; });
         if (!acc) return;
         acc.approved = true;
         saveAccounts();
@@ -1611,8 +1627,8 @@
         sendApprovalEmail(acc);
     }
 
-    function rejectAcc(id) {
-        var acc = _accounts.find(function(a){ return a.id === id; });
+    function rejectAcc(username) {
+        var acc = _accounts.find(function(a){ return a.username === username; });
         if (!acc) return;
         if (!confirm(acc.name + '의 가입 신청을 거절하시겠습니까?\n해당 계정은 로그인할 수 없으며, 미승인 상태로 표시됩니다.')) return;
         acc.approved = 'rejected';
@@ -1714,8 +1730,8 @@
         }).catch(function(e){ console.warn('Approval email error:', e); });
     }
 
-    function resetAccPw(id) {
-        var acc = _accounts.find(function(a){ return a.id === id; });
+    function resetAccPw(username) {
+        var acc = _accounts.find(function(a){ return a.username === username; });
         if (!acc) return;
         if (!confirm(acc.name + '의 비밀번호를 1111로 초기화하시겠습니까?\n로그인 시 비밀번호 변경이 강제됩니다.')) return;
         acc.password = '1111';
@@ -1847,12 +1863,12 @@
         renderAccList();
     }
 
-    function deleteAcc(id) {
+    function deleteAcc(username) {
         if (!confirm('이 계정을 삭제하시겠습니까?')) return;
-        _accounts = _accounts.filter(function(a){ return a.id !== id; });
+        _accounts = _accounts.filter(function(a){ return a.username !== username; });
         saveAccounts();
         // 현재 로그인 중인 계정 삭제 시 자동 로그아웃
-        if (_currentUser && _currentUser.id === id) {
+        if (_currentUser && _currentUser.username === username) {
             doLogout();
             return;
         }
