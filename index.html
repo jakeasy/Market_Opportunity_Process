@@ -798,6 +798,7 @@
 
     function closeTool() {
         _currentToolKey = null; // tool 닫힘
+        if (typeof stopScoringPoll === 'function') stopScoringPoll(); // ★ Scoring Tool 폴링 중단
         var iframe = document.getElementById('tool-iframe');
         iframe.removeAttribute('srcdoc');
         iframe.src = 'about:blank';
@@ -822,6 +823,8 @@
         var iframe = document.getElementById('tool-iframe');
         iframe.addEventListener('load', function() { setTimeout(syncDataToScoring, 300); }, { once: true });
         setTimeout(syncDataToScoring, 800);
+        // ★ Scoring Tool 자동 폴링 시작 (60초마다 GAS 최신 데이터 조회)
+        if (key === 'scoring' && typeof startScoringPoll === 'function') startScoringPoll();
     }
     function openAFC() {
         openTool('afc', 'AFI Readiness Checklist', 'Step 3', '#10b981');
@@ -2595,6 +2598,10 @@
                 }
             } catch(e) {}
         }
+        // ★ Scoring Tool 새로고침 버튼: GAS에서 최신 데이터 강제 조회
+        if (event.data && event.data.type === 'mop-cloud-refresh') {
+            if (getAppsScriptUrl()) cloudLoad();
+        }
         if (event.data && event.data.type === 'mop-afc-ready') {
             var iframe = document.getElementById('tool-iframe');
             try {
@@ -2965,15 +2972,33 @@
         }
     });
 
-    // ★ iOS 앱 전환 후 복귀 대응: 페이지가 다시 보이면 30초 이상 경과 시 cloudLoad 재실행
+    // ★ 탭/앱 복귀 대응: 페이지가 다시 보이면 10초 이상 경과 시 cloudLoad 재실행
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden && getAppsScriptUrl()) {
             var elapsed = Date.now() - _lastCloudLoad;
-            if (elapsed > 30000) { // 30초 이상 지났으면 다시 로드
+            if (elapsed > 10000) { // 10초 이상 지났으면 다시 로드 (30초→10초)
                 setTimeout(cloudLoad, 500);
             }
         }
     });
+
+    // ★ Scoring Tool 자동 폴링: 다른 기기 제출을 자동으로 수신
+    // Scoring Tool이 열려있을 때 60초마다 GAS에서 최신 데이터 조회
+    var _scoringPollTimer = null;
+    function startScoringPoll() {
+        stopScoringPoll();
+        if (!getAppsScriptUrl()) return;
+        _scoringPollTimer = setInterval(function() {
+            if (_currentToolKey === 'scoring' && getAppsScriptUrl()) {
+                cloudLoad();
+            } else {
+                stopScoringPoll();
+            }
+        }, 60000); // 60초마다
+    }
+    function stopScoringPoll() {
+        if (_scoringPollTimer) { clearInterval(_scoringPollTimer); _scoringPollTimer = null; }
+    }
     // ─────────────────────────────────────────────────────────
 
     var mopAfcNeedsSync = false;
