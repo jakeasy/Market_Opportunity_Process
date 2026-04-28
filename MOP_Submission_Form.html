@@ -1737,6 +1737,10 @@
                     <label data-i18n="labelReviewerEmail">Reviewer Email</label>
                     <input type="email" id="reviewerEmail" placeholder="reviewer@medit.com" style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);border-radius:0;padding:6px 2px;box-shadow:none;cursor:text;" />
                 </div>
+                <div class="info-field">
+                    <label data-i18n="labelReviewerRegion">Region</label>
+                    <input type="text" id="reviewerRegion" placeholder="Region" readonly style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);border-radius:0;padding:6px 2px;box-shadow:none;cursor:default;opacity:0.7;" />
+                </div>
             </div>
 
             <div class="main-grid">
@@ -1975,6 +1979,7 @@
                 labelOpportunity: "Opportunity Title",
                 labelReviewer: "Reviewer Name",
                 labelReviewerEmail: "Reviewer Email",
+                labelReviewerRegion: "Region",
                 notRecommended: "Not Recommended — Does not meet minimum threshold",
                 furtherDevelopment: "Conditional — Needs further analysis or development",
                 recommended: "Recommended — Meets criteria for initiation",
@@ -2096,6 +2101,7 @@
                 labelOpportunity: "기회 제목",
                 labelReviewer: "평가자 이름",
                 labelReviewerEmail: "평가자 이메일",
+                labelReviewerRegion: "리전",
                 notRecommended: "비추천 — 최소 기준 미달",
                 furtherDevelopment: "조건부 — 추가 분석 또는 개발 필요",
                 recommended: "추천 — 착수 기준 충족",
@@ -2502,6 +2508,7 @@
             const title = document.getElementById('opportunityTitle').value.trim();
             const reviewer = document.getElementById('reviewerName').value.trim();
             const reviewerEmail = document.getElementById('reviewerEmail').value.trim();
+            const reviewerRegion = (document.getElementById('reviewerRegion') && document.getElementById('reviewerRegion').value.trim()) || '';
 
             if (!title || !reviewer) {
                 showToast(texts.fillRequired);
@@ -2540,6 +2547,7 @@
                 title: title,
                 reviewer: reviewer,
                 reviewerEmail: reviewerEmail,
+                reviewerRegion: reviewerRegion,
                 submitter: submissionData ? (submissionData.requestOwner || '-') : '-',
                 score: Math.round(totalScore),
                 maxScore: maxScore,
@@ -2564,6 +2572,8 @@
             document.getElementById('opportunityTitle').value = '';
             document.getElementById('reviewerName').value = '';
             document.getElementById('reviewerEmail').value = '';
+            var regionResetEl = document.getElementById('reviewerRegion');
+            if (regionResetEl) regionResetEl.value = '';
             Object.keys(scores).forEach(k => delete scores[k]);
             document.getElementById('scoreValue').textContent = '0';
             document.getElementById('scoreMax').textContent = '/ ' + maxScore;
@@ -3013,10 +3023,12 @@
             if (e.data && e.data.type === 'mop-user-info') {
                 const u = e.data.payload;
                 if (u) {
-                    const nameEl  = document.getElementById('reviewerName');
-                    const emailEl = document.getElementById('reviewerEmail');
-                    if (nameEl  && !nameEl.value)  { nameEl.value  = u.name  || ''; nameEl.removeAttribute('readonly'); }
-                    if (emailEl && !emailEl.value) { emailEl.value = u.email || ''; emailEl.removeAttribute('readonly'); }
+                    const nameEl   = document.getElementById('reviewerName');
+                    const emailEl  = document.getElementById('reviewerEmail');
+                    const regionEl = document.getElementById('reviewerRegion');
+                    if (nameEl   && !nameEl.value)   { nameEl.value   = u.name   || ''; nameEl.removeAttribute('readonly'); }
+                    if (emailEl  && !emailEl.value)  { emailEl.value  = u.email  || ''; emailEl.removeAttribute('readonly'); }
+                    if (regionEl) { regionEl.value = u.region || ''; }
                 }
             }
         });
