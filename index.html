@@ -1074,7 +1074,16 @@
         localStorage.removeItem('mop_afc_state');
         localStorage.removeItem('mop_portfolio_state');
         document.getElementById('settingsOverlay').classList.remove('active');
-        location.reload();
+        // 클라우드에도 빈 데이터를 저장한 뒤 reload (클라우드 동기화 후 데이터가 복원되는 문제 방지)
+        var url = getAppsScriptUrl();
+        if (url) {
+            gasPost(url, { type:'all', submissions:[], reviews:[], afcState:null, portfolio:null },
+                function() { location.reload(); },
+                function() { location.reload(); }
+            );
+        } else {
+            location.reload();
+        }
     }
 
     /* ══════════════════════════════════════════
