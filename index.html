@@ -443,6 +443,10 @@
             </div>
             <div class="login-error" id="changePwError" style="margin-top:8px;"></div>
             <button class="login-btn" style="margin-top:16px;" id="changePwBtn" onclick="doChangePw()">변경하기</button>
+            <!-- Admin bypass: shown only for admin role -->
+            <div id="changePwAdminSkip" style="display:none;margin-top:14px;">
+                <button onclick="skipChangePw()" style="background:none;border:none;color:#64748b;font-size:0.75rem;cursor:pointer;text-decoration:underline;font-family:inherit;">관리자 계정 — 건너뛰기</button>
+            </div>
         </div>
     </div>
     <!-- Login Screen -->
@@ -1476,6 +1480,10 @@
             document.getElementById('changePwNew').value = '';
             document.getElementById('changePwConfirm').value = '';
             document.getElementById('changePwOverlay').classList.add('active');
+            // ★ 관리자면 건너뛰기 버튼 표시
+            if (acc.role === 'admin') {
+                document.getElementById('changePwAdminSkip').style.display = 'block';
+            }
             return;
         }
         showGatewayForUser();
@@ -1895,6 +1903,20 @@
         showGatewayForUser();
     }
 
+    // ★ 관리자 강제 비밀번호 변경 건너뛰기 (잘못된 mustChangePw 플래그 해제)
+    function skipChangePw() {
+        var acc = _accounts.find(function(a){ return a.id === _currentUser.id; });
+        if (acc) {
+            acc.mustChangePw = false;
+            saveAccounts();
+            saveSession(acc);
+        }
+        document.getElementById('changePwOverlay').classList.remove('active');
+        document.getElementById('changePwNew').value = '';
+        document.getElementById('changePwConfirm').value = '';
+        showGatewayForUser();
+    }
+
     var _accEditNextId = (function(){ var mx=0; _accounts.forEach(function(a){if(a.id>mx)mx=a.id;}); return mx+1; })();
 
     function openAccEdit(username) {
@@ -1973,6 +1995,10 @@
                     document.getElementById('changePwNew').value = '';
                     document.getElementById('changePwConfirm').value = '';
                     document.getElementById('changePwOverlay').classList.add('active');
+                    // ★ 관리자면 건너뛰기 버튼 표시
+                    if (fresh.role === 'admin') {
+                        document.getElementById('changePwAdminSkip').style.display = 'block';
+                    }
                 } else {
                     showGatewayForUser();
                 }
