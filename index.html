@@ -2227,9 +2227,9 @@
     var mopSubmissions = [];
     var mopReviews = [];
     var _currentToolKey = null; // 현재 열린 tool 추적 ('scoring', 'afc', 'portfolio', 'form', null)
-    // Restore from localStorage
-    try { var _ss = localStorage.getItem('mop_submissions'); if (_ss) mopSubmissions = JSON.parse(_ss); } catch(e) {}
-    try { var _rs = localStorage.getItem('mop_reviews'); if (_rs) mopReviews = JSON.parse(_rs); } catch(e) {}
+    // ★ submissions/reviews는 팀 공유 데이터 → localStorage 복원 안 함, 항상 GAS가 소스 오브 트루스
+    // localStorage 복원 시 기기별 오래된 데이터가 다른 기기의 새 데이터를 덮어쓰는 문제 방지
+    // (afcState, portfolioState는 localStorage 복원 유지)
 
     function saveSubmissions() { try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(e) {} cloudSaveDebounced(); }
     function saveReviews() { try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(e) {} cloudSaveDebounced(); }
@@ -2601,22 +2601,48 @@
     }
 
     function gasGet(url, onSuccess, onError) {
-        var xhr = new XMLHttpRequest();
-        xhr.open('GET', url + (url.indexOf('?') < 0 ? '?' : '&') + '_t=' + Date.now(), true);
-        xhr.onreadystatechange = function() {
-            if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
-                    try {
-                        var j = JSON.parse(xhr.responseText);
-                        if (onSuccess) onSuccess(j);
-                    } catch(e) { if (onError) onError('Parse error'); }
-                } else {
-                    if (onError) onError(xhr.statusText);
+        // fetch() 사용 — XHR보다 Edge/iOS Safari에서 더 안정적 (redirect 처리, cache 제어)
+        var fetchUrl = url + (url.indexOf('?') < 0 ? '?' : '&') + '_t=' + Date.now();
+        if (typeof fetch !== 'undefined') {
+            fetch(fetchUrl, { method: 'GET', cache: 'no-store', redirect: 'follow' })
+                .then(function(r) {
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.text();
+                })
+                .then(function(text) {
+                    try { var j = JSON.parse(text); if (onSuccess) onSuccess(j); }
+                    catch(e) { if (onError) onError('Parse error'); }
+                })
+                .catch(function(e) {
+                    // fetch 실패 시 XHR로 폴백
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('GET', fetchUrl, true);
+                    xhr.onreadystatechange = function() {
+                        if (xhr.readyState === 4) {
+                            if (xhr.status === 200) {
+                                try { var j = JSON.parse(xhr.responseText); if (onSuccess) onSuccess(j); }
+                                catch(pe) { if (onError) onError('Parse error'); }
+                            } else { if (onError) onError(xhr.statusText || 'HTTP ' + xhr.status); }
+                        }
+                    };
+                    xhr.onerror = function() { if (onError) onError('Network error'); };
+                    xhr.send();
+                });
+        } else {
+            // fetch 미지원 구형 브라우저 XHR 폴백
+            var xhr = new XMLHttpRequest();
+            xhr.open('GET', fetchUrl, true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        try { var j = JSON.parse(xhr.responseText); if (onSuccess) onSuccess(j); }
+                        catch(e) { if (onError) onError('Parse error'); }
+                    } else { if (onError) onError(xhr.statusText); }
                 }
-            }
-        };
-        xhr.onerror = function() { if (onError) onError('Network error'); };
-        xhr.send();
+            };
+            xhr.onerror = function() { if (onError) onError('Network error'); };
+            xhr.send();
+        }
     }
 
     function cloudSaveDebounced() {
@@ -2650,13 +2676,14 @@
         );
     }
 
-    function cloudLoad() {
+    function cloudLoad(retryCount) {
         // ★ 초기화 직후 reload 시 GAS에서 데이터가 복원되는 것을 차단
         if (localStorage.getItem('mop_just_cleared')) {
             localStorage.removeItem('mop_just_cleared');
             showCloudBadge('saved');
             return;
         }
+        retryCount = retryCount || 0;
         _lastCloudLoad = Date.now(); // 마지막 cloudLoad 시작 시각 기록
         var url = getAppsScriptUrl(); if (!url) return;
         showCloudBadge('loading');
@@ -2756,7 +2783,14 @@
                     setTimeout(_resyncToCurrentTool, 1200); // 1.2초 후 재전송 (iOS 누락 방지)
                 } else { showCloudBadge('empty'); }
             },
-            function() { showCloudBadge('error'); }
+            function(err) {
+                showCloudBadge('error');
+                // ★ 실패 시 자동 재시도 (최대 2회: 3초 후, 8초 후)
+                if (retryCount < 2) {
+                    var retryDelay = (retryCount + 1) * 3000;
+                    setTimeout(function() { cloudLoad(retryCount + 1); }, retryDelay);
+                }
+            }
         );
     }
 
@@ -2769,8 +2803,8 @@
         if (state !== 'loading' && state !== 'saving') setTimeout(function() { el.style.opacity = '0'; }, 3000);
     }
 
-    // 페이지 로드시 클라우드에서 데이터 불러오기
-    if (getAppsScriptUrl()) setTimeout(cloudLoad, 500);
+    // 페이지 로드시 클라우드에서 데이터 불러오기 (100ms — 가능한 빨리 GAS 데이터 로드)
+    if (getAppsScriptUrl()) setTimeout(cloudLoad, 100);
 
     // ★ iOS Safari bfcache 대응: 뒤로가기/앱전환으로 복원된 경우 cloudLoad 재실행
     window.addEventListener('pageshow', function(e) {
