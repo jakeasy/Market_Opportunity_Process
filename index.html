@@ -803,12 +803,9 @@
     function syncDataToScoring() {
         var iframe = document.getElementById('tool-iframe');
         try {
-            if (mopSubmissions.length > 0) {
-                iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: mopSubmissions }, '*');
-            }
-            if (mopReviews.length > 0) {
-                iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, '*');
-            }
+            // Always send (even empty arrays) so Scoring Tool fully resets after data clear
+            iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: mopSubmissions }, '*');
+            iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, '*');
             if (_currentUser) {
                 iframe.contentWindow.postMessage({ type: 'mop-user-info', payload: { name: _currentUser.name || '', email: _currentUser.username || '', region: _currentUser.region || '' } }, '*');
             }
@@ -2494,8 +2491,9 @@
             var iframe = document.getElementById('tool-iframe');
             try {
                 if (iframe && iframe.contentWindow) {
-                    if (mopSubmissions.length > 0) iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: mopSubmissions }, '*');
-                    if (mopReviews.length > 0) iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, '*');
+                    // Always send (even empty arrays) so Scoring Tool fully resets after data clear
+                    iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: mopSubmissions }, '*');
+                    iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, '*');
                 }
             } catch(e) {}
         }
@@ -2503,9 +2501,8 @@
             var iframe = document.getElementById('tool-iframe');
             try {
                 if (iframe && iframe.contentWindow) {
-                    if (mopReviews.length > 0) {
-                        iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, '*');
-                    }
+                    // Always send reviews (even empty) so AFC resets properly after data clear
+                    iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, '*');
                     if (mopAfcState) {
                         iframe.contentWindow.postMessage({ type: 'mop-afc-state-restore', payload: mopAfcState }, '*');
                     }
