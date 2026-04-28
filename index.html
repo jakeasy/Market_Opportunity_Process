@@ -2696,6 +2696,10 @@
     var _lastCloudLoad = 0;        // iOS 중복 cloudLoad 방지용 타임스탬프
     var _lastLocalWrite = 0;       // 로컬 데이터 변경 시각 (cloudLoad 덮어쓰기 방지)
     var _lastKnownGasVersion = '0'; // 마지막으로 확인한 GAS 버전 타임스탬프 (버전 폴링용)
+    // ★ 배포 후 데이터 삭제 방지: GAS에 실제로 데이터가 있었는지 여부를 sessionStorage에 기록
+    // → GAS가 비어있어도 "이전에 데이터가 있었던 GAS"인지 "새로 배포된 빈 GAS"인지 구분 가능
+    var _lastGasHadSubmissions = (sessionStorage.getItem('mop_gas_had_subs') === 'true');
+    var _lastGasHadReviews     = (sessionStorage.getItem('mop_gas_had_revs') === 'true');
     // ★ 삭제된 계정 username 목록 — cloudLoad/mergeSettings가 GAS 구 데이터로 재추가하는 것을 막음
     var _deletedUsernames = (function() {
         try { return JSON.parse(localStorage.getItem('mop_deleted_usernames') || '[]'); } catch(e) { return []; }
@@ -2733,37 +2737,61 @@
         xhr.send(JSON.stringify(data));
     }
 
+    // ★ Safari/WebKit 감지 (iOS Safari, Mac Safari)
+    // Chrome on iOS(CriOS), Firefox on iOS(FxiOS), Edge on iOS(EdgiOS) 제외
+    var _isSafariWebKit = (function() {
+        var ua = navigator.userAgent;
+        var isAppleDevice = /iPad|iPhone|iPod|Macintosh/.test(ua);
+        var isChromiumOnApple = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+        // Chrome on Mac: vendor에 "Google" 포함
+        var isChrome = ua.indexOf('Chrome') > -1 && ua.indexOf('Chromium') === -1;
+        var isSafariUA = !!navigator.vendor && navigator.vendor.indexOf('Apple') > -1;
+        return isAppleDevice && isSafariUA && !isChromiumOnApple;
+    })();
+
     function gasGet(url, onSuccess, onError) {
-        // ★ XHR 우선 시도 → 실패 시 JSONP 폴백 (Safari CORS 우회)
-        // XHR: Chrome/Edge 즉시 동작. JSONP: GAS 재배포 후 Safari/iOS/Mac 동작
+        // ★ XHR 우선 시도 → 실패/타임아웃 시 JSONP 폴백 (Safari CORS 우회)
+        // Safari: 4s XHR timeout → JSONP fallback (Safari는 CORS redirect에서 XHR이 느릴 수 있음)
+        // Chrome/Edge: XHR 즉시 성공
         var done = false;
         var xhrUrl = url + (url.indexOf('?') < 0 ? '?' : '&') + '_t=' + Date.now();
 
         var tryJSONP = function() {
             if (done) return;
-            var cbName = '_gasJSONP_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+            var cbName = '_gasJSONP_' + Date.now() + '_' + Math.floor(Math.random() * 100000);
             var scriptEl = null;
             var cleanup2 = function() {
                 done = true;
                 try { if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl); } catch(e) {}
                 try { delete window[cbName]; } catch(e) {}
             };
-            var tid2 = setTimeout(function() { cleanup2(); if (onError) onError('Timeout'); }, 20000);
+            // ★ JSONP timeout: 20s → 10s (모바일에서 빠른 실패/재시도)
+            var tid2 = setTimeout(function() { cleanup2(); if (onError) onError('JSONP Timeout'); }, 10000);
             window[cbName] = function(data) {
                 clearTimeout(tid2); cleanup2();
                 if (data && onSuccess) onSuccess(data);
                 else if (onError) onError('No data');
             };
             scriptEl = document.createElement('script');
+            scriptEl.setAttribute('crossorigin', 'anonymous'); // Safari CORS hint
             scriptEl.onerror = function() { clearTimeout(tid2); cleanup2(); if (onError) onError('JSONP error'); };
-            scriptEl.src = url + (url.indexOf('?') < 0 ? '?' : '&') + 'callback=' + cbName + '&_t=' + Date.now();
+            // ★ JSONP URL: cbName이 매번 고유 → Safari 캐시 완전 방지
+            scriptEl.src = url + (url.indexOf('?') < 0 ? '?' : '&') + 'callback=' + cbName + '&_t=' + Date.now() + '&_r=' + Math.random();
             document.head.appendChild(scriptEl);
         };
 
-        // XHR 먼저 시도 (10초 타임아웃)
+        // ★ Safari WebKit: XHR보다 JSONP가 안정적 — XHR timeout을 4s로 단축
+        // (기존 10s: Safari에서 JSONP 폴백이 폴링 주기 전체를 소모하는 버그 수정)
+        var xhrTimeout = _isSafariWebKit ? 4000 : 8000;
+
         var xhr = new XMLHttpRequest();
         xhr.open('GET', xhrUrl, true);
-        xhr.timeout = 10000;
+        xhr.timeout = xhrTimeout;
+        // ★ Safari HTTP 캐시 방지: 헤더 명시 (Safari는 _t 파라미터만으로 캐시 무시 안함)
+        try {
+            xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            xhr.setRequestHeader('Pragma', 'no-cache');
+        } catch(e) {} // 일부 환경에서 헤더 설정 실패 시 무시
         xhr.onload = function() {
             if (done) return;
             if (xhr.status === 200) {
@@ -2771,11 +2799,11 @@
                     var j = JSON.parse(xhr.responseText);
                     done = true;
                     if (onSuccess) onSuccess(j);
-                } catch(e) { tryJSONP(); } // 파싱 실패 → JSONP 시도
+                } catch(e) { tryJSONP(); }
             } else { tryJSONP(); }
         };
-        xhr.onerror   = function() { tryJSONP(); }; // CORS 등 실패 → JSONP 시도
-        xhr.ontimeout = function() { tryJSONP(); }; // 타임아웃 → JSONP 시도
+        xhr.onerror   = function() { tryJSONP(); }; // CORS/네트워크 실패 → JSONP
+        xhr.ontimeout = function() { tryJSONP(); }; // 타임아웃 → JSONP
         xhr.send();
     }
 
@@ -2829,24 +2857,44 @@
                     // ★ GAS를 소스 오브 트루스로 사용 — 빈 배열/null도 반드시 반영
                     // iPad 등 다른 기기의 localStorage 구 데이터를 덮어씌움
 
-                    // ★ BUG #1/#5 FIX: Race condition 방지
-                    // 로컬 write 후 5초 이내이고, GAS가 빈 배열을 반환하는 경우에만 덮어쓰기 생략
-                    // (GAS에 데이터가 있으면 항상 신뢰 — source of truth)
+                    // ★ 3-way 안전 로직: Race condition + 배포 후 데이터 삭제 + 삭제 동기화 모두 처리
                     var _now = Date.now();
                     var _writeAge = (_lastLocalWrite > 0) ? (_now - _lastLocalWrite) : 999999;
-                    // GAS에 실제 데이터가 있으면 항상 덮어씀; GAS가 비어있고 로컬에 최근 변경이 있으면 생략
                     var _gasHasSubmissions = (d.submissions && d.submissions.length > 0);
-                    var _gasHasReviews = (d.reviews && d.reviews.length > 0);
-                    var _skipSubmissions = (!_gasHasSubmissions && _writeAge < 5000);
-                    var _skipReviews = (!_gasHasReviews && _writeAge < 5000);
+                    var _gasHasReviews     = (d.reviews     && d.reviews.length     > 0);
 
-                    // submissions: GAS에 데이터가 있으면 항상 반영, 없으면 5초 이내 로컬 변경 시만 생략
+                    // GAS가 비어있을 때 로컬 덮어쓰기를 생략하는 조건:
+                    // (A) 최근 5초 이내 로컬 write (save/delete 직후 race condition)
+                    // (B) GAS에 "한 번도 데이터가 없었던" 경우 — 새 GAS 배포로 인한 빈 상태
+                    //     (_lastGasHadSubmissions = false → 이전 cloudLoad에서도 GAS가 비었음)
+                    //     이 경우 로컬 데이터를 보호하고 역으로 GAS에 업로드함
+                    // GAS에 데이터가 있으면 항상 신뢰 (source of truth)
+                    var _skipSubmissions = !_gasHasSubmissions && (_writeAge < 5000 || !_lastGasHadSubmissions);
+                    var _skipReviews     = !_gasHasReviews     && (_writeAge < 5000 || !_lastGasHadReviews);
+
+                    // submissions
                     if (!_skipSubmissions) {
                         mopSubmissions = _gasHasSubmissions ? d.submissions : [];
                         try {
                             if (mopSubmissions.length) localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions));
                             else localStorage.removeItem('mop_submissions');
                         } catch(e) {}
+                    } else if (!_gasHasSubmissions && !_lastGasHadSubmissions && mopSubmissions.length > 0) {
+                        // ★ 새 GAS 배포 감지: GAS가 비어있고 로컬에 데이터 있음 → 로컬 데이터를 GAS에 복원
+                        var _recUrl = getAppsScriptUrl();
+                        if (_recUrl) {
+                            showCloudBadge('saving');
+                            gasPost(_recUrl, { type: 'submissions', payload: mopSubmissions },
+                                function(j) { if (j && j.success) { showCloudBadge('saved'); _lastGasHadSubmissions = true; try { sessionStorage.setItem('mop_gas_had_subs','true'); } catch(e){} } },
+                                function() { showCloudBadge('error'); }
+                            );
+                        }
+                    }
+
+                    // ★ _lastGasHadSubmissions 갱신: GAS에 데이터가 있으면 true로 기록
+                    if (_gasHasSubmissions) {
+                        _lastGasHadSubmissions = true;
+                        try { sessionStorage.setItem('mop_gas_had_subs', 'true'); } catch(e) {}
                     }
 
                     // reviews
@@ -2856,6 +2904,17 @@
                             if (mopReviews.length) localStorage.setItem('mop_reviews', JSON.stringify(mopReviews));
                             else localStorage.removeItem('mop_reviews');
                         } catch(e) {}
+                    } else if (!_gasHasReviews && !_lastGasHadReviews && mopReviews.length > 0) {
+                        var _recUrl2 = getAppsScriptUrl();
+                        if (_recUrl2) {
+                            gasPost(_recUrl2, { type: 'reviews', payload: mopReviews }, null, null);
+                        }
+                    }
+
+                    // ★ _lastGasHadReviews 갱신
+                    if (_gasHasReviews) {
+                        _lastGasHadReviews = true;
+                        try { sessionStorage.setItem('mop_gas_had_revs', 'true'); } catch(e) {}
                     }
 
                     // ★ BUG #1 FIX: cloudLoad 성공 후 _lastLocalWrite 리셋
@@ -3014,58 +3073,99 @@
         }
     });
 
-    // ★ 탭/앱 복귀 대응: 페이지가 다시 보이면 5초 이상 경과 시 cloudLoad 재실행
+    // ★ 탭/앱 복귀 대응: 페이지가 다시 보이면 2초 이상 경과 시 cloudLoad 재실행
+    // iOS Safari에서는 2s 임계값이 더 안정적 (기존 5s에서 단축)
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden && getAppsScriptUrl()) {
             var elapsed = Date.now() - _lastCloudLoad;
-            if (elapsed > 5000) { // 5초 이상 경과 시 즉시 재조회
-                setTimeout(cloudLoad, 300);
-            }
+            if (elapsed > 2000) { setTimeout(cloudLoad, 300); }
         }
+    });
+
+    // ★ iOS Safari 추가 트리거: window focus (앱 전환 후 복귀 시 visibilitychange 미발화 케이스 보완)
+    window.addEventListener('focus', function() {
+        if (!getAppsScriptUrl()) return;
+        var elapsed = Date.now() - _lastCloudLoad;
+        if (elapsed > 3000) { setTimeout(cloudLoad, 400); }
+    });
+
+    // ★ 네트워크 복원 대응: 오프라인 → 온라인 전환 시 즉시 cloudLoad
+    // (비행기 모드 해제, WiFi 재연결, 터널 통과 후 신호 복원 등)
+    window.addEventListener('online', function() {
+        if (getAppsScriptUrl()) { setTimeout(cloudLoad, 800); }
     });
 
     // ★ 버전 체크 기반 폴링: 다른 기기의 변경을 최대 10초 이내에 감지
     // 전략: 10초마다 GAS B2 타임스탬프만 확인 (경량) → 변경 감지 시에만 전체 cloudLoad 실행
     // 장점: GAS 할당량 절감 + 실시간에 가까운 동기화 (기존 30s full cloudLoad → 10s version check)
 
-    // 버전 체크 함수 — GAS의 최신 타임스탬프를 가져와 로컬 기준선과 비교
+    // ★ 버전 체크 함수 — GAS의 최신 타임스탬프를 가져와 로컬 기준선과 비교
+    // GAS 재배포 전(action=version 미지원): 전체 response 반환 → 직접 cloudLoad 폴백
+    // GAS 재배포 후(action=version 지원): ts 비교 → 변경 시만 cloudLoad (경량)
+    var _versionCheckFailCount = 0; // 연속 실패 횟수 (과도한 폴백 cloudLoad 방지)
     function checkGasVersion() {
         var url = getAppsScriptUrl();
         if (!url) return;
         var vUrl = url + '?action=version';
         gasGet(vUrl, function(j) {
-            if (!j || !j.success || !j.ts) return;
-            if (j.ts === '0') return; // GAS에 데이터 없음 — 기준선 미설정
+            if (!j || !j.success) {
+                // 요청 자체 실패 — 다음 폴링에서 재시도
+                _versionCheckFailCount++;
+                return;
+            }
+            _versionCheckFailCount = 0;
+
+            // ★ GAS 구버전 감지: ts 필드 없음 (action=version 미지원, 전체 data 반환됨)
+            // → _fallbackPollTimer(30s cloudLoad)가 처리하므로 여기서는 스킵
+            if (!j.ts) return;
+
+            if (j.ts === '0') return; // GAS 데이터 없음 — 기준선 미설정
+
             if (_lastKnownGasVersion === '0') {
-                // 최초 기준선 설정 (페이지 로드 시 cloudLoad가 이미 완료됐으므로 추가 sync 불필요)
+                // 최초 기준선 설정 (페이지 로드 시 cloudLoad 이미 완료)
                 _lastKnownGasVersion = j.ts;
             } else if (j.ts !== _lastKnownGasVersion) {
-                // ★ 버전 변경 감지 → 전체 cloudLoad 트리거
-                // 다른 브라우저/기기에서 데이터 변경이 있었음
+                // ★ 버전 변경 감지 → 전체 cloudLoad 트리거 (다른 기기에서 변경 발생)
                 _lastKnownGasVersion = j.ts;
                 cloudLoad();
             }
-        }, function() {}); // 버전 체크 실패는 조용히 무시 (다음 폴링에서 재시도)
+        }, function() {
+            // 버전 체크 네트워크 실패 — 조용히 무시 (다음 폴링에서 재시도)
+            _versionCheckFailCount++;
+        });
     }
 
-    var _scoringPollTimer = null;
+    var _scoringPollTimer  = null;
+    var _fallbackPollTimer = null; // ★ 30s 폴백: GAS 재배포 전 환경에서도 동기화 보장
+
     function startScoringPoll() {
         stopScoringPoll();
         if (!getAppsScriptUrl()) return;
+
         // 도구 열린 직후 2초 후 첫 번째 버전 기준선 설정
-        // (cloudLoad가 보통 1초 이내 완료되므로 _lastKnownGasVersion이 '0'으로 리셋된 후 설정)
         setTimeout(checkGasVersion, 2000);
-        // 10초마다 버전 체크 — 변경 감지 시 자동으로 전체 cloudLoad 실행
+
+        // ★ 10초마다 버전 체크 (GAS 재배포 후 활성화 — 변경 시만 cloudLoad)
         _scoringPollTimer = setInterval(function() {
             if (_currentToolKey && getAppsScriptUrl()) {
-                checkGasVersion(); // ★ 모든 Tool에서 버전 폴링 (기존: scoring만)
-            } else {
-                stopScoringPoll();
-            }
-        }, 10000); // ★ 10초마다 버전 체크 (기존: 30초마다 full cloudLoad)
+                checkGasVersion();
+            } else { stopScoringPoll(); }
+        }, 10000);
+
+        // ★ 30초마다 full cloudLoad 폴백
+        // 용도 (1): GAS 재배포 전 — action=version 없이도 30s마다 동기화 보장
+        // 용도 (2): GAS 재배포 후에도 안전망 역할 (네트워크 불안정 시 보완)
+        // 용도 (3): Apple 기기에서 checkGasVersion이 실패해도 30s 이내 동기화
+        _fallbackPollTimer = setInterval(function() {
+            if (_currentToolKey && getAppsScriptUrl()) {
+                cloudLoad();
+            } else { stopScoringPoll(); }
+        }, 30000);
     }
+
     function stopScoringPoll() {
-        if (_scoringPollTimer) { clearInterval(_scoringPollTimer); _scoringPollTimer = null; }
+        if (_scoringPollTimer)  { clearInterval(_scoringPollTimer);  _scoringPollTimer  = null; }
+        if (_fallbackPollTimer) { clearInterval(_fallbackPollTimer); _fallbackPollTimer = null; }
     }
     // ─────────────────────────────────────────────────────────
 
