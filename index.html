@@ -2612,39 +2612,49 @@
     }
 
     function gasGet(url, onSuccess, onError) {
-        // ★★★ JSONP 방식 사용 — CORS 제한 없이 모든 브라우저(Safari iOS/Mac 포함) 동작
-        // fetch()/XHR은 Safari에서 Google Apps Script CORS 문제 발생 → script 태그로 우회
-        var cbName = '_gasJSONP_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
-        var scriptEl = null;
+        // ★ XHR 우선 시도 → 실패 시 JSONP 폴백 (Safari CORS 우회)
+        // XHR: Chrome/Edge 즉시 동작. JSONP: GAS 재배포 후 Safari/iOS/Mac 동작
         var done = false;
+        var xhrUrl = url + (url.indexOf('?') < 0 ? '?' : '&') + '_t=' + Date.now();
 
-        var cleanup = function() {
-            done = true;
-            try { if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl); } catch(e) {}
-            try { delete window[cbName]; } catch(e) {}
+        var tryJSONP = function() {
+            if (done) return;
+            var cbName = '_gasJSONP_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+            var scriptEl = null;
+            var cleanup2 = function() {
+                done = true;
+                try { if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl); } catch(e) {}
+                try { delete window[cbName]; } catch(e) {}
+            };
+            var tid2 = setTimeout(function() { cleanup2(); if (onError) onError('Timeout'); }, 20000);
+            window[cbName] = function(data) {
+                clearTimeout(tid2); cleanup2();
+                if (data && onSuccess) onSuccess(data);
+                else if (onError) onError('No data');
+            };
+            scriptEl = document.createElement('script');
+            scriptEl.onerror = function() { clearTimeout(tid2); cleanup2(); if (onError) onError('JSONP error'); };
+            scriptEl.src = url + (url.indexOf('?') < 0 ? '?' : '&') + 'callback=' + cbName + '&_t=' + Date.now();
+            document.head.appendChild(scriptEl);
         };
 
-        // 20초 타임아웃 (느린 모바일 네트워크 대비)
-        var timeoutId = setTimeout(function() {
-            if (!done) { cleanup(); if (onError) onError('Timeout'); }
-        }, 20000);
-
-        window[cbName] = function(data) {
-            clearTimeout(timeoutId);
-            cleanup();
-            if (data && onSuccess) onSuccess(data);
-            else if (onError) onError('No data');
+        // XHR 먼저 시도 (10초 타임아웃)
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', xhrUrl, true);
+        xhr.timeout = 10000;
+        xhr.onload = function() {
+            if (done) return;
+            if (xhr.status === 200) {
+                try {
+                    var j = JSON.parse(xhr.responseText);
+                    done = true;
+                    if (onSuccess) onSuccess(j);
+                } catch(e) { tryJSONP(); } // 파싱 실패 → JSONP 시도
+            } else { tryJSONP(); }
         };
-
-        scriptEl = document.createElement('script');
-        scriptEl.onerror = function() {
-            clearTimeout(timeoutId);
-            cleanup();
-            if (onError) onError('Script load error');
-        };
-        scriptEl.src = url + (url.indexOf('?') < 0 ? '?' : '&')
-                       + 'callback=' + cbName + '&_t=' + Date.now();
-        document.head.appendChild(scriptEl);
+        xhr.onerror   = function() { tryJSONP(); }; // CORS 등 실패 → JSONP 시도
+        xhr.ontimeout = function() { tryJSONP(); }; // 타임아웃 → JSONP 시도
+        xhr.send();
     }
 
     function cloudSaveDebounced() {
