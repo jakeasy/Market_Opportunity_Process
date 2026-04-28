@@ -984,11 +984,12 @@
                     _accounts.push(ca);
                 } else {
                     // 있는 계정: 이름/이메일은 클라우드 우선, approved/role은 로컬 유지
+                    // mustChangePw는 클라우드 우선 (GAS가 source of truth)
                     var local = _accounts[ix];
                     _accounts[ix] = Object.assign({}, ca, {
                         id: local.id,  // 로컬 ID 유지
                         approved: local.approved !== undefined ? local.approved : ca.approved,
-                        mustChangePw: local.mustChangePw || ca.mustChangePw,
+                        mustChangePw: ca.mustChangePw || false,  // ★ GAS 값 우선 (로컬 stale 방지)
                         loginCount: local.loginCount || ca.loginCount,
                         lastLogin: local.lastLogin || ca.lastLogin
                     });
@@ -1172,7 +1173,7 @@
                         _accounts[ix] = Object.assign({}, ca, {
                             id: local.id,
                             approved: local.approved !== undefined ? local.approved : ca.approved,
-                            mustChangePw: local.mustChangePw || ca.mustChangePw,
+                            mustChangePw: ca.mustChangePw || false,  // ★ GAS 값 우선
                             loginCount: local.loginCount || ca.loginCount,
                             lastLogin: local.lastLogin || ca.lastLogin
                         });
@@ -2805,12 +2806,22 @@
                         });
                         try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
 
-                        // ★ _currentUser도 GAS 최신 데이터로 업데이트 (region 동기화)
+                        // ★ _currentUser도 GAS 최신 데이터로 업데이트 (region / mustChangePw 동기화)
+                        // id 기준 매칭 (username 변경 시 오작동 방지)
                         if (_currentUser) {
-                            var updatedMe = _accounts.find(function(a){ return a.username === _currentUser.username; });
+                            var updatedMe = _accounts.find(function(a){ return a.id === _currentUser.id; })
+                                         || _accounts.find(function(a){ return a.username === _currentUser.username; });
                             if (updatedMe) {
                                 _currentUser = updatedMe;
                                 try { sessionStorage.setItem('mop_session', JSON.stringify(_currentUser)); } catch(e) {}
+                                // ★ GAS에서 mustChangePw가 false로 업데이트됐으면 강제 변경 화면 닫기
+                                if (!_currentUser.mustChangePw) {
+                                    var _cpOv = document.getElementById('changePwOverlay');
+                                    if (_cpOv && _cpOv.classList.contains('active')) {
+                                        _cpOv.classList.remove('active');
+                                        showGatewayForUser();
+                                    }
+                                }
                                 // Scoring Tool이 열려있으면 업데이트된 user info 재전송
                                 if (_currentToolKey === 'scoring') {
                                     try {
