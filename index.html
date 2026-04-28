@@ -2612,48 +2612,39 @@
     }
 
     function gasGet(url, onSuccess, onError) {
-        // fetch() 사용 — XHR보다 Edge/iOS Safari에서 더 안정적 (redirect 처리, cache 제어)
-        var fetchUrl = url + (url.indexOf('?') < 0 ? '?' : '&') + '_t=' + Date.now();
-        if (typeof fetch !== 'undefined') {
-            fetch(fetchUrl, { method: 'GET', cache: 'no-store', redirect: 'follow' })
-                .then(function(r) {
-                    if (!r.ok) throw new Error('HTTP ' + r.status);
-                    return r.text();
-                })
-                .then(function(text) {
-                    try { var j = JSON.parse(text); if (onSuccess) onSuccess(j); }
-                    catch(e) { if (onError) onError('Parse error'); }
-                })
-                .catch(function(e) {
-                    // fetch 실패 시 XHR로 폴백
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('GET', fetchUrl, true);
-                    xhr.onreadystatechange = function() {
-                        if (xhr.readyState === 4) {
-                            if (xhr.status === 200) {
-                                try { var j = JSON.parse(xhr.responseText); if (onSuccess) onSuccess(j); }
-                                catch(pe) { if (onError) onError('Parse error'); }
-                            } else { if (onError) onError(xhr.statusText || 'HTTP ' + xhr.status); }
-                        }
-                    };
-                    xhr.onerror = function() { if (onError) onError('Network error'); };
-                    xhr.send();
-                });
-        } else {
-            // fetch 미지원 구형 브라우저 XHR 폴백
-            var xhr = new XMLHttpRequest();
-            xhr.open('GET', fetchUrl, true);
-            xhr.onreadystatechange = function() {
-                if (xhr.readyState === 4) {
-                    if (xhr.status === 200) {
-                        try { var j = JSON.parse(xhr.responseText); if (onSuccess) onSuccess(j); }
-                        catch(e) { if (onError) onError('Parse error'); }
-                    } else { if (onError) onError(xhr.statusText); }
-                }
-            };
-            xhr.onerror = function() { if (onError) onError('Network error'); };
-            xhr.send();
-        }
+        // ★★★ JSONP 방식 사용 — CORS 제한 없이 모든 브라우저(Safari iOS/Mac 포함) 동작
+        // fetch()/XHR은 Safari에서 Google Apps Script CORS 문제 발생 → script 태그로 우회
+        var cbName = '_gasJSONP_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+        var scriptEl = null;
+        var done = false;
+
+        var cleanup = function() {
+            done = true;
+            try { if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl); } catch(e) {}
+            try { delete window[cbName]; } catch(e) {}
+        };
+
+        // 20초 타임아웃 (느린 모바일 네트워크 대비)
+        var timeoutId = setTimeout(function() {
+            if (!done) { cleanup(); if (onError) onError('Timeout'); }
+        }, 20000);
+
+        window[cbName] = function(data) {
+            clearTimeout(timeoutId);
+            cleanup();
+            if (data && onSuccess) onSuccess(data);
+            else if (onError) onError('No data');
+        };
+
+        scriptEl = document.createElement('script');
+        scriptEl.onerror = function() {
+            clearTimeout(timeoutId);
+            cleanup();
+            if (onError) onError('Script load error');
+        };
+        scriptEl.src = url + (url.indexOf('?') < 0 ? '?' : '&')
+                       + 'callback=' + cbName + '&_t=' + Date.now();
+        document.head.appendChild(scriptEl);
     }
 
     function cloudSaveDebounced() {
