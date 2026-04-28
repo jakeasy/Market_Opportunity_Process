@@ -3115,9 +3115,16 @@
             }
             _versionCheckFailCount = 0;
 
-            // ★ GAS 구버전 감지: ts 필드 없음 (action=version 미지원, 전체 data 반환됨)
-            // → _fallbackPollTimer(30s cloudLoad)가 처리하므로 여기서는 스킵
-            if (!j.ts) return;
+            // ★ GAS 구버전 감지: ts 필드 없음 (action=version 미지원)
+            // GAS가 전체 데이터를 반환함 → 10s 간격으로 cloudLoad를 직접 호출
+            // (GAS 재배포 전에도 10초마다 sync 보장 — 기존 30s 폴백보다 3배 빠름)
+            if (!j.ts) {
+                var _now2 = Date.now();
+                if (_now2 - _lastCloudLoad > 9000) {
+                    cloudLoad(); // rate-limited: 마지막 cloudLoad 이후 9s 이상 경과 시만 실행
+                }
+                return;
+            }
 
             if (j.ts === '0') return; // GAS 데이터 없음 — 기준선 미설정
 
