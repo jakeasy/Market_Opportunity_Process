@@ -2248,12 +2248,34 @@
             var payload = event.data.payload;
             if (payload && !mopSubmissions.find(function(s){ return s.id === payload.id; })) {
                 mopSubmissions.push(payload);
-                saveSubmissions();
+                _lastLocalWrite = Date.now(); // 로컬 변경 시각 기록
+                try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(e) {}
+                // ★ 즉시 GAS 저장 — 2초 debounce 없이 바로 저장 (다른 기기에서 즉시 동기화)
+                var _su = getAppsScriptUrl();
+                if (_su) {
+                    showCloudBadge('saving');
+                    gasPost(_su, { type: 'submissions', payload: mopSubmissions },
+                        function(j) { showCloudBadge(j && j.success ? 'saved' : 'error'); },
+                        function()  { showCloudBadge('error'); cloudSaveDebounced(); }
+                    );
+                }
             }
         }
         if (event.data && event.data.type === 'mop-review-data') {
             var payload = event.data.payload;
-            if (payload && !mopReviews.find(function(r){ return r.id === payload.id; })) { mopReviews.push(payload); saveReviews(); }
+            if (payload && !mopReviews.find(function(r){ return r.id === payload.id; })) {
+                mopReviews.push(payload);
+                _lastLocalWrite = Date.now();
+                try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(e) {}
+                // ★ 즉시 GAS 저장
+                var _ru = getAppsScriptUrl();
+                if (_ru) {
+                    gasPost(_ru, { type: 'reviews', payload: mopReviews },
+                        function(j) { showCloudBadge(j && j.success ? 'saved' : 'error'); },
+                        function()  { showCloudBadge('error'); cloudSaveDebounced(); }
+                    );
+                }
+            }
         }
         if (event.data && event.data.type === 'mop-send-email') {
             var url = getAppsScriptUrl();
@@ -2584,9 +2606,10 @@
 
     // ── Cloud Sync (Google Apps Script) ──────────────────────
     var _cloudSaveTimer = null;
-    var _lastCloudLoad = 0; // iOS 중복 cloudLoad 방지용 타임스탬프
+    var _lastCloudLoad = 0;   // iOS 중복 cloudLoad 방지용 타임스탬프
+    var _lastLocalWrite = 0;  // 로컬 데이터 변경 시각 (cloudLoad 덮어쓰기 방지)
     // ★ Apps Script URL — 배포 후 이 URL은 변경되지 않습니다
-    var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwYpGWsSZWHVFFb1XH-D6bOs3N22nnnOWFqUVpuxJ81A-bCOigrWqXF77zL_F_UaVXLng/exec';
+    var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbzgtd33tc324Zfk5mbx12wE7vX56apDtAM8ONjpHivKjQTt6eD7cqdFfGJf2E2hH4SlSA/exec';
     function getAppsScriptUrl() { return _appsScriptUrl; }
 
     // Google Apps Script는 302 리다이렉트를 사용하므로
@@ -2707,19 +2730,30 @@
                     // ★ GAS를 소스 오브 트루스로 사용 — 빈 배열/null도 반드시 반영
                     // iPad 등 다른 기기의 localStorage 구 데이터를 덮어씌움
 
+                    // ★ Race condition 방지: 로컬 write 후 10초 이내에 cloudLoad 응답이 돌아오면
+                    // GAS가 아직 최신 데이터를 반영하지 못했을 수 있음 → submissions/reviews는 덮어쓰지 않음
+                    // (즉시 저장 gasPost가 이미 GAS에 push 중이므로, cloudLoad 데이터가 오래된 스냅샷일 수 있음)
+                    var _now = Date.now();
+                    var _writeAge = (_lastLocalWrite > 0) ? (_now - _lastLocalWrite) : 999999;
+                    var _skipSubmReviews = (_writeAge < 10000); // 10초 이내 로컬 변경이 있으면 덮어쓰기 생략
+
                     // submissions: GAS가 빈 배열 반환 시 localStorage도 삭제
-                    mopSubmissions = (d.submissions && d.submissions.length) ? d.submissions : [];
-                    try {
-                        if (mopSubmissions.length) localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions));
-                        else localStorage.removeItem('mop_submissions');
-                    } catch(e) {}
+                    if (!_skipSubmReviews) {
+                        mopSubmissions = (d.submissions && d.submissions.length) ? d.submissions : [];
+                        try {
+                            if (mopSubmissions.length) localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions));
+                            else localStorage.removeItem('mop_submissions');
+                        } catch(e) {}
+                    }
 
                     // reviews: 동일
-                    mopReviews = (d.reviews && d.reviews.length) ? d.reviews : [];
-                    try {
-                        if (mopReviews.length) localStorage.setItem('mop_reviews', JSON.stringify(mopReviews));
-                        else localStorage.removeItem('mop_reviews');
-                    } catch(e) {}
+                    if (!_skipSubmReviews) {
+                        mopReviews = (d.reviews && d.reviews.length) ? d.reviews : [];
+                        try {
+                            if (mopReviews.length) localStorage.setItem('mop_reviews', JSON.stringify(mopReviews));
+                            else localStorage.removeItem('mop_reviews');
+                        } catch(e) {}
+                    }
 
                     // afcState: GAS 값이 있으면 사용, 없거나 빈 상태면 null로 초기화
                     if (d.afcState && d.afcState.checklistState && Object.keys(d.afcState.checklistState).length > 0) {
@@ -2759,13 +2793,39 @@
                         }
                     }
                     if (d.accounts && d.accounts.length) {
-                        // Cloud 계정과 로컬 계정을 병합 (로컬 우선, 없는 것만 추가)
+                        // GAS 계정으로 기존 계정 업데이트 (region 등 최신 필드 반영) + 없는 계정 추가
                         d.accounts.forEach(function(ca) {
-                            if (!_accounts.find(function(la){ return la.id === ca.id; })) {
+                            var existing = _accounts.find(function(la){ return la.id === ca.id; });
+                            if (existing) {
+                                // 기존 계정을 GAS 데이터로 업데이트 (region 등 누락 필드 보완)
+                                Object.keys(ca).forEach(function(k){ existing[k] = ca[k]; });
+                            } else {
                                 _accounts.push(ca);
                             }
                         });
                         try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
+
+                        // ★ _currentUser도 GAS 최신 데이터로 업데이트 (region 동기화)
+                        if (_currentUser) {
+                            var updatedMe = _accounts.find(function(a){ return a.username === _currentUser.username; });
+                            if (updatedMe) {
+                                _currentUser = updatedMe;
+                                try { sessionStorage.setItem('mop_session', JSON.stringify(_currentUser)); } catch(e) {}
+                                // Scoring Tool이 열려있으면 업데이트된 user info 재전송
+                                if (_currentToolKey === 'scoring') {
+                                    try {
+                                        var _si = document.getElementById('tool-iframe');
+                                        if (_si && _si.contentWindow) {
+                                            _si.contentWindow.postMessage({ type: 'mop-user-info', payload: {
+                                                name: _currentUser.name || '',
+                                                email: _currentUser.username || '',
+                                                region: _currentUser.region || ''
+                                            }}, '*');
+                                        }
+                                    } catch(e) {}
+                                }
+                            }
+                        }
                     }
                     showCloudBadge('loaded');
 
