@@ -2882,14 +2882,13 @@
                     var _gasHasSubmissions = (d.submissions && d.submissions.length > 0);
                     var _gasHasReviews     = (d.reviews     && d.reviews.length     > 0);
 
-                    // GAS가 비어있을 때 로컬 덮어쓰기를 생략하는 조건:
-                    // (A) 최근 5초 이내 로컬 write (save/delete 직후 race condition)
-                    // (B) GAS에 "한 번도 데이터가 없었던" 경우 — 새 GAS 배포로 인한 빈 상태
-                    //     (_lastGasHadSubmissions = false → 이전 cloudLoad에서도 GAS가 비었음)
-                    //     이 경우 로컬 데이터를 보호하고 역으로 GAS에 업로드함
-                    // GAS에 데이터가 있으면 항상 신뢰 (source of truth)
-                    var _skipSubmissions = !_gasHasSubmissions && (_writeAge < 5000 || !_lastGasHadSubmissions);
-                    var _skipReviews     = !_gasHasReviews     && (_writeAge < 5000 || !_lastGasHadReviews);
+                    // ★ 핵심 원칙:
+                    // - GAS 비어있음 → 무조건 로컬 보호. 로컬 데이터를 GAS에 재업로드
+                    // - GAS에 데이터 있음 → GAS를 소스 오브 트루스로 사용 + pending merge
+                    // ★ 절대 GAS 빈 응답으로 로컬 데이터를 삭제하지 않음
+                    //   (transient 오류, 네트워크 지연, Safari opaque POST 등으로 인한 오탐 방지)
+                    var _skipSubmissions = !_gasHasSubmissions;
+                    var _skipReviews     = !_gasHasReviews;
 
                     // submissions
                     if (!_skipSubmissions) {
@@ -2929,8 +2928,9 @@
                             if (mopSubmissions.length) localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions));
                             else localStorage.removeItem('mop_submissions');
                         } catch(e) {}
-                    } else if (!_gasHasSubmissions && !_lastGasHadSubmissions && mopSubmissions.length > 0) {
-                        // ★ 새 GAS 배포 감지: GAS가 비어있고 로컬에 데이터 있음 → 로컬 데이터를 GAS에 복원
+                    } else if (!_gasHasSubmissions && mopSubmissions.length > 0) {
+                        // ★ GAS 비어있고 로컬에 데이터 있음 → 로컬 데이터를 GAS에 복원
+                        // (새 GAS 배포 / transient 오류 / Safari opaque POST 실패 등 모든 케이스 처리)
                         var _recUrl = getAppsScriptUrl();
                         if (_recUrl) {
                             showCloudBadge('saving');
@@ -2981,7 +2981,8 @@
                             if (mopReviews.length) localStorage.setItem('mop_reviews', JSON.stringify(mopReviews));
                             else localStorage.removeItem('mop_reviews');
                         } catch(e) {}
-                    } else if (!_gasHasReviews && !_lastGasHadReviews && mopReviews.length > 0) {
+                    } else if (!_gasHasReviews && mopReviews.length > 0) {
+                        // ★ GAS 비어있고 로컬에 리뷰 있음 → GAS에 복원
                         var _recUrl2 = getAppsScriptUrl();
                         if (_recUrl2) {
                             gasPost(_recUrl2, { type: 'reviews', payload: mopReviews }, null, null);
