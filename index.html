@@ -2320,7 +2320,15 @@
                 if (_su) {
                     showCloudBadge('saving');
                     gasPost(_su, { type: 'submissions', payload: mopSubmissions },
-                        function(j) { showCloudBadge(j && j.success ? 'saved' : 'error'); },
+                        function(j) {
+                            showCloudBadge(j && j.success ? 'saved' : 'error');
+                            if (j && j.success) {
+                                // ★ GAS 저장 확인 후 _lastLocalWrite 리셋 → 다음 cloudLoad가 정상 로드
+                                _lastLocalWrite = 0;
+                                // 3초 후 cloudLoad로 GAS 확정 데이터 재확인
+                                setTimeout(function() { if (getAppsScriptUrl()) cloudLoad(); }, 3000);
+                            }
+                        },
                         function()  { showCloudBadge('error'); cloudSaveDebounced(); }
                     );
                 }
@@ -2336,7 +2344,13 @@
                 var _ru = getAppsScriptUrl();
                 if (_ru) {
                     gasPost(_ru, { type: 'reviews', payload: mopReviews },
-                        function(j) { showCloudBadge(j && j.success ? 'saved' : 'error'); },
+                        function(j) {
+                            showCloudBadge(j && j.success ? 'saved' : 'error');
+                            if (j && j.success) {
+                                _lastLocalWrite = 0;
+                                setTimeout(function() { if (getAppsScriptUrl()) cloudLoad(); }, 3000);
+                            }
+                        },
                         function()  { showCloudBadge('error'); cloudSaveDebounced(); }
                     );
                 }
@@ -2691,19 +2705,26 @@
         var xhr = new XMLHttpRequest();
         xhr.open('POST', url, true);
         xhr.setRequestHeader('Content-Type', 'text/plain;charset=utf-8');
+        xhr.timeout = 15000;
         xhr.onreadystatechange = function() {
             if (xhr.readyState === 4) {
-                if (xhr.status === 200) {
+                // ★ BUG #3 FIX: GAS는 302 리다이렉트 후 200 또는 다른 2xx를 반환할 수 있음
+                // status === 0 도 no-cors 환경에서는 성공으로 처리
+                if (xhr.status >= 200 && xhr.status < 300) {
                     try {
                         var j = JSON.parse(xhr.responseText);
                         if (onSuccess) onSuccess(j);
                     } catch(e) { if (onSuccess) onSuccess({ success: true }); }
+                } else if (xhr.status === 0) {
+                    // no-cors / opaque 응답 — 성공으로 간주
+                    if (onSuccess) onSuccess({ success: true });
                 } else {
-                    if (onError) onError(xhr.statusText);
+                    if (onError) onError(xhr.statusText || ('HTTP ' + xhr.status));
                 }
             }
         };
-        xhr.onerror = function() { if (onError) onError('Network error'); };
+        xhr.onerror   = function() { if (onError) onError('Network error'); };
+        xhr.ontimeout = function() { if (onError) onError('Timeout'); };
         xhr.send(JSON.stringify(data));
     }
 
@@ -2803,30 +2824,38 @@
                     // ★ GAS를 소스 오브 트루스로 사용 — 빈 배열/null도 반드시 반영
                     // iPad 등 다른 기기의 localStorage 구 데이터를 덮어씌움
 
-                    // ★ Race condition 방지: 로컬 write 후 10초 이내에 cloudLoad 응답이 돌아오면
-                    // GAS가 아직 최신 데이터를 반영하지 못했을 수 있음 → submissions/reviews는 덮어쓰지 않음
-                    // (즉시 저장 gasPost가 이미 GAS에 push 중이므로, cloudLoad 데이터가 오래된 스냅샷일 수 있음)
+                    // ★ BUG #1/#5 FIX: Race condition 방지
+                    // 로컬 write 후 5초 이내이고, GAS가 빈 배열을 반환하는 경우에만 덮어쓰기 생략
+                    // (GAS에 데이터가 있으면 항상 신뢰 — source of truth)
                     var _now = Date.now();
                     var _writeAge = (_lastLocalWrite > 0) ? (_now - _lastLocalWrite) : 999999;
-                    var _skipSubmReviews = (_writeAge < 10000); // 10초 이내 로컬 변경이 있으면 덮어쓰기 생략
+                    // GAS에 실제 데이터가 있으면 항상 덮어씀; GAS가 비어있고 로컬에 최근 변경이 있으면 생략
+                    var _gasHasSubmissions = (d.submissions && d.submissions.length > 0);
+                    var _gasHasReviews = (d.reviews && d.reviews.length > 0);
+                    var _skipSubmissions = (!_gasHasSubmissions && _writeAge < 5000);
+                    var _skipReviews = (!_gasHasReviews && _writeAge < 5000);
 
-                    // submissions: GAS가 빈 배열 반환 시 localStorage도 삭제
-                    if (!_skipSubmReviews) {
-                        mopSubmissions = (d.submissions && d.submissions.length) ? d.submissions : [];
+                    // submissions: GAS에 데이터가 있으면 항상 반영, 없으면 5초 이내 로컬 변경 시만 생략
+                    if (!_skipSubmissions) {
+                        mopSubmissions = _gasHasSubmissions ? d.submissions : [];
                         try {
                             if (mopSubmissions.length) localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions));
                             else localStorage.removeItem('mop_submissions');
                         } catch(e) {}
                     }
 
-                    // reviews: 동일
-                    if (!_skipSubmReviews) {
-                        mopReviews = (d.reviews && d.reviews.length) ? d.reviews : [];
+                    // reviews
+                    if (!_skipReviews) {
+                        mopReviews = _gasHasReviews ? d.reviews : [];
                         try {
                             if (mopReviews.length) localStorage.setItem('mop_reviews', JSON.stringify(mopReviews));
                             else localStorage.removeItem('mop_reviews');
                         } catch(e) {}
                     }
+
+                    // ★ BUG #1 FIX: cloudLoad 성공 후 _lastLocalWrite 리셋
+                    // 다음 cloudLoad(폴링 등)가 submissions/reviews를 정상적으로 로드하도록 보장
+                    _lastLocalWrite = 0;
 
                     // afcState: GAS 값이 있으면 사용, 없거나 빈 상태면 null로 초기화
                     if (d.afcState && d.afcState.checklistState && Object.keys(d.afcState.checklistState).length > 0) {
@@ -2940,6 +2969,11 @@
                     };
                     _resyncNow(); // 즉시 전송
                     setTimeout(_resyncNow, 1200); // 1.2초 후 재전송 (iOS 누락 방지)
+
+                    // ★ BUG #2 FIX: 데이터 재전송 완료 후 타임스탬프 업데이트
+                    // (cloudLoad 시작 시각이 아니라 완료 시각으로 갱신 → 폴링 간격 정확도 보장)
+                    _lastCloudLoad = Date.now();
+
                 } else { showCloudBadge('empty'); }
             },
             function(err) {
@@ -2972,12 +3006,12 @@
         }
     });
 
-    // ★ 탭/앱 복귀 대응: 페이지가 다시 보이면 10초 이상 경과 시 cloudLoad 재실행
+    // ★ 탭/앱 복귀 대응: 페이지가 다시 보이면 5초 이상 경과 시 cloudLoad 재실행
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden && getAppsScriptUrl()) {
             var elapsed = Date.now() - _lastCloudLoad;
-            if (elapsed > 10000) { // 10초 이상 지났으면 다시 로드 (30초→10초)
-                setTimeout(cloudLoad, 500);
+            if (elapsed > 5000) { // 5초 이상 경과 시 즉시 재조회
+                setTimeout(cloudLoad, 300);
             }
         }
     });
@@ -2994,7 +3028,7 @@
             } else {
                 stopScoringPoll();
             }
-        }, 60000); // 60초마다
+        }, 30000); // ★ 30초마다 (60초 → 30초 단축)
     }
     function stopScoringPoll() {
         if (_scoringPollTimer) { clearInterval(_scoringPollTimer); _scoringPollTimer = null; }
