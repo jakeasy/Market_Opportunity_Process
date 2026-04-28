@@ -1069,20 +1069,28 @@
         var isKo = currentLang === 'ko';
         if (!confirm(isKo ? '모든 MOP 데이터를 초기화하시겠습니까?\n(Submissions, Reviews, AFI, Portfolio 모두 삭제됩니다)' : 'Reset ALL MOP data?\n(Submissions, Reviews, AFI, Portfolio will be deleted)')) return;
 
-        // 1) 메모리 초기화
+        // 1) 진행 중인 자동 저장 타이머 모두 취소 (타이머가 나중에 구 데이터를 GAS에 덮어쓰는 문제 방지)
+        if (typeof _cloudSaveTimer !== 'undefined' && _cloudSaveTimer) {
+            clearTimeout(_cloudSaveTimer);
+            _cloudSaveTimer = null;
+        }
+
+        // 2) 메모리 초기화
         mopSubmissions = []; mopReviews = []; mopAfcState = null; mopPortfolioState = null;
 
-        // 2) localStorage 초기화
+        // 3) localStorage 초기화
         localStorage.removeItem('mop_submissions');
         localStorage.removeItem('mop_reviews');
         localStorage.removeItem('mop_afc_state');
         localStorage.removeItem('mop_portfolio_state');
 
+        // 4) ★ 핵심: reload 후 cloudLoad()가 GAS에서 데이터를 다시 불러오는 것을 차단하는 플래그
+        localStorage.setItem('mop_just_cleared', '1');
+
         document.getElementById('settingsOverlay').classList.remove('active');
 
-        // 3) 클라우드(GAS)에 빈 데이터 저장 후 reload
-        //    - GAS type:'all' 핸들러는 falsy값을 저장하지 않으므로
-        //      afcState/portfolio는 null 대신 빈 객체를 전달해야 실제로 덮어써짐
+        // 5) GAS 클라우드에도 빈 데이터 저장 후 reload
+        //    (afcState/portfolio는 null 대신 빈 객체로 보내야 GAS가 실제로 덮어씀)
         var url = getAppsScriptUrl();
         if (url) {
             gasPost(url, {
@@ -2642,6 +2650,12 @@
     }
 
     function cloudLoad() {
+        // ★ 초기화 직후 reload 시 GAS에서 데이터가 복원되는 것을 차단
+        if (localStorage.getItem('mop_just_cleared')) {
+            localStorage.removeItem('mop_just_cleared');
+            showCloudBadge('saved');
+            return;
+        }
         var url = getAppsScriptUrl(); if (!url) return;
         showCloudBadge('loading');
         gasGet(url,
