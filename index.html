@@ -2662,10 +2662,41 @@
             function(j) {
                 if (j.success && j.data) {
                     var d = j.data;
-                    if (d.submissions && d.submissions.length) { mopSubmissions = d.submissions; try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(e) {} }
-                    if (d.reviews && d.reviews.length) { mopReviews = d.reviews; try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(e) {} }
-                    if (d.afcState) { mopAfcState = d.afcState; try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(e) {} }
-                    if (d.portfolio) { mopPortfolioState = d.portfolio; try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(e) {} }
+
+                    // ★ GAS를 소스 오브 트루스로 사용 — 빈 배열/null도 반드시 반영
+                    // iPad 등 다른 기기의 localStorage 구 데이터를 덮어씌움
+
+                    // submissions: GAS가 빈 배열 반환 시 localStorage도 삭제
+                    mopSubmissions = (d.submissions && d.submissions.length) ? d.submissions : [];
+                    try {
+                        if (mopSubmissions.length) localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions));
+                        else localStorage.removeItem('mop_submissions');
+                    } catch(e) {}
+
+                    // reviews: 동일
+                    mopReviews = (d.reviews && d.reviews.length) ? d.reviews : [];
+                    try {
+                        if (mopReviews.length) localStorage.setItem('mop_reviews', JSON.stringify(mopReviews));
+                        else localStorage.removeItem('mop_reviews');
+                    } catch(e) {}
+
+                    // afcState: GAS 값이 있으면 사용, 없거나 빈 상태면 null로 초기화
+                    if (d.afcState && d.afcState.checklistState && Object.keys(d.afcState.checklistState).length > 0) {
+                        mopAfcState = d.afcState;
+                        try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(e) {}
+                    } else {
+                        mopAfcState = null;
+                        try { localStorage.removeItem('mop_afc_state'); } catch(e) {}
+                    }
+
+                    // portfolio: GAS 값이 있고 projects가 있으면 사용, 없으면 null로 초기화
+                    if (d.portfolio && d.portfolio.projects && d.portfolio.projects.length > 0) {
+                        mopPortfolioState = d.portfolio;
+                        try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(e) {}
+                    } else {
+                        mopPortfolioState = null;
+                        try { localStorage.removeItem('mop_portfolio_state'); } catch(e) {}
+                    }
                     // Settings 복원 (관리자 이메일, 비밀번호)
                     if (d.settings) {
                         var cs = d.settings;
