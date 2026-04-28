@@ -977,6 +977,8 @@
         if (cloudData && cloudData.accounts && cloudData.accounts.length) {
             try { var _s=localStorage.getItem('mop_accounts'); if(_s) _accounts=JSON.parse(_s); } catch(ex) {}
             cloudData.accounts.forEach(function(ca) {
+                // ★ 삭제된 계정은 GAS 구 데이터로 재추가하지 않음
+                if (_deletedUsernames.indexOf(ca.username) >= 0) return;
                 var ix=-1;
                 _accounts.forEach(function(la,i){
                     if(la.username && ca.username && la.username.toLowerCase()===ca.username.toLowerCase()) ix=i;
@@ -1144,8 +1146,15 @@
     }
 
     function saveAccounts() {
-        localStorage.setItem('mop_accounts', JSON.stringify(_accounts));
-        _cloudSaveViaGet('accounts', _accounts);
+        try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
+        // ★ gasPost (POST) 사용 — GET no-cors는 성공 여부 확인 불가, 대용량 payload URL 한도 초과 가능
+        var _sa_url = getAppsScriptUrl();
+        if (_sa_url) {
+            gasPost(_sa_url, { type: 'accounts', payload: _accounts },
+                function(j) { if (j && j.success) showCloudBadge('saved'); },
+                function()  { _cloudSaveViaGet('accounts', _accounts); } // POST 실패 시 GET 폴백
+            );
+        }
     }
 
     function forceSyncAccounts() {
@@ -1164,6 +1173,8 @@
             // 2단계: 클라우드 + 로컬 merge
             if (j.success && j.data && j.data.accounts && j.data.accounts.length) {
                 j.data.accounts.forEach(function(ca) {
+                    // ★ 삭제된 계정은 GAS 구 데이터로 재추가하지 않음
+                    if (_deletedUsernames.indexOf(ca.username) >= 0) return;
                     var ix = -1;
                     _accounts.forEach(function(la, i){
                         if (la.username && ca.username && la.username.toLowerCase() === ca.username.toLowerCase()) ix = i;
@@ -1973,7 +1984,31 @@
     function deleteAcc(username) {
         if (!confirm('이 계정을 삭제하시겠습니까?')) return;
         _accounts = _accounts.filter(function(a){ return a.username !== username; });
-        saveAccounts();
+
+        // ★ 삭제된 username 기록 — cloudLoad/mergeSettings가 GAS 구 데이터로 재추가하는 것을 막음
+        if (_deletedUsernames.indexOf(username) < 0) _deletedUsernames.push(username);
+        try { localStorage.setItem('mop_deleted_usernames', JSON.stringify(_deletedUsernames)); } catch(e) {}
+
+        // localStorage 저장
+        try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
+
+        // ★ 즉시 gasPost로 GAS 저장 (GET no-cors는 신뢰성 불가)
+        var _da_url = getAppsScriptUrl();
+        if (_da_url) {
+            showCloudBadge('saving');
+            gasPost(_da_url, { type: 'accounts', payload: _accounts },
+                function(j) {
+                    showCloudBadge(j && j.success ? 'saved' : 'error');
+                    if (j && j.success) {
+                        // GAS 저장 확인되면 삭제 목록 클리어
+                        _deletedUsernames = _deletedUsernames.filter(function(u){ return u !== username; });
+                        try { localStorage.setItem('mop_deleted_usernames', JSON.stringify(_deletedUsernames)); } catch(e) {}
+                    }
+                },
+                function() { showCloudBadge('error'); }
+            );
+        }
+
         // 현재 로그인 중인 계정 삭제 시 자동 로그아웃
         if (_currentUser && _currentUser.username === username) {
             doLogout();
@@ -2635,6 +2670,10 @@
     var _cloudSaveTimer = null;
     var _lastCloudLoad = 0;   // iOS 중복 cloudLoad 방지용 타임스탬프
     var _lastLocalWrite = 0;  // 로컬 데이터 변경 시각 (cloudLoad 덮어쓰기 방지)
+    // ★ 삭제된 계정 username 목록 — cloudLoad/mergeSettings가 GAS 구 데이터로 재추가하는 것을 막음
+    var _deletedUsernames = (function() {
+        try { return JSON.parse(localStorage.getItem('mop_deleted_usernames') || '[]'); } catch(e) { return []; }
+    })();
     // ★ Apps Script URL — 배포 후 이 URL은 변경되지 않습니다
     var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbzgtd33tc324Zfk5mbx12wE7vX56apDtAM8ONjpHivKjQTt6eD7cqdFfGJf2E2hH4SlSA/exec';
     function getAppsScriptUrl() { return _appsScriptUrl; }
@@ -2822,11 +2861,14 @@
                     if (d.accounts && d.accounts.length) {
                         // GAS 계정으로 기존 계정 업데이트 (region 등 최신 필드 반영) + 없는 계정 추가
                         d.accounts.forEach(function(ca) {
+                            // ★ 삭제된 계정은 GAS 구 데이터로 재추가하지 않음
+                            if (_deletedUsernames.indexOf(ca.username) >= 0) return;
                             var existing = _accounts.find(function(la){ return la.id === ca.id; });
                             if (existing) {
                                 // 기존 계정을 GAS 데이터로 업데이트 (region 등 누락 필드 보완)
                                 Object.keys(ca).forEach(function(k){ existing[k] = ca[k]; });
                             } else {
+                                // 신규 계정 추가 (다른 기기에서 가입한 계정)
                                 _accounts.push(ca);
                             }
                         });
