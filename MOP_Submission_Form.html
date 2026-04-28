@@ -1681,6 +1681,13 @@
             <div class="submissions-toolbar">
                 <h2 data-i18n="pendingSubmissions">Pending Submissions</h2>
                 <div style="display:flex;gap:8px;align-items:center;">
+                    <!-- ★ 수동 새로고침 버튼 — 다른 기기에서 제출된 데이터 즉시 반영 -->
+                    <button onclick="requestCloudRefresh()" id="refreshBtn"
+                        style="padding:7px 14px;background:#1a2235;border:1px solid #2d3a4f;border-radius:8px;color:#94a3b8;font-size:12px;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:5px;"
+                        onmouseover="this.style.borderColor='#3b82f6';this.style.color='#60a5fa'"
+                        onmouseout="this.style.borderColor='#2d3a4f';this.style.color='#94a3b8'">
+                        🔄 <span data-i18n="btnRefresh">Refresh</span>
+                    </button>
                     <div style="position:relative;">
                         <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#6b7280;font-size:14px;pointer-events:none;">🔍</span>
                         <input type="text" id="submissionSearch"
@@ -1989,6 +1996,7 @@
                 btnCompleteReview: "Review Complete",
                 btnViewStats: "View Statistics",
                 btnNewReview: "New Review",
+                btnRefresh: "Refresh",
                 btnManualEntry: "Manual Entry",
                 btnBackToList: "\u2190 Back to List",
                 submissionsTitle: "MOP Submissions",
@@ -2111,6 +2119,7 @@
                 btnCompleteReview: "리뷰 완료",
                 btnViewStats: "통계 보기",
                 btnNewReview: "새 리뷰",
+                btnRefresh: "새로고침",
                 btnManualEntry: "직접 입력",
                 btnBackToList: "\u2190 목록으로",
                 submissionsTitle: "MOP 제출 목록",
@@ -2264,6 +2273,16 @@
             setTimeout(requestSyncIfEmpty, 2000);  // 2초 후
             setTimeout(requestSyncIfEmpty, 5000);  // 5초 후
             setTimeout(requestSyncIfEmpty, 12000); // 12초 후 (느린 네트워크 대비)
+        }
+
+        // ★ 수동 새로고침: Gateway에 cloudLoad 강제 실행 요청
+        function requestCloudRefresh() {
+            var btn = document.getElementById('refreshBtn');
+            if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+            try { window.parent.postMessage({ type: 'mop-cloud-refresh' }, '*'); } catch(e) {}
+            setTimeout(function() {
+                if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+            }, 3000);
         }
 
         // Criterion-specific rubric guidance per score level
