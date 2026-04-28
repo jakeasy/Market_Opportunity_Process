@@ -1090,6 +1090,7 @@
 
         // 2) 메모리 초기화
         mopSubmissions = []; mopReviews = []; mopAfcState = null; mopPortfolioState = null;
+        _pendingSubmissionIds = []; _pendingReviewIds = []; // pending 목록도 초기화
 
         // 3) localStorage 초기화
         localStorage.removeItem('mop_submissions');
@@ -2293,12 +2294,16 @@
     setLang('en');
     initAuth();
 
-    var mopSubmissions = [];
-    var mopReviews = [];
+    // ★ 핵심 수정: localStorage에서 즉시 복원 (GAS cloudLoad 실패/지연 시 데이터 보호)
+    // GAS cloudLoad 성공 시 → GAS 데이터로 덮어쓰거나 병합 (pending ID 시스템)
+    // GAS 비어있을 때 → 로컬 데이터를 GAS에 재업로드 (데이터 복원)
+    var mopSubmissions = (function() {
+        try { var s = localStorage.getItem('mop_submissions'); return s ? JSON.parse(s) : []; } catch(e) { return []; }
+    })();
+    var mopReviews = (function() {
+        try { var s = localStorage.getItem('mop_reviews'); return s ? JSON.parse(s) : []; } catch(e) { return []; }
+    })();
     var _currentToolKey = null; // 현재 열린 tool 추적 ('scoring', 'afc', 'portfolio', 'form', null)
-    // ★ submissions/reviews는 팀 공유 데이터 → localStorage 복원 안 함, 항상 GAS가 소스 오브 트루스
-    // localStorage 복원 시 기기별 오래된 데이터가 다른 기기의 새 데이터를 덮어쓰는 문제 방지
-    // (afcState, portfolioState는 localStorage 복원 유지)
 
     function saveSubmissions() { try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(e) {} cloudSaveDebounced(); }
     function saveReviews() { try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(e) {} cloudSaveDebounced(); }
@@ -2709,8 +2714,10 @@
     var _lastGasHadSubmissions = (sessionStorage.getItem('mop_gas_had_subs') === 'true');
     var _lastGasHadReviews     = (sessionStorage.getItem('mop_gas_had_revs') === 'true');
     // ★ 미확인 제출/리뷰 ID 추적 — GAS에 아직 반영되지 않은 로컬 항목을 cloudLoad가 덮어쓰지 않도록 보호
-    var _pendingSubmissionIds = [];
-    var _pendingReviewIds = [];
+    // 페이지 로드 시 localStorage 데이터의 모든 ID를 pending으로 등록
+    // → cloudLoad가 GAS에서 각 ID 확인 후 제거 (없으면 GAS에 재업로드)
+    var _pendingSubmissionIds = mopSubmissions.map(function(s){ return s.id; });
+    var _pendingReviewIds = mopReviews.map(function(r){ return r.id; });
     // ★ 삭제된 계정 username 목록 — cloudLoad/mergeSettings가 GAS 구 데이터로 재추가하는 것을 막음
     var _deletedUsernames = (function() {
         try { return JSON.parse(localStorage.getItem('mop_deleted_usernames') || '[]'); } catch(e) { return []; }
@@ -2853,6 +2860,7 @@
         // ★ 초기화 직후 reload 시 GAS에서 데이터가 복원되는 것을 차단
         if (localStorage.getItem('mop_just_cleared')) {
             localStorage.removeItem('mop_just_cleared');
+            _pendingSubmissionIds = []; _pendingReviewIds = []; // 초기화 직후 pending 없음
             showCloudBadge('saved');
             return;
         }
