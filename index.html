@@ -2329,12 +2329,10 @@
                             function(j) {
                                 showCloudBadge(j && j.success ? 'saved' : 'error');
                                 if (j && j.success) {
-                                    // ★ FIX: _lastLocalWrite 리셋 제거 — cloudLoad가 pending 항목을 보호
-                                    // pending 목록에서 제거 (GAS 저장 확인됨)
-                                    _pendingSubmissionIds = _pendingSubmissionIds.filter(function(id){ return id !== savedId; });
-                                    _lastGasHadSubmissions = true;
-                                    try { sessionStorage.setItem('mop_gas_had_subs','true'); } catch(e) {}
-                                    // 3초 후 cloudLoad로 GAS 확정 데이터 재확인
+                                    // ★ CRITICAL FIX: pending ID를 gasPost 성공 시 제거하지 않음
+                                    // Safari status=0 등 opaque 응답은 GAS 저장 여부를 보장 못 함
+                                    // cloudLoad가 GAS에서 직접 확인한 후 pending에서 제거함
+                                    // (3초 후 cloudLoad가 확인 → 확인되면 pending 자동 제거)
                                     setTimeout(function() { if (getAppsScriptUrl()) cloudLoad(); }, 3000);
                                 }
                             },
@@ -2359,10 +2357,8 @@
                             function(j) {
                                 showCloudBadge(j && j.success ? 'saved' : 'error');
                                 if (j && j.success) {
-                                    // ★ FIX: _lastLocalWrite 리셋 제거 — cloudLoad가 pending 항목을 보호
-                                    _pendingReviewIds = _pendingReviewIds.filter(function(id){ return id !== savedId; });
-                                    _lastGasHadReviews = true;
-                                    try { sessionStorage.setItem('mop_gas_had_revs','true'); } catch(e) {}
+                                    // ★ CRITICAL FIX: pending ID를 gasPost 성공 시 제거하지 않음
+                                    // cloudLoad가 GAS에서 직접 확인한 후 pending에서 제거
                                     setTimeout(function() { if (getAppsScriptUrl()) cloudLoad(); }, 3000);
                                 }
                             },
