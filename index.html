@@ -2734,7 +2734,7 @@
         try { return JSON.parse(localStorage.getItem('mop_deleted_usernames') || '[]'); } catch(e) { return []; }
     })();
     // ★ Apps Script URL — 배포 후 이 URL은 변경되지 않습니다
-    var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbzgtd33tc324Zfk5mbx12wE7vX56apDtAM8ONjpHivKjQTt6eD7cqdFfGJf2E2hH4SlSA/exec';
+    var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbyJxMnMmIWKZ8VOVR6CQE5Qxy-D0l-PR8-pRdX8wwGOnlXR8_pRyMUlU6cjKknlbbOqcg/exec';
     function getAppsScriptUrl() { return _appsScriptUrl; }
 
     // Google Apps Script는 302 리다이렉트를 사용하므로
@@ -2914,15 +2914,29 @@
                         localStorage.removeItem('mop_reviews');
                         localStorage.removeItem('mop_afc_state');
                         localStorage.removeItem('mop_portfolio_state');
+                        // ★ reload 후 첫 번째 cloudLoad도 차단 (in-flight gasPost zombie 방지)
+                        localStorage.setItem('mop_just_cleared', '1');
                         mopSubmissions = []; mopReviews = []; mopAfcState = null; mopPortfolioState = null;
                         _pendingSubmissionIds = []; _pendingReviewIds = [];
                         _lastGasHadSubmissions = false; _lastGasHadReviews = false;
                         _lastLocalWrite = 0;
+                        _isJustCleared = true;
                         try { sessionStorage.removeItem('mop_gas_had_subs'); } catch(e) {}
                         try { sessionStorage.removeItem('mop_gas_had_revs'); } catch(e) {}
-                        // UI 갱신: 빈 데이터를 tool 이어프레임에 전송
-                        showCloudBadge('saved');
-                        syncDataToScoring();
+                        // ★ 핵심: GAS도 다시 빈 데이터로 강제 덮어쓰기
+                        // Chrome 등 이 기기의 in-flight gasPost가 GAS에 zombie 데이터를 이미 썼을 수 있음
+                        // → 즉시 빈 데이터로 덮어쓴 후 reload (취소 불가능한 XHR 완료분 대비)
+                        var _rcUrl = getAppsScriptUrl();
+                        if (_rcUrl) {
+                            gasPost(_rcUrl,
+                                { type: 'all', submissions: [], reviews: [],
+                                  afcState: { checklistState: {} }, portfolio: { projects: [], nextId: 1 } },
+                                function() { location.reload(); },
+                                function() { location.reload(); }  // 실패해도 reload
+                            );
+                        } else {
+                            location.reload();
+                        }
                         return;
                     }
 
