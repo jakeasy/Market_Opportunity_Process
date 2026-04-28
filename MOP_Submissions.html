@@ -921,38 +921,42 @@
 
         /* Info Row - Opportunity & Reviewer */
         .info-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px 24px;
             margin-bottom: 32px;
             background: var(--bg-main);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 24px;
+            padding: 16px 24px;
             box-shadow: var(--shadow-subtle);
         }
 
-        @media (max-width: 768px) {
-            .info-row {
-                grid-template-columns: 1fr;
-            }
+        .info-field {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+            min-width: 200px;
         }
 
         .info-field label {
-            display: block;
             font-weight: 700;
-            font-size: 0.9rem;
+            font-size: 0.85rem;
             color: var(--text-heading);
-            margin-bottom: 8px;
+            white-space: nowrap;
+            flex-shrink: 0;
         }
 
         .info-field input {
-            width: 100%;
-            padding: 12px 16px;
+            flex: 1;
+            min-width: 0;
+            padding: 8px 12px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             font-family: 'DM Sans', sans-serif;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
             background: #1a2235;
             color: var(--text-heading);
             transition: all 0.3s ease;
@@ -967,6 +971,25 @@
         .info-field input::placeholder {
             color: var(--text-secondary);
             opacity: 0.6;
+        }
+
+        /* ── Autofill 배경 강제 다크 적용 (브라우저 흰 배경 방지) ── */
+        input, select, textarea { color-scheme: dark; }
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active,
+        select:-webkit-autofill,
+        select:-webkit-autofill:hover,
+        select:-webkit-autofill:focus,
+        textarea:-webkit-autofill,
+        textarea:-webkit-autofill:hover,
+        textarea:-webkit-autofill:focus {
+            -webkit-box-shadow: 0 0 0 1000px #1a2235 inset !important;
+            -webkit-text-fill-color: #f0f2f5 !important;
+            caret-color: #f0f2f5 !important;
+            border-color: rgba(255,255,255,0.12) !important;
+            transition: background-color 9999s ease-in-out 0s !important;
         }
 
         /* Statistics Page */
@@ -1657,7 +1680,16 @@
         <div class="container">
             <div class="submissions-toolbar">
                 <h2 data-i18n="pendingSubmissions">Pending Submissions</h2>
-                <div style="display:flex;gap:8px;">
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <div style="position:relative;">
+                        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#6b7280;font-size:14px;pointer-events:none;">🔍</span>
+                        <input type="text" id="submissionSearch"
+                            placeholder="Search submissions..."
+                            oninput="searchSubmissions(this.value)"
+                            style="padding:8px 12px 8px 32px;background:#1a2235;border:1px solid #2d3a4f;border-radius:8px;color:#e2e8f0;font-size:13px;width:220px;outline:none;font-family:inherit;"
+                            onfocus="this.style.borderColor='#3b82f6'"
+                            onblur="this.style.borderColor='#2d3a4f'" />
+                    </div>
                 </div>
             </div>
             <!-- Region Filters -->
@@ -1700,6 +1732,10 @@
                 <div class="info-field">
                     <label data-i18n="labelReviewer">Reviewer Name</label>
                     <input type="text" id="reviewerName" placeholder="Your name" />
+                </div>
+                <div class="info-field">
+                    <label data-i18n="labelReviewerEmail">Reviewer Email</label>
+                    <input type="email" id="reviewerEmail" placeholder="reviewer@medit.com" style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);border-radius:0;padding:6px 2px;box-shadow:none;cursor:text;" />
                 </div>
             </div>
 
@@ -1938,6 +1974,7 @@
                 passwordError: "Incorrect password. Please try again.",
                 labelOpportunity: "Opportunity Title",
                 labelReviewer: "Reviewer Name",
+                labelReviewerEmail: "Reviewer Email",
                 notRecommended: "Not Recommended — Does not meet minimum threshold",
                 furtherDevelopment: "Conditional — Needs further analysis or development",
                 recommended: "Recommended — Meets criteria for initiation",
@@ -2058,6 +2095,7 @@
                 passwordError: "비밀번호가 올바르지 않습니다.",
                 labelOpportunity: "기회 제목",
                 labelReviewer: "평가자 이름",
+                labelReviewerEmail: "평가자 이메일",
                 notRecommended: "비추천 — 최소 기준 미달",
                 furtherDevelopment: "조건부 — 추가 분석 또는 개발 필요",
                 recommended: "추천 — 착수 기준 충족",
@@ -2452,6 +2490,7 @@
             const texts = translations[currentLanguage];
             const title = document.getElementById('opportunityTitle').value.trim();
             const reviewer = document.getElementById('reviewerName').value.trim();
+            const reviewerEmail = document.getElementById('reviewerEmail').value.trim();
 
             if (!title || !reviewer) {
                 showToast(texts.fillRequired);
@@ -2489,6 +2528,7 @@
                 submissionData: submissionData,
                 title: title,
                 reviewer: reviewer,
+                reviewerEmail: reviewerEmail,
                 submitter: submissionData ? (submissionData.requestOwner || '-') : '-',
                 score: Math.round(totalScore),
                 maxScore: maxScore,
@@ -2512,6 +2552,7 @@
             // Reset form
             document.getElementById('opportunityTitle').value = '';
             document.getElementById('reviewerName').value = '';
+            document.getElementById('reviewerEmail').value = '';
             Object.keys(scores).forEach(k => delete scores[k]);
             document.getElementById('scoreValue').textContent = '0';
             document.getElementById('scoreMax').textContent = '/ ' + maxScore;
@@ -2534,6 +2575,12 @@
 
         var currentRegionFilter = 'all';
         var currentStatusFilter = 'all';
+        var currentSearchQuery = '';
+
+        function searchSubmissions(q) {
+            currentSearchQuery = q;
+            renderSubmissionsList();
+        }
 
         function renderSubmissionsList() {
             const texts = translations[currentLanguage];
@@ -2613,8 +2660,28 @@
                 });
             }
 
+            // Filter by search query
+            if (currentSearchQuery.trim()) {
+                const q = currentSearchQuery.trim().toLowerCase();
+                filtered = filtered.filter(sub => {
+                    const d = sub.data || {};
+                    const title = (d.opportunityTitle || d.title || '').toLowerCase();
+                    const submitter = (d.requestOwner || d.submitter || '').toLowerCase();
+                    const region = (d.division || '').toLowerCase();
+                    const reqType = (d.requestType || '').toLowerCase();
+                    const review = reviews.find(r => r.submissionId === sub.id);
+                    const reviewer = review ? (review.reviewer || '').toLowerCase() : '';
+                    return title.includes(q) || submitter.includes(q) || region.includes(q) || reqType.includes(q) || reviewer.includes(q);
+                });
+            }
+
+            // Pending first, Reviewed second — each group newest first
+            const pending  = filtered.slice().reverse().filter(sub => !reviews.find(r => r.submissionId === sub.id));
+            const reviewed = filtered.slice().reverse().filter(sub =>  reviews.find(r => r.submissionId === sub.id));
+            filtered = pending.concat(reviewed);
+
             if (listEl) {
-                listEl.innerHTML = filtered.slice().reverse().map(sub => {
+                listEl.innerHTML = filtered.map(sub => {
                 const d = sub.data || {};
                 const review = reviews.find(r => r.submissionId === sub.id);
                 const isReviewed = !!review;
@@ -2644,7 +2711,10 @@
                             </span>
                             <span class="review-info-rec ${recClass}">${recLabel}</span>
                             <span class="review-info-reviewer">👤 ${reviewerLabel}: ${review.reviewer || '-'}</span>
-                            <span class="review-info-date">📅 ${review.date || ''}</span>
+                            <span class="review-info-date">
+                                <span style="color:#64748b;font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">${isKo ? '평가 일시' : 'Reviewed'}</span>
+                                <span style="color:#94a3b8;font-size:0.8rem;margin-left:4px;">📅 ${review.date || ''}</span>
+                            </span>
                         </div>`;
                 }
 
@@ -2668,11 +2738,17 @@
         }
 
         function filterByRegion(region) {
+            currentSearchQuery = '';
+            const searchEl = document.getElementById('submissionSearch');
+            if (searchEl) searchEl.value = '';
             currentRegionFilter = region;
             renderSubmissionsList();
         }
 
         function filterByStatus(status) {
+            currentSearchQuery = '';
+            const searchEl2 = document.getElementById('submissionSearch');
+            if (searchEl2) searchEl2.value = '';
             currentStatusFilter = status;
             renderSubmissionsList();
         }
@@ -2910,33 +2986,30 @@
                 }
             }
             if (e.data && e.data.type === 'mop-submissions-sync') {
-                const list = e.data.payload || [];
-                list.forEach(sub => {
-                    if (!submissions.find(s => s.id === sub.id)) {
-                        submissions.push(sub);
-                    }
-                });
+                // REPLACE entire array (not additive) so reset properly clears old data
+                submissions = e.data.payload || [];
                 if (!document.getElementById('submissionsPage').classList.contains('hidden')) {
                     renderSubmissionsList();
                 }
             }
             // Receive reviews from Gateway (persistence sync)
             if (e.data && e.data.type === 'mop-reviews-sync') {
-                const list = e.data.payload || [];
-                list.forEach(r => {
-                    var existing = reviews.find(rv => rv.id === r.id);
-                    if (existing) {
-                        // Update existing review with latest data (decision, memos)
-                        Object.assign(existing, r);
-                    } else {
-                        reviews.push(r);
-                    }
-                });
+                // REPLACE entire array (not additive) so reset properly clears old data
+                reviews = e.data.payload || [];
                 if (!document.getElementById('statsPage').classList.contains('hidden')) {
                     renderStats();
                 }
                 if (!document.getElementById('hqListPage').classList.contains('hidden')) {
                     renderHqList();
+                }
+            }
+            if (e.data && e.data.type === 'mop-user-info') {
+                const u = e.data.payload;
+                if (u) {
+                    const nameEl  = document.getElementById('reviewerName');
+                    const emailEl = document.getElementById('reviewerEmail');
+                    if (nameEl  && !nameEl.value)  { nameEl.value  = u.name  || ''; nameEl.removeAttribute('readonly'); }
+                    if (emailEl && !emailEl.value) { emailEl.value = u.email || ''; emailEl.removeAttribute('readonly'); }
                 }
             }
         });
@@ -3636,8 +3709,9 @@
                     '</div>' +
                     '<div class="hq-card-meta">' +
                         (region ? '<span class="submission-card-region">📍 ' + region + '</span>' : '') +
-                        texts.hqSubmitter + ': ' + escapeHtml(submitter) + ' · ' +
-                        texts.hqReviewer + ': ' + escapeHtml(r.reviewer) + ' · ' + r.date +
+                        texts.hqSubmitter + ': ' + escapeHtml(submitter) + ' &nbsp;·&nbsp; ' +
+                        texts.hqReviewer + ': ' + escapeHtml(r.reviewer) +
+                        (r.date ? ' &nbsp;·&nbsp; <span style="color:#64748b;font-size:0.75rem;font-weight:600;">' + (isKo ? '평가 일시' : 'Reviewed') + ':</span> <span style="color:#94a3b8;font-size:0.8rem;">📅 ' + r.date + '</span>' : '') +
                     '</div>' +
                     '<div class="hq-card-scores">' +
                         '<span class="hq-score-pill" style="color:' + scoreColor + '">' +
