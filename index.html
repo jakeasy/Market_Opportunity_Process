@@ -1088,22 +1088,30 @@
             _cloudSaveTimer = null;
         }
 
-        // 2) 메모리 초기화
+        // 2) 메모리 초기화 + 레이스 컨디션 차단 플래그
+        _isJustCleared = true; // ★ in-flight cloudLoad가 localStorage 덮어쓰기 방지
         mopSubmissions = []; mopReviews = []; mopAfcState = null; mopPortfolioState = null;
-        _pendingSubmissionIds = []; _pendingReviewIds = []; // pending 목록도 초기화
+        _pendingSubmissionIds = []; _pendingReviewIds = [];
+        _lastGasHadSubmissions = false; _lastGasHadReviews = false; // 다음 세션에서 재업로드 방지
 
-        // 3) localStorage 초기화
+        // 3) localStorage + sessionStorage 완전 초기화
         localStorage.removeItem('mop_submissions');
         localStorage.removeItem('mop_reviews');
         localStorage.removeItem('mop_afc_state');
         localStorage.removeItem('mop_portfolio_state');
+        try { sessionStorage.removeItem('mop_gas_had_subs'); } catch(e) {}
+        try { sessionStorage.removeItem('mop_gas_had_revs'); } catch(e) {}
 
-        // 4) ★ 핵심: reload 후 cloudLoad()가 GAS에서 데이터를 다시 불러오는 것을 차단하는 플래그
+        // 4) ★ reload 후 cloudLoad()가 GAS에서 데이터를 다시 불러오는 것을 차단하는 플래그
+        var _clearTs = Date.now();
         localStorage.setItem('mop_just_cleared', '1');
+        // ★ 크로스-디바이스 초기화: 이 기기가 마지막으로 초기화한 시각 기록
+        // cloudLoad가 GAS의 cleared_at과 비교하여 다른 브라우저도 자동 초기화
+        localStorage.setItem('mop_last_clear_ts', String(_clearTs));
 
         document.getElementById('settingsOverlay').classList.remove('active');
 
-        // 5) GAS 클라우드에도 빈 데이터 저장 후 reload
+        // 5) GAS 클라우드에도 빈 데이터 저장 + cleared_at 신호 전송 후 reload
         //    (afcState/portfolio는 null 대신 빈 객체로 보내야 GAS가 실제로 덮어씀)
         var url = getAppsScriptUrl();
         if (url) {
@@ -1112,7 +1120,8 @@
                 submissions: [],
                 reviews: [],
                 afcState: { checklistState: {} },
-                portfolio: { projects: [], nextId: 1 }
+                portfolio: { projects: [], nextId: 1 },
+                cleared_at: _clearTs   // ★ 크로스-디바이스 초기화 신호
             },
                 function() { location.reload(); },
                 function() { location.reload(); }
@@ -2713,6 +2722,8 @@
     // → GAS가 비어있어도 "이전에 데이터가 있었던 GAS"인지 "새로 배포된 빈 GAS"인지 구분 가능
     var _lastGasHadSubmissions = (sessionStorage.getItem('mop_gas_had_subs') === 'true');
     var _lastGasHadReviews     = (sessionStorage.getItem('mop_gas_had_revs') === 'true');
+    // ★ 초기화 진행 중 플래그 — in-flight cloudLoad가 localStorage를 덮어쓰는 레이스 컨디션 방지
+    var _isJustCleared = false;
     // ★ 미확인 제출/리뷰 ID 추적 — GAS에 아직 반영되지 않은 로컬 항목을 cloudLoad가 덮어쓰지 않도록 보호
     // 페이지 로드 시 localStorage 데이터의 모든 ID를 pending으로 등록
     // → cloudLoad가 GAS에서 각 ID 확인 후 제거 (없으면 GAS에 재업로드)
@@ -2858,9 +2869,15 @@
 
     function cloudLoad(retryCount) {
         // ★ 초기화 직후 reload 시 GAS에서 데이터가 복원되는 것을 차단
-        if (localStorage.getItem('mop_just_cleared')) {
+        if (localStorage.getItem('mop_just_cleared') || _isJustCleared) {
             localStorage.removeItem('mop_just_cleared');
-            _pendingSubmissionIds = []; _pendingReviewIds = []; // 초기화 직후 pending 없음
+            // ★ 레이스 컨디션으로 in-flight cloudLoad가 localStorage를 재기록했을 수 있음 → 다시 제거
+            localStorage.removeItem('mop_submissions');
+            localStorage.removeItem('mop_reviews');
+            // 메모리도 초기화 (in-flight cloudLoad가 덮어썼을 수 있음)
+            mopSubmissions = []; mopReviews = [];
+            _pendingSubmissionIds = []; _pendingReviewIds = [];
+            _lastGasHadSubmissions = false; _lastGasHadReviews = false;
             showCloudBadge('saved');
             return;
         }
@@ -2870,8 +2887,44 @@
         showCloudBadge('loading');
         gasGet(url,
             function(j) {
+                // ★ clearAllData()가 cloudLoad 요청 이후에 실행된 경우 → 응답 무시
+                // (레이스 컨디션: clearAllData가 fetch 완료 전에 실행될 수 있음)
+                if (_isJustCleared || localStorage.getItem('mop_just_cleared')) {
+                    localStorage.removeItem('mop_just_cleared');
+                    localStorage.removeItem('mop_submissions');
+                    localStorage.removeItem('mop_reviews');
+                    mopSubmissions = []; mopReviews = [];
+                    _pendingSubmissionIds = []; _pendingReviewIds = [];
+                    showCloudBadge('saved');
+                    return;
+                }
                 if (j.success && j.data) {
                     var d = j.data;
+
+                    // ★ 크로스-디바이스 초기화 감지: 다른 브라우저가 "데이터 초기화"를 실행했는지 확인
+                    // clearAllData()가 GAS에 cleared_at 타임스탬프를 저장 →
+                    // 이 기기의 mop_last_clear_ts보다 크면 → 이 기기도 강제 초기화
+                    var _gasSettings = d.settings || {};
+                    var _gasCleared  = _gasSettings.cleared_at ? parseInt(_gasSettings.cleared_at) : 0;
+                    var _localClearedTs = parseInt(localStorage.getItem('mop_last_clear_ts') || '0');
+                    if (_gasCleared > _localClearedTs) {
+                        // 다른 기기가 초기화를 실행함 — 이 기기도 완전 초기화
+                        localStorage.setItem('mop_last_clear_ts', String(_gasCleared));
+                        localStorage.removeItem('mop_submissions');
+                        localStorage.removeItem('mop_reviews');
+                        localStorage.removeItem('mop_afc_state');
+                        localStorage.removeItem('mop_portfolio_state');
+                        mopSubmissions = []; mopReviews = []; mopAfcState = null; mopPortfolioState = null;
+                        _pendingSubmissionIds = []; _pendingReviewIds = [];
+                        _lastGasHadSubmissions = false; _lastGasHadReviews = false;
+                        _lastLocalWrite = 0;
+                        try { sessionStorage.removeItem('mop_gas_had_subs'); } catch(e) {}
+                        try { sessionStorage.removeItem('mop_gas_had_revs'); } catch(e) {}
+                        // UI 갱신: 빈 데이터를 tool 이어프레임에 전송
+                        showCloudBadge('saved');
+                        syncDataToScoring();
+                        return;
+                    }
 
                     // ★ GAS를 소스 오브 트루스로 사용 — 빈 배열/null도 반드시 반영
                     // iPad 등 다른 기기의 localStorage 구 데이터를 덮어씌움
@@ -2928,9 +2981,10 @@
                             if (mopSubmissions.length) localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions));
                             else localStorage.removeItem('mop_submissions');
                         } catch(e) {}
-                    } else if (!_gasHasSubmissions && mopSubmissions.length > 0) {
-                        // ★ GAS 비어있고 로컬에 데이터 있음 → 로컬 데이터를 GAS에 복원
-                        // (새 GAS 배포 / transient 오류 / Safari opaque POST 실패 등 모든 케이스 처리)
+                    } else if (!_gasHasSubmissions && mopSubmissions.length > 0 && !_isJustCleared && !_lastGasHadSubmissions) {
+                        // ★ GAS 비어있고 로컬에 데이터 있음 → GAS에 복원
+                        // 조건: 초기화 직후(_isJustCleared) 아님 + 이 세션에서 GAS에 데이터가 있었던 적 없음
+                        // (의도적 초기화 후 재업로드 방지, 새 GAS 배포/초기 설정 때만 복원)
                         var _recUrl = getAppsScriptUrl();
                         if (_recUrl) {
                             showCloudBadge('saving');
@@ -2981,8 +3035,8 @@
                             if (mopReviews.length) localStorage.setItem('mop_reviews', JSON.stringify(mopReviews));
                             else localStorage.removeItem('mop_reviews');
                         } catch(e) {}
-                    } else if (!_gasHasReviews && mopReviews.length > 0) {
-                        // ★ GAS 비어있고 로컬에 리뷰 있음 → GAS에 복원
+                    } else if (!_gasHasReviews && mopReviews.length > 0 && !_isJustCleared && !_lastGasHadReviews) {
+                        // ★ GAS 비어있고 로컬에 리뷰 있음 → GAS에 복원 (초기화 후 재업로드 방지)
                         var _recUrl2 = getAppsScriptUrl();
                         if (_recUrl2) {
                             gasPost(_recUrl2, { type: 'reviews', payload: mopReviews }, null, null);
