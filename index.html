@@ -1068,18 +1068,29 @@
     function clearAllData() {
         var isKo = currentLang === 'ko';
         if (!confirm(isKo ? '모든 MOP 데이터를 초기화하시겠습니까?\n(Submissions, Reviews, AFI, Portfolio 모두 삭제됩니다)' : 'Reset ALL MOP data?\n(Submissions, Reviews, AFI, Portfolio will be deleted)')) return;
+
+        // 1) 메모리 초기화
         mopSubmissions = []; mopReviews = []; mopAfcState = null; mopPortfolioState = null;
+
+        // 2) localStorage 초기화
         localStorage.removeItem('mop_submissions');
         localStorage.removeItem('mop_reviews');
         localStorage.removeItem('mop_afc_state');
         localStorage.removeItem('mop_portfolio_state');
+
         document.getElementById('settingsOverlay').classList.remove('active');
-        // 클라우드에도 빈 데이터를 저장한 뒤 reload (클라우드 동기화 후 데이터가 복원되는 문제 방지)
-        // ※ afcState/portfolio는 null 대신 빈 객체로 전달해야 GAS가 실제로 저장함 (null이면 GAS에서 무시됨)
+
+        // 3) 클라우드(GAS)에 빈 데이터 저장 후 reload
+        //    - GAS type:'all' 핸들러는 falsy값을 저장하지 않으므로
+        //      afcState/portfolio는 null 대신 빈 객체를 전달해야 실제로 덮어써짐
         var url = getAppsScriptUrl();
         if (url) {
             gasPost(url, {
-                type: 'clear-all'
+                type: 'all',
+                submissions: [],
+                reviews: [],
+                afcState: { checklistState: {} },
+                portfolio: { projects: [], nextId: 1 }
             },
                 function() { location.reload(); },
                 function() { location.reload(); }
