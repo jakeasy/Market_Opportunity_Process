@@ -3020,22 +3020,22 @@
                 const payload = e.data.payload;
                 if (payload && !submissions.find(s => s.id === payload.id)) {
                     submissions.push(payload);
-                    if (!document.getElementById('submissionsPage').classList.contains('hidden')) {
-                        renderSubmissionsList();
-                    }
+                    renderSubmissionsList(); // ★ hidden 여부와 관계없이 항상 렌더링
                 }
             }
             if (e.data && e.data.type === 'mop-submissions-sync') {
-                // REPLACE entire array (not additive) so reset properly clears old data
+                // ★ BUG #4 FIX: REPLACE entire array (additive 방식 제거)
                 submissions = e.data.payload || [];
-                // 항상 렌더링 (페이지 숨김 여부 무관) — DOM 업데이트는 숨겨진 상태에서도 정상 작동
+                // 항상 강제 렌더링 — hidden 상태에서도 DOM 업데이트 (iPad bfcache 포함)
                 renderSubmissionsList();
+                // ★ submissionsPage가 숨겨져 있어도 다음번 표시 시 반영되도록 플래그 없이 DOM 직접 갱신
+                // (hidden 체크를 하지 않음 — renderSubmissionsList 내부에서 처리)
             }
             // Receive reviews from Gateway (persistence sync)
             if (e.data && e.data.type === 'mop-reviews-sync') {
-                // REPLACE entire array (not additive) so reset properly clears old data
+                // ★ BUG #4 FIX: REPLACE entire array
                 reviews = e.data.payload || [];
-                // 항상 렌더링
+                // 항상 강제 렌더링
                 renderStats();
                 renderHqList();
             }
