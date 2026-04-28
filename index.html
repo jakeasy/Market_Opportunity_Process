@@ -756,6 +756,7 @@
     }
 
     function openTool(key, title, step, color) {
+        _currentToolKey = key; // 현재 열린 tool key 기록
         var b64 = toolB64[key];
         if (!b64) return;
         var html = b64decode(b64);
@@ -792,6 +793,7 @@
     }
 
     function closeTool() {
+        _currentToolKey = null; // tool 닫힘
         var iframe = document.getElementById('tool-iframe');
         iframe.removeAttribute('srcdoc');
         iframe.src = 'about:blank';
@@ -2224,6 +2226,7 @@
 
     var mopSubmissions = [];
     var mopReviews = [];
+    var _currentToolKey = null; // 현재 열린 tool 추적 ('scoring', 'afc', 'portfolio', 'form', null)
     // Restore from localStorage
     try { var _ss = localStorage.getItem('mop_submissions'); if (_ss) mopSubmissions = JSON.parse(_ss); } catch(e) {}
     try { var _rs = localStorage.getItem('mop_reviews'); if (_rs) mopReviews = JSON.parse(_rs); } catch(e) {}
@@ -2724,6 +2727,28 @@
                         try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
                     }
                     showCloudBadge('loaded');
+
+                    // ★ cloudLoad 완료 후 현재 열려있는 iframe에 데이터 재전송
+                    // iPad/iPhone 등 다른 기기: Scoring Tool이 cloudLoad보다 먼저 ready를 보내
+                    // 빈 데이터를 받았을 수 있으므로, cloudLoad 완료 시점에 최신 데이터 재전송
+                    try {
+                        var activeIframe = document.getElementById('tool-iframe');
+                        if (activeIframe && activeIframe.contentWindow && _currentToolKey) {
+                            if (_currentToolKey === 'scoring') {
+                                activeIframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: mopSubmissions }, '*');
+                                activeIframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, '*');
+                            } else if (_currentToolKey === 'afc') {
+                                activeIframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, '*');
+                                if (mopAfcState) {
+                                    activeIframe.contentWindow.postMessage({ type: 'mop-afc-state-restore', payload: mopAfcState }, '*');
+                                }
+                            } else if (_currentToolKey === 'portfolio') {
+                                if (mopPortfolioState) {
+                                    activeIframe.contentWindow.postMessage({ type: 'mop-portfolio-state-restore', payload: mopPortfolioState }, '*');
+                                }
+                            }
+                        }
+                    } catch(e) {}
                 } else { showCloudBadge('empty'); }
             },
             function() { showCloudBadge('error'); }
