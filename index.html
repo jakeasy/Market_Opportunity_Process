@@ -2317,24 +2317,30 @@
             var payload = event.data.payload;
             if (payload && !mopSubmissions.find(function(s){ return s.id === payload.id; })) {
                 mopSubmissions.push(payload);
+                _pendingSubmissionIds.push(payload.id); // ★ GAS 미확인 항목으로 등록
                 _lastLocalWrite = Date.now(); // 로컬 변경 시각 기록
                 try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(e) {}
                 // ★ 즉시 GAS 저장 — 2초 debounce 없이 바로 저장 (다른 기기에서 즉시 동기화)
                 var _su = getAppsScriptUrl();
                 if (_su) {
                     showCloudBadge('saving');
-                    gasPost(_su, { type: 'submissions', payload: mopSubmissions },
-                        function(j) {
-                            showCloudBadge(j && j.success ? 'saved' : 'error');
-                            if (j && j.success) {
-                                // ★ GAS 저장 확인 후 _lastLocalWrite 리셋 → 다음 cloudLoad가 정상 로드
-                                _lastLocalWrite = 0;
-                                // 3초 후 cloudLoad로 GAS 확정 데이터 재확인
-                                setTimeout(function() { if (getAppsScriptUrl()) cloudLoad(); }, 3000);
-                            }
-                        },
-                        function()  { showCloudBadge('error'); cloudSaveDebounced(); }
-                    );
+                    (function(savedId) {
+                        gasPost(_su, { type: 'submissions', payload: mopSubmissions },
+                            function(j) {
+                                showCloudBadge(j && j.success ? 'saved' : 'error');
+                                if (j && j.success) {
+                                    // ★ FIX: _lastLocalWrite 리셋 제거 — cloudLoad가 pending 항목을 보호
+                                    // pending 목록에서 제거 (GAS 저장 확인됨)
+                                    _pendingSubmissionIds = _pendingSubmissionIds.filter(function(id){ return id !== savedId; });
+                                    _lastGasHadSubmissions = true;
+                                    try { sessionStorage.setItem('mop_gas_had_subs','true'); } catch(e) {}
+                                    // 3초 후 cloudLoad로 GAS 확정 데이터 재확인
+                                    setTimeout(function() { if (getAppsScriptUrl()) cloudLoad(); }, 3000);
+                                }
+                            },
+                            function()  { showCloudBadge('error'); cloudSaveDebounced(); }
+                        );
+                    })(payload.id);
                 }
             }
         }
@@ -2342,21 +2348,27 @@
             var payload = event.data.payload;
             if (payload && !mopReviews.find(function(r){ return r.id === payload.id; })) {
                 mopReviews.push(payload);
+                _pendingReviewIds.push(payload.id); // ★ GAS 미확인 항목으로 등록
                 _lastLocalWrite = Date.now();
                 try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(e) {}
                 // ★ 즉시 GAS 저장
                 var _ru = getAppsScriptUrl();
                 if (_ru) {
-                    gasPost(_ru, { type: 'reviews', payload: mopReviews },
-                        function(j) {
-                            showCloudBadge(j && j.success ? 'saved' : 'error');
-                            if (j && j.success) {
-                                _lastLocalWrite = 0;
-                                setTimeout(function() { if (getAppsScriptUrl()) cloudLoad(); }, 3000);
-                            }
-                        },
-                        function()  { showCloudBadge('error'); cloudSaveDebounced(); }
-                    );
+                    (function(savedId) {
+                        gasPost(_ru, { type: 'reviews', payload: mopReviews },
+                            function(j) {
+                                showCloudBadge(j && j.success ? 'saved' : 'error');
+                                if (j && j.success) {
+                                    // ★ FIX: _lastLocalWrite 리셋 제거 — cloudLoad가 pending 항목을 보호
+                                    _pendingReviewIds = _pendingReviewIds.filter(function(id){ return id !== savedId; });
+                                    _lastGasHadReviews = true;
+                                    try { sessionStorage.setItem('mop_gas_had_revs','true'); } catch(e) {}
+                                    setTimeout(function() { if (getAppsScriptUrl()) cloudLoad(); }, 3000);
+                                }
+                            },
+                            function()  { showCloudBadge('error'); cloudSaveDebounced(); }
+                        );
+                    })(payload.id);
                 }
             }
         }
@@ -2700,6 +2712,9 @@
     // → GAS가 비어있어도 "이전에 데이터가 있었던 GAS"인지 "새로 배포된 빈 GAS"인지 구분 가능
     var _lastGasHadSubmissions = (sessionStorage.getItem('mop_gas_had_subs') === 'true');
     var _lastGasHadReviews     = (sessionStorage.getItem('mop_gas_had_revs') === 'true');
+    // ★ 미확인 제출/리뷰 ID 추적 — GAS에 아직 반영되지 않은 로컬 항목을 cloudLoad가 덮어쓰지 않도록 보호
+    var _pendingSubmissionIds = [];
+    var _pendingReviewIds = [];
     // ★ 삭제된 계정 username 목록 — cloudLoad/mergeSettings가 GAS 구 데이터로 재추가하는 것을 막음
     var _deletedUsernames = (function() {
         try { return JSON.parse(localStorage.getItem('mop_deleted_usernames') || '[]'); } catch(e) { return []; }
@@ -2874,7 +2889,38 @@
 
                     // submissions
                     if (!_skipSubmissions) {
-                        mopSubmissions = _gasHasSubmissions ? d.submissions : [];
+                        var _gasSubmissions = _gasHasSubmissions ? d.submissions : [];
+                        // ★ Pending merge: GAS에 아직 없는 로컬 pending 항목을 보호
+                        var _missingSubIds = [];
+                        _pendingSubmissionIds.forEach(function(pid) {
+                            var inGas = _gasSubmissions.find(function(s){ return s.id === pid; });
+                            if (inGas) {
+                                // GAS에 확인됨 → pending 목록에서 제거
+                                _pendingSubmissionIds = _pendingSubmissionIds.filter(function(id){ return id !== pid; });
+                            } else {
+                                // GAS에 없음 → 로컬 데이터로 복원 필요
+                                var localItem = mopSubmissions.find(function(s){ return s.id === pid; });
+                                if (localItem) _missingSubIds.push(localItem);
+                            }
+                        });
+                        if (_missingSubIds.length > 0) {
+                            // ★ 병합: GAS 데이터 + 아직 GAS에 없는 로컬 pending 항목
+                            mopSubmissions = _gasSubmissions.concat(_missingSubIds);
+                            // 병합된 전체 데이터를 GAS에 재업로드
+                            var _reupSubUrl = getAppsScriptUrl();
+                            if (_reupSubUrl) {
+                                gasPost(_reupSubUrl, { type: 'submissions', payload: mopSubmissions },
+                                    function(j) {
+                                        if (j && j.success) {
+                                            _pendingSubmissionIds = [];
+                                            _lastGasHadSubmissions = true;
+                                            try { sessionStorage.setItem('mop_gas_had_subs','true'); } catch(e) {}
+                                        }
+                                    }, null);
+                            }
+                        } else {
+                            mopSubmissions = _gasSubmissions;
+                        }
                         try {
                             if (mopSubmissions.length) localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions));
                             else localStorage.removeItem('mop_submissions');
@@ -2899,7 +2945,34 @@
 
                     // reviews
                     if (!_skipReviews) {
-                        mopReviews = _gasHasReviews ? d.reviews : [];
+                        var _gasReviews = _gasHasReviews ? d.reviews : [];
+                        // ★ Pending merge: GAS에 아직 없는 로컬 pending 리뷰 보호
+                        var _missingRevIds = [];
+                        _pendingReviewIds.forEach(function(pid) {
+                            var inGas = _gasReviews.find(function(r){ return r.id === pid; });
+                            if (inGas) {
+                                _pendingReviewIds = _pendingReviewIds.filter(function(id){ return id !== pid; });
+                            } else {
+                                var localItem = mopReviews.find(function(r){ return r.id === pid; });
+                                if (localItem) _missingRevIds.push(localItem);
+                            }
+                        });
+                        if (_missingRevIds.length > 0) {
+                            mopReviews = _gasReviews.concat(_missingRevIds);
+                            var _reupRevUrl = getAppsScriptUrl();
+                            if (_reupRevUrl) {
+                                gasPost(_reupRevUrl, { type: 'reviews', payload: mopReviews },
+                                    function(j) {
+                                        if (j && j.success) {
+                                            _pendingReviewIds = [];
+                                            _lastGasHadReviews = true;
+                                            try { sessionStorage.setItem('mop_gas_had_revs','true'); } catch(e) {}
+                                        }
+                                    }, null);
+                            }
+                        } else {
+                            mopReviews = _gasReviews;
+                        }
                         try {
                             if (mopReviews.length) localStorage.setItem('mop_reviews', JSON.stringify(mopReviews));
                             else localStorage.removeItem('mop_reviews');
@@ -2917,9 +2990,11 @@
                         try { sessionStorage.setItem('mop_gas_had_revs', 'true'); } catch(e) {}
                     }
 
-                    // ★ BUG #1 FIX: cloudLoad 성공 후 _lastLocalWrite 리셋
-                    // 다음 cloudLoad(폴링 등)가 submissions/reviews를 정상적으로 로드하도록 보장
-                    _lastLocalWrite = 0;
+                    // ★ _lastLocalWrite 리셋: pending 항목이 없을 때만 리셋
+                    // pending 항목이 있으면 GAS가 아직 로컬 변경을 반영하지 않은 것 → 보호 유지
+                    if (_pendingSubmissionIds.length === 0 && _pendingReviewIds.length === 0) {
+                        _lastLocalWrite = 0;
+                    }
                     // ★ 버전 기준선 리셋 — 다음 checkGasVersion 호출이 현재 GAS 타임스탬프를 새 기준선으로 설정
                     // 리셋 후 10초 이내 변경이 없으면 중복 cloudLoad 방지됨
                     _lastKnownGasVersion = '0';
