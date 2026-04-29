@@ -2740,10 +2740,10 @@
         try { return JSON.parse(localStorage.getItem('mop_deleted_usernames') || '[]'); } catch(e) { return []; }
     })();
     // ★ HTML 빌드 버전 — 배포 시마다 이 값을 올려서 구버전 캐시 감지
-    var _MOP_HTML_VERSION = '20260429_01';
+    var _MOP_HTML_VERSION = '20260429_03';
 
     // ★ Apps Script URL — 배포 후 이 URL은 변경되지 않습니다
-    var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbyJxMnMmIWKZ8VOVR6CQE5Qxy-D0l-PR8-pRdX8wwGOnlXR8_pRyMUlU6cjKknlbbOqcg/exec';
+    var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbxTy0nsR-02rsfvxuuFPG3_V6BrOO6W5Wm-AuIqZxel3Qg0ihIw_2HYbbz17s7PGR0BGA/exec';
     function getAppsScriptUrl() { return _appsScriptUrl; }
 
     // Google Apps Script는 302 리다이렉트를 사용하므로
@@ -3247,7 +3247,8 @@
     document.addEventListener('visibilitychange', function() {
         if (!document.hidden && getAppsScriptUrl()) {
             var elapsed = Date.now() - _lastCloudLoad;
-            if (elapsed > 2000) { setTimeout(cloudLoad, 300); }
+            // ★ 임계값 500ms로 단축: 탭 전환 시 즉시 cloudLoad (크로스 디바이스 초기화 빠른 감지)
+            if (elapsed > 500) { setTimeout(cloudLoad, 300); }
         }
     });
 
@@ -3255,7 +3256,8 @@
     window.addEventListener('focus', function() {
         if (!getAppsScriptUrl()) return;
         var elapsed = Date.now() - _lastCloudLoad;
-        if (elapsed > 3000) { setTimeout(cloudLoad, 400); }
+        // ★ 임계값 500ms로 단축
+        if (elapsed > 500) { setTimeout(cloudLoad, 400); }
     });
 
     // ★ 네트워크 복원 대응: 오프라인 → 온라인 전환 시 즉시 cloudLoad
@@ -3278,35 +3280,43 @@
         var vUrl = url + '?action=version';
         gasGet(vUrl, function(j) {
             if (!j || !j.success) {
-                // 요청 자체 실패 — 다음 폴링에서 재시도
                 _versionCheckFailCount++;
                 return;
             }
             _versionCheckFailCount = 0;
 
-            // ★ GAS 구버전 감지: ts 필드 없음 (action=version 미지원)
-            // GAS가 전체 데이터를 반환함 → 10s 간격으로 cloudLoad를 직접 호출
-            // (GAS 재배포 전에도 10초마다 sync 보장 — 기존 30s 폴백보다 3배 빠름)
+            // ★★★ cleared_at 즉시 감지 (핵심 버그 픽스) ★★★
+            // GAS version 응답에 cleared_at 포함 → 10초 이내 크로스 디바이스 초기화 감지
+            if (j.cleared_at && parseInt(j.cleared_at) > 0) {
+                var _vLocalCleared = parseInt(localStorage.getItem('mop_last_clear_ts') || '0');
+                if (parseInt(j.cleared_at) > _vLocalCleared) {
+                    // 다른 기기에서 초기화 발생! → 즉시 cloudLoad 트리거
+                    if (Date.now() - _lastCloudLoad > 3000) {
+                        cloudLoad();
+                    }
+                    return;
+                }
+            }
+
+            // GAS 구버전 감지: ts 필드 없음 (action=version 미지원)
             if (!j.ts) {
                 var _now2 = Date.now();
                 if (_now2 - _lastCloudLoad > 9000) {
-                    cloudLoad(); // rate-limited: 마지막 cloudLoad 이후 9s 이상 경과 시만 실행
+                    cloudLoad();
                 }
                 return;
             }
 
-            if (j.ts === '0') return; // GAS 데이터 없음 — 기준선 미설정
+            if (j.ts === '0') return;
 
             if (_lastKnownGasVersion === '0') {
-                // 최초 기준선 설정 (페이지 로드 시 cloudLoad 이미 완료)
                 _lastKnownGasVersion = j.ts;
             } else if (j.ts !== _lastKnownGasVersion) {
-                // ★ 버전 변경 감지 → 전체 cloudLoad 트리거 (다른 기기에서 변경 발생)
+                // ★ 버전 변경 감지 → 전체 cloudLoad 트리거
                 _lastKnownGasVersion = j.ts;
                 cloudLoad();
             }
         }, function() {
-            // 버전 체크 네트워크 실패 — 조용히 무시 (다음 폴링에서 재시도)
             _versionCheckFailCount++;
         });
     }
@@ -3318,24 +3328,23 @@
         stopScoringPoll();
         if (!getAppsScriptUrl()) return;
 
-        // 도구 열린 직후 2초 후 첫 번째 버전 기준선 설정
+        // 시작 2초 후 첫 버전 체크 (기준선 설정)
         setTimeout(checkGasVersion, 2000);
 
-        // ★ 10초마다 버전 체크 (GAS 재배포 후 활성화 — 변경 시만 cloudLoad)
+        // ★★★ _currentToolKey 조건 제거 ★★★
+        // 도구가 열리지 않아도 항상 10초마다 버전/cleared_at 체크 실행
+        // → Edge가 메인 화면에서도 Chrome의 초기화 신호를 10초 내 감지 가능
         _scoringPollTimer = setInterval(function() {
-            if (_currentToolKey && getAppsScriptUrl()) {
+            if (getAppsScriptUrl()) {
                 checkGasVersion();
-            } else { stopScoringPoll(); }
+            }
         }, 10000);
 
-        // ★ 30초마다 full cloudLoad 폴백
-        // 용도 (1): GAS 재배포 전 — action=version 없이도 30s마다 동기화 보장
-        // 용도 (2): GAS 재배포 후에도 안전망 역할 (네트워크 불안정 시 보완)
-        // 용도 (3): Apple 기기에서 checkGasVersion이 실패해도 30s 이내 동기화
+        // ★ 30초마다 full cloudLoad 안전망 (네트워크 불안정 보완)
         _fallbackPollTimer = setInterval(function() {
-            if (_currentToolKey && getAppsScriptUrl()) {
+            if (getAppsScriptUrl() && Date.now() - _lastCloudLoad > 25000) {
                 cloudLoad();
-            } else { stopScoringPoll(); }
+            }
         }, 30000);
     }
 
@@ -3432,20 +3441,14 @@
     // Run auto-sync on startup to catch any previously finalized items
     autoSyncAfcToPortfolio();
 
-    // ★★★ 항상 실행되는 백그라운드 동기화 폴링 ★★★
-    // 근본 문제: startScoringPoll()은 도구가 열릴 때만 실행됨
-    // → 메인 화면에서 도구를 열지 않으면 cloudLoad가 전혀 실행되지 않음
-    // → 다른 기기의 "데이터 초기화" 신호(cleared_at)를 영원히 못 받음 → 좀비 데이터
-    // 해결: 도구 열림 여부와 무관하게 15초마다 백그라운드 cloudLoad 실행
+    // ★★★ 페이지 로드 시 즉시 startScoringPoll 실행 ★★★
+    // 핵심 버그 픽스: startScoringPoll이 도구 열릴 때만 실행되던 문제 해결
+    // → 메인 화면(도구 미열림)에서도 10초마다 checkGasVersion → cleared_at 감지
+    // → Chrome에서 초기화하면 Edge 메인 화면에서 10초 이내 감지 후 자동 초기화
     if (getAppsScriptUrl()) {
-        setInterval(function() {
-            if (!getAppsScriptUrl()) return;
-            if (_currentToolKey) return; // 도구 열린 경우 startScoringPoll이 별도 처리 → 중복 방지
-            // 마지막 cloudLoad로부터 12초 이상 경과 시 실행 (중복 방지)
-            if (Date.now() - _lastCloudLoad > 12000) {
-                cloudLoad();
-            }
-        }, 15000);
+        setTimeout(function() {
+            if (typeof startScoringPoll === 'function') startScoringPoll();
+        }, 3000); // 초기 cloudLoad 완료 후 시작 (3초 딜레이)
     }
 
     </script>
