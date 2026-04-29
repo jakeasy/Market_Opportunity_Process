@@ -2724,6 +2724,7 @@
     var _lastCloudLoad = 0;        // iOS 중복 cloudLoad 방지용 타임스탬프
     var _lastLocalWrite = 0;       // 로컬 데이터 변경 시각 (cloudLoad 덮어쓰기 방지)
     var _lastKnownGasVersion = '0'; // 마지막으로 확인한 GAS 버전 타임스탬프 (버전 폴링용)
+    var _gasKnownClearedAt  = 0;   // ★★★ GAS에서 읽은 cleared_at (cloudSaveNow 좀비 업로드 차단용)
     // ★ 배포 후 데이터 삭제 방지: GAS에 실제로 데이터가 있었는지 여부를 sessionStorage에 기록
     // → GAS가 비어있어도 "이전에 데이터가 있었던 GAS"인지 "새로 배포된 빈 GAS"인지 구분 가능
     var _lastGasHadSubmissions = (sessionStorage.getItem('mop_gas_had_subs') === 'true');
@@ -2740,7 +2741,7 @@
         try { return JSON.parse(localStorage.getItem('mop_deleted_usernames') || '[]'); } catch(e) { return []; }
     })();
     // ★ HTML 빌드 버전 — 배포 시마다 이 값을 올려서 구버전 캐시 감지
-    var _MOP_HTML_VERSION = '20260429_03';
+    var _MOP_HTML_VERSION = '20260429_04';
 
     // ★ Apps Script URL — 배포 후 이 URL은 변경되지 않습니다
     var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbxTy0nsR-02rsfvxuuFPG3_V6BrOO6W5Wm-AuIqZxel3Qg0ihIw_2HYbbz17s7PGR0BGA/exec';
@@ -2853,6 +2854,13 @@
 
     function cloudSaveNow() {
         if (_isJustCleared) return; // ★ 초기화 직후 재저장 차단 (clearing device 보호)
+        // ★★★ 크로스-디바이스 초기화 감지: GAS에 cleared_at이 있고 이 기기가 아직 초기화 안 됐으면 차단
+        // Edge가 로컬 데이터를 GAS에 재업로드해서 Chrome에 좀비 데이터를 불러오는 것을 방지
+        var _scnLocalCleared = parseInt(localStorage.getItem('mop_last_clear_ts') || '0');
+        if (_gasKnownClearedAt > 0 && _gasKnownClearedAt > _scnLocalCleared) {
+            // 다른 기기가 초기화했지만 이 기기는 아직 cloudLoad에서 처리 중 → 업로드 차단
+            return;
+        }
         var url = getAppsScriptUrl(); if (!url) return;
         showCloudBadge('saving');
         // 1) 기존 데이터 저장
@@ -2918,6 +2926,8 @@
                     var _gasSettings = d.settings || {};
                     var _gasCleared  = _gasSettings.cleared_at ? parseInt(_gasSettings.cleared_at) : 0;
                     var _localClearedTs = parseInt(localStorage.getItem('mop_last_clear_ts') || '0');
+                    // ★ 전역에 GAS cleared_at 기록 → cloudSaveNow()가 좀비 업로드를 차단할 수 있도록
+                    if (_gasCleared > _gasKnownClearedAt) _gasKnownClearedAt = _gasCleared;
                     if (_gasCleared > _localClearedTs) {
                         // 다른 기기가 초기화를 실행함 — 이 기기도 완전 초기화
                         localStorage.setItem('mop_last_clear_ts', String(_gasCleared));
@@ -3008,11 +3018,12 @@
                             else localStorage.removeItem('mop_submissions');
                         } catch(e) {}
                     } else if (!_gasHasSubmissions && mopSubmissions.length > 0 && !_isJustCleared && !_lastGasHadSubmissions
-                               && !parseInt(localStorage.getItem('mop_last_clear_ts') || '0')) {
+                               && !parseInt(localStorage.getItem('mop_last_clear_ts') || '0')
+                               && _gasCleared === 0) {
                         // ★ GAS 비어있고 로컬에 데이터 있음 → GAS에 복원
-                        // 조건: 초기화 직후(_isJustCleared) 아님 + 이 세션에서 GAS에 데이터가 있었던 적 없음
-                        //       + 어떤 기기에서도 초기화된 적 없음(mop_last_clear_ts=0)
-                        // (의도적 초기화 후 재업로드 방지, 새 GAS 배포/초기 설정 때만 복원)
+                        // 조건: 초기화 직후 아님 + 이 세션에서 GAS에 데이터 없었음 + 어떤 기기도 초기화 안 함
+                        // ★★★ _gasCleared === 0 핵심 추가: GAS에 cleared_at이 있으면 재업로드 절대 차단 ★★★
+                        // (Edge가 mop_last_clear_ts=0이어도 GAS의 cleared_at으로 의도적 초기화 감지)
                         var _recUrl = getAppsScriptUrl();
                         if (_recUrl) {
                             showCloudBadge('saving');
@@ -3064,8 +3075,10 @@
                             else localStorage.removeItem('mop_reviews');
                         } catch(e) {}
                     } else if (!_gasHasReviews && mopReviews.length > 0 && !_isJustCleared && !_lastGasHadReviews
-                               && !parseInt(localStorage.getItem('mop_last_clear_ts') || '0')) {
+                               && !parseInt(localStorage.getItem('mop_last_clear_ts') || '0')
+                               && _gasCleared === 0) {
                         // ★ GAS 비어있고 로컬에 리뷰 있음 → GAS에 복원 (초기화 후 재업로드 방지)
+                        // ★★★ _gasCleared === 0: GAS에 cleared_at이 있으면 재업로드 차단 ★★★
                         var _recUrl2 = getAppsScriptUrl();
                         if (_recUrl2) {
                             gasPost(_recUrl2, { type: 'reviews', payload: mopReviews }, null, null);
@@ -3288,8 +3301,11 @@
             // ★★★ cleared_at 즉시 감지 (핵심 버그 픽스) ★★★
             // GAS version 응답에 cleared_at 포함 → 10초 이내 크로스 디바이스 초기화 감지
             if (j.cleared_at && parseInt(j.cleared_at) > 0) {
+                var _jClearedAt = parseInt(j.cleared_at);
+                // 전역 업데이트 → cloudSaveNow()가 좀비 업로드 즉시 차단 가능
+                if (_jClearedAt > _gasKnownClearedAt) _gasKnownClearedAt = _jClearedAt;
                 var _vLocalCleared = parseInt(localStorage.getItem('mop_last_clear_ts') || '0');
-                if (parseInt(j.cleared_at) > _vLocalCleared) {
+                if (_jClearedAt > _vLocalCleared) {
                     // 다른 기기에서 초기화 발생! → 즉시 cloudLoad 트리거
                     if (Date.now() - _lastCloudLoad > 3000) {
                         cloudLoad();
