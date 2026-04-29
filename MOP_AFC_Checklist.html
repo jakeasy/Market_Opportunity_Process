@@ -416,6 +416,93 @@
 <footer><p>Copyright &copy; 2026 MEDIT Corp. All rights reserved.</p></footer>
 
 <script>
+
+/* ============ MOP Security Helper v2 (auto-injected) ============ */
+window.__MOP_SEC = window.__MOP_SEC || (function() {
+  var ALLOWED_HOSTS = null; // null = same-origin only (set by Gateway if needed)
+  function _proto() { try { return window.location.protocol; } catch(e) { return ''; } }
+  function _origin() { try { return window.location.origin || ''; } catch(e) { return ''; } }
+  function allowedOrigin(origin) {
+    // Allow: same-origin / file:// (null) / empty (some IE quirks) / about:srcdoc (null)
+    if (origin === _origin()) return true;
+    if (origin === 'null' || origin === '' || origin == null) return true; // file://
+    if (ALLOWED_HOSTS && ALLOWED_HOSTS.indexOf(origin) >= 0) return true;
+    return false;
+  }
+  function targetOrigin() {
+    // For file:// (origin === 'null'), browsers reject explicit "null" — must use '*'.
+    var p = _proto();
+    if (p === 'file:' || p === 'about:') return '*';
+    return _origin() || '*';
+  }
+  function safePost(target, msg) {
+    if (!target) return;
+    try { target.postMessage(msg, targetOrigin()); }
+    catch(e) { try { target.postMessage(msg, '*'); } catch(e2) { console.error('[MOP] postMessage failed', e2); } }
+  }
+  function isAllowedEvent(event) {
+    if (!event) return false;
+    if (!allowedOrigin(event.origin)) {
+      console.warn('[MOP] blocked message from origin:', event.origin, 'type:', event.data && event.data.type);
+      return false;
+    }
+    // Type prefix check (only allow mop-* messages)
+    if (!event.data || typeof event.data.type !== 'string' || event.data.type.indexOf('mop-') !== 0) return false;
+    return true;
+  }
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+  /* ---------- Password hashing (SHA-256 + salt) ---------- */
+  var SALT = 'medit-mop-v1-2026';
+  var HASH_PREFIX = 'sha256$';
+  function isHashed(s) { return typeof s === 'string' && s.indexOf(HASH_PREFIX) === 0; }
+  function hashPwAsync(pw) {
+    return new Promise(function(resolve) {
+      try {
+        if (!window.crypto || !crypto.subtle) { resolve(null); return; }
+        var enc = new TextEncoder();
+        var buf = enc.encode(String(pw == null ? '' : pw) + ':' + SALT);
+        crypto.subtle.digest('SHA-256', buf).then(function(h) {
+          var hex = Array.prototype.map.call(new Uint8Array(h), function(b){return b.toString(16).padStart(2,'0');}).join('');
+          resolve(HASH_PREFIX + hex);
+        }, function(){ resolve(null); });
+      } catch(e) { resolve(null); }
+    });
+  }
+  /* Synchronous fallback (FNV-1a 32-bit, weak — only used when crypto.subtle unavailable, e.g. file:// in older browsers) */
+  function hashPwFallback(pw) {
+    var s = String(pw == null ? '' : pw) + ':' + SALT;
+    var h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+    return HASH_PREFIX + 'fnv:' + h.toString(16).padStart(8,'0');
+  }
+  /* Compare a plaintext input against a stored value (which may be hash or legacy plaintext) */
+  function verifyPw(input, stored) {
+    return hashPwAsync(input).then(function(h) {
+      if (stored == null) return false;
+      if (isHashed(stored)) {
+        return h === stored;
+      }
+      // Legacy plaintext fallback (one-time migration support)
+      return String(input) === String(stored);
+    });
+  }
+  function logErr(ctx, e) { try { console.error('[MOP]', ctx, e); } catch(_) {} }
+  return {
+    allowedOrigin: allowedOrigin, targetOrigin: targetOrigin,
+    safePost: safePost, isAllowedEvent: isAllowedEvent,
+    escHtml: escHtml, hashPw: hashPwAsync, hashPwFallback: hashPwFallback,
+    isHashed: isHashed, verifyPw: verifyPw, logErr: logErr,
+    HASH_PREFIX: HASH_PREFIX
+  };
+})();
+/* ============ End MOP Security Helper ============ */
+
+/* file: MOP_AFC_Checklist_v2.html */
+
 try { if (window !== window.top || window.self !== window.top) { document.documentElement.classList.add('in-iframe'); } } catch(e) { document.documentElement.classList.add('in-iframe'); }
 var i18n = {
     en: {
@@ -551,7 +638,7 @@ function setLang(lang){
     renderReviewCards();
     if(selectedReview){renderChecklist();updateSidebar();}
     renderDashboard();
-    if(!_langFromSync){try{if(window.parent!==window)window.parent.postMessage({type:'mop-lang-change',lang:lang},'*');}catch(e){}}
+    if(!_langFromSync){try{if(window.parent!==window)window.parent.postMessage({type:'mop-lang-change',lang:lang},__MOP_SEC.targetOrigin());} catch(e) { try { __MOP_SEC.logErr('AFC', e); } catch(_){} }}
     _langFromSync=false;
 }
 
@@ -568,7 +655,7 @@ var checklistData=[
 
 var reviews=[],selectedReview=null,checklistState={},currentFilter='all',openCategories={},currentView='dashboard',_restoring=false;
 
-window.addEventListener('message',function(e){
+window.addEventListener('message',function(e){if(!__MOP_SEC.isAllowedEvent(e))return;
     if(!e.data)return;
     if(e.data.type==='mop-lang-sync'){var l=e.data.lang;if((l==='en'||l==='ko')&&l!==currentLang){_langFromSync=true;setLang(l);}}
     if(e.data.type==='mop-reviews-sync'){reviews=e.data.payload||[];renderReviewCards();renderDashboard();}
@@ -935,9 +1022,9 @@ function finalizeGate(){
                         region:sd.division||'',
                         submitter:sd.requestOwner||'',
                         date:selectedReview.date||''
-                    }},'*');
+                    }},__MOP_SEC.targetOrigin());
                 }
-            }catch(e){}
+            } catch(e) { try { __MOP_SEC.logErr('AFC', e); } catch(_){} }
         };
         document.getElementById('modalCancelBtn').textContent=isKo?'나중에':'Later';
         document.getElementById('completionModal').classList.add('show');
@@ -1276,13 +1363,13 @@ html+='@media print{.actions-bar{display:none}}';
 function saveStateToGateway(){
     try{
         var payload={checklistState:checklistState,selectedReviewId:selectedReview?selectedReview.id:null};
-        if(window.parent!==window)window.parent.postMessage({type:'mop-afc-state-save',payload:payload},'*');
-    }catch(e){}
+        if(window.parent!==window)window.parent.postMessage({type:'mop-afc-state-save',payload:payload},__MOP_SEC.targetOrigin());
+    } catch(e) { try { __MOP_SEC.logErr('AFC', e); } catch(_){} }
 }
 var _saveTimer=null;
 function autoSave(){clearTimeout(_saveTimer);_saveTimer=setTimeout(saveStateToGateway,500);}
 
-window.addEventListener('message',function(e){
+window.addEventListener('message',function(e){if(!__MOP_SEC.isAllowedEvent(e))return;
     if(!e.data)return;
     if(e.data.type&&e.data.type.indexOf('mop-')===0&&!document.documentElement.classList.contains('in-iframe')){
         document.documentElement.classList.add('in-iframe');
@@ -1302,7 +1389,7 @@ window.addEventListener('message',function(e){
     }
 });
 // Signal parent that AFI is ready to receive data
-try{if(window.parent!==window)window.parent.postMessage({type:'mop-afc-ready'},'*');}catch(e){}
+try{if(window.parent!==window)window.parent.postMessage({type:'mop-afc-ready'},__MOP_SEC.targetOrigin());} catch(e) { try { __MOP_SEC.logErr('AFC', e); } catch(_){} }
 </script>
 </body>
 </html>
