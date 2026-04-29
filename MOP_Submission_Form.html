@@ -239,7 +239,7 @@
         /* Form */
         form {
             background: var(--background-main);
-            border-radius: 8px;
+            border-radius: 0 0 8px 8px;
             box-shadow: var(--shadow-subtle);
             border: 1px solid var(--border-color);
             overflow: hidden;
@@ -749,11 +749,11 @@
         .in-iframe .lang-toggle { display: none !important; }
     
         /* === 내 제출 (My Submissions) === */
-        .sub-tab-bar { display: flex; gap: 4px; padding: 0 2.5rem; border-bottom: 1px solid var(--border-color); background: var(--background-main); }
+        .sub-tab-bar { grid-column: 1 / -1; display: flex; gap: 4px; padding: 0 2.5rem; border-bottom: 1px solid var(--border-color); background: var(--background-main); border-radius: 8px 8px 0 0; margin-bottom: 0; }
         .sub-tab-btn { padding: 16px 20px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: 500; font-size: 0.95rem; border-bottom: 2px solid transparent; font-family: inherit; transition: color 0.2s, border-color 0.2s; }
         .sub-tab-btn.active { color: var(--primary-blue); border-bottom-color: var(--primary-blue); }
         .sub-tab-btn:hover:not(.active) { color: var(--text-heading); }
-        .my-sub-panel { display: none; padding: 2rem 2.5rem; }
+        .my-sub-panel { grid-column: 1 / -1; display: none; padding: 2rem 2.5rem; background: var(--background-main); border-radius: 0 0 8px 8px; box-shadow: var(--shadow-subtle); border: 1px solid var(--border-color); border-top: none; }
         .my-sub-panel.active { display: block; }
         .my-sub-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .my-sub-empty .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.6; }
