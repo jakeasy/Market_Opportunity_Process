@@ -496,6 +496,7 @@
                     <option value="APAC">APAC</option>
                     <option value="EMEA">EMEA</option>
                     <option value="CHINA">CHINA</option>
+                    <option value="MOS Biz">MOS Biz</option>
                 </select>
                 <div class="field-err" id="err-regRegion"></div>
             </div>
@@ -618,6 +619,7 @@
                         <option value="APAC">APAC</option>
                         <option value="EMEA">EMEA</option>
                         <option value="CHINA">CHINA</option>
+                        <option value="MOS Biz">MOS Biz</option>
                     </select>
                 </div>
                 <div class="acc-edit-field">
@@ -879,7 +881,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var _liveLang = (function(){ try { var v = localStorage.getItem('mopLang'); return (v==='ko'||v==='en')?v:currentLang; } catch(_){ return currentLang; } })();
                 iframe.contentWindow.postMessage({ type: 'mop-lang-sync', lang: _liveLang }, __MOP_SEC.targetOrigin());
                 if (_currentUser) {
-                    iframe.contentWindow.postMessage({ type: 'mop-user-info', payload: { name: _currentUser.name || '', email: _currentUser.username || '' } }, __MOP_SEC.targetOrigin());
+                    iframe.contentWindow.postMessage({ type: 'mop-user-info', payload: { name: _currentUser.name || '', email: _currentUser.username || '', region: _currentUser.region || '', dept: _currentUser.dept || '', role: _currentUser.role || '' } }, __MOP_SEC.targetOrigin());
                 }
             } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
         }
