@@ -1639,6 +1639,14 @@
         }
 
         .in-iframe .lang-toggle { display: none !important; }
+    
+        /* === 내 제출 토글 (Step 2) === */
+        .mine-toggle-bar { display: flex; gap: 8px; align-items: center; padding: 12px 0; margin-bottom: 12px; border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08)); }
+        .mine-toggle-btn { padding: 8px 16px; background: transparent; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; color: #cbd5e1; cursor: pointer; font-weight: 500; font-size: 0.88rem; font-family: inherit; transition: all 0.15s; }
+        .mine-toggle-btn.active { background: var(--primary-blue, #3b82f6); color: #fff; border-color: var(--primary-blue, #3b82f6); }
+        .mine-toggle-btn:hover:not(.active) { background: rgba(255,255,255,0.04); }
+        .mine-banner { background: rgba(59,130,246,0.1); border: 1px solid rgba(59,130,246,0.3); border-left: 4px solid #3b82f6; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; color: #93c5fd; font-size: 0.88rem; }
+
     </style>
 </head>
 <body>
@@ -1661,6 +1669,12 @@
                 </div>
             </div>
             <!-- Region Filters -->
+            <div class="mine-toggle-bar" id="mineToggleBar">
+                <button class="mine-toggle-btn active" id="mineAllBtn" onclick="setMineFilter('all')" data-i18n-mine="all">All Submissions</button>
+                <button class="mine-toggle-btn" id="mineMyBtn" onclick="setMineFilter('mine')" data-i18n-mine="mine">My Submissions <span id="mineMyCount" style="opacity:0.7;font-size:0.85em;"></span></button>
+                <span style="margin-left:auto;font-size:0.82rem;color:rgba(255,255,255,0.4);" id="mineHint" data-i18n-mine="hint"></span>
+            </div>
+            <div id="mineBanner" class="mine-banner" style="display:none;" data-i18n-mine="banner">📖 You are viewing your own submissions in read-only mode.</div>
             <div class="region-filters" id="regionFilters"></div>
             <!-- Status Filter -->
             <div class="status-filters" id="statusFilters"></div>
@@ -3922,6 +3936,137 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             // Signal parent that Scoring Tool is ready to receive data
             try{if(window.parent!==window)window.parent.postMessage({type:'mop-scoring-ready'},__MOP_SEC.targetOrigin());} catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
         });
+    
+
+        // ============ 내 제출 필터 (Step 2 - 조회 전용) ============
+        var _mineFilter = 'all'; // 'all' or 'mine'
+        var _userInfoStep2 = null;
+
+        window.setMineFilter = function(mode) {
+            _mineFilter = mode === 'mine' ? 'mine' : 'all';
+            try {
+                document.getElementById('mineAllBtn').classList.toggle('active', _mineFilter === 'all');
+                document.getElementById('mineMyBtn').classList.toggle('active', _mineFilter === 'mine');
+                var banner = document.getElementById('mineBanner');
+                if (banner) banner.style.display = _mineFilter === 'mine' ? '' : 'none';
+                // 점수 화면이 열려있고 본인 제출이면 readonly로
+                if (_mineFilter === 'mine' && currentSubmissionId != null) {
+                    var sub = (typeof submissions !== 'undefined' ? submissions : []).find(function(s){ return s.id === currentSubmissionId; });
+                    if (sub && _isMineStep2(sub)) {
+                        _enforceReadOnlyForMine(true);
+                    }
+                }
+                renderSubmissionsList();
+                _updateMineCount();
+            } catch(e) { try { __MOP_SEC.logErr('setMineFilter', e); } catch(_){} }
+        };
+
+        function _isMineStep2(sub) {
+            if (!_userInfoStep2 || !_userInfoStep2.email) return false;
+            var em = ((sub.data && sub.data.requestOwnerEmail) || '').toLowerCase();
+            return em === String(_userInfoStep2.email).toLowerCase();
+        }
+
+        function _updateMineCount() {
+            try {
+                var em = _userInfoStep2 && _userInfoStep2.email ? String(_userInfoStep2.email).toLowerCase() : '';
+                if (!em) { document.getElementById('mineMyCount').textContent = ''; return; }
+                var subs = (typeof submissions !== 'undefined' ? submissions : []);
+                var c = subs.filter(function(s){ var d = s.data||{}; return (d.requestOwnerEmail||'').toLowerCase() === em; }).length;
+                document.getElementById('mineMyCount').textContent = c ? '(' + c + ')' : '';
+            } catch(_){}
+        }
+
+        function _enforceReadOnlyForMine(on) {
+            try {
+                var inputs = document.querySelectorAll('#detailPanel input, #detailPanel textarea, #detailPanel select, #scoringForm input, #scoringForm textarea');
+                inputs.forEach(function(el) {
+                    if (on) { el.dataset._wasDisabled = el.disabled ? '1':'0'; el.disabled = true; }
+                    else if (el.dataset._wasDisabled !== '1') { el.disabled = false; }
+                });
+                var btnComplete = document.getElementById('btnCompleteReview');
+                if (btnComplete) btnComplete.style.display = on ? 'none' : '';
+                var banner = document.getElementById('reviewReadOnlyBanner');
+                if (banner) {
+                    banner.style.display = on ? 'block' : 'none';
+                    var ko = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ko');
+                    banner.innerHTML = on
+                        ? (ko ? '👁 본인이 제출한 건은 조회 전용입니다.' : '👁 Your own submission — view only.')
+                        : '';
+                }
+            } catch(e) { try { __MOP_SEC.logErr('readonlyForMine', e); } catch(_){} }
+        }
+
+        // 기존 renderSubmissionsList를 후킹: _mineFilter='mine'이면 본인 것만 표시
+        var _origRenderList = (typeof renderSubmissionsList !== 'undefined' && renderSubmissionsList);
+        if (_origRenderList) {
+            renderSubmissionsList = function() {
+                if (_mineFilter === 'mine') {
+                    // submissions 변수를 임시로 가린다
+                    var orig = submissions;
+                    var em = _userInfoStep2 && _userInfoStep2.email ? String(_userInfoStep2.email).toLowerCase() : '';
+                    submissions = (orig || []).filter(function(s){ var d = s.data||{}; return em && (d.requestOwnerEmail||'').toLowerCase() === em; });
+                    try { _origRenderList.apply(this, arguments); } finally { submissions = orig; }
+                } else {
+                    return _origRenderList.apply(this, arguments);
+                }
+            };
+        }
+
+        // selectSubmission도 후킹: 본인 것이면 readonly
+        var _origSelect = (typeof selectSubmission !== 'undefined' && selectSubmission);
+        if (_origSelect) {
+            selectSubmission = function(id, _keepReadOnly) {
+                _origSelect.call(this, id, _keepReadOnly);
+                try {
+                    if (_mineFilter === 'mine') {
+                        var sub = (typeof submissions !== 'undefined' ? submissions : []).find(function(s){ return s.id === id; });
+                        if (sub && _isMineStep2(sub)) _enforceReadOnlyForMine(true);
+                    }
+                } catch(_){}
+            };
+        }
+
+        // user-info 수신
+        window.addEventListener('message', function(event) {
+            try {
+                if (!__MOP_SEC.isAllowedEvent(event)) return;
+                var d = event.data || {};
+                if (d.type === 'mop-user-info' && d.payload) {
+                    _userInfoStep2 = d.payload;
+                    _updateMineCount();
+                    _refreshMineLabels();
+                }
+                if (d.type === 'mop-submissions-sync') { setTimeout(_updateMineCount, 100); }
+            } catch(e) { try { __MOP_SEC.logErr('Submissions extra msg', e); } catch(_){} }
+        });
+
+        function _refreshMineLabels() {
+            try {
+                var ko = (typeof currentLanguage !== 'undefined' && currentLanguage === 'ko');
+                var allBtn = document.getElementById('mineAllBtn');
+                var myBtn = document.getElementById('mineMyBtn');
+                var hint = document.getElementById('mineHint');
+                var banner = document.getElementById('mineBanner');
+                if (allBtn) allBtn.firstChild.nodeValue = ko ? '전체 제출 ' : 'All Submissions ';
+                if (myBtn) {
+                    var span = myBtn.querySelector('span');
+                    myBtn.firstChild.nodeValue = ko ? '내 제출 ' : 'My Submissions ';
+                    if (span && !myBtn.contains(span)) myBtn.appendChild(span);
+                }
+                if (hint) hint.textContent = ko ? '※ 내 제출은 조회 전용입니다' : '※ Read-only for own submissions';
+                if (banner) banner.textContent = ko ? '📖 본인이 제출한 건만 표시 중입니다 (조회 전용)' : '📖 Showing only your own submissions (read-only)';
+            } catch(_){}
+        }
+        // 언어 전환에 후크
+        if (typeof setLanguage !== 'undefined') {
+            var _origSetLang = setLanguage;
+            setLanguage = function(lang) { _origSetLang.apply(this, arguments); _refreshMineLabels(); };
+        }
+        // 초기 라벨 적용
+        try { setTimeout(_refreshMineLabels, 200); } catch(_){}
+        // ============ /내 제출 필터 ============
+
     </script>
 </body>
 </html>
