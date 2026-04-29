@@ -623,7 +623,7 @@ var i18n={
 var currentLang=(function(){try{if(window.__MOP_INITIAL_LANG==='ko'||window.__MOP_INITIAL_LANG==='en')return window.__MOP_INITIAL_LANG;var v=localStorage.getItem('mopLang');return(v==='ko'||v==='en')?v:'en';}catch(e){return 'en';}})(),currentView='dashboard',projects=[],editId=null,nextId=1;
 function t(k){return (i18n[currentLang]&&i18n[currentLang][k])||k;}
 function catLabel(key){var c=categories.find(function(x){return x.key===key;});return c?c[currentLang]:key;}
-function impactLabel(key){var m=impactTypes.find(function(x){return x.key===key;});return m?m[currentLang]:key;}
+function impactLabel(key){var m=impactTypes.find(function(x){return x.key===key;});return m?m.en:key;}
 function statusLabel(key){var s=statuses.find(function(x){return x.key===key;});return s?s[currentLang]:key;}
 function esc(s){var d=document.createElement('div');d.textContent=s||'';return d.innerHTML;}
 function formatDate(iso){if(!iso)return '—';var d=new Date(iso);var y=d.getFullYear();var m=String(d.getMonth()+1).padStart(2,'0');var dd=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+dd;}
@@ -712,7 +712,7 @@ function populateImpactSelect(){
     var sel=document.getElementById('fImpact');
     var val=sel.value;
     sel.innerHTML='<option value="" disabled selected>-- Select --</option>';
-    impactTypes.forEach(function(m){sel.innerHTML+='<option value="'+m.key+'">'+m[currentLang]+'</option>';});
+    impactTypes.forEach(function(m){sel.innerHTML+='<option value="'+m.key+'">'+m.en+'</option>';});
     if(val) sel.value=val;
 }
 
@@ -1437,7 +1437,7 @@ function printPortfolio(){
         var gateCls=p.afcGate==='go'?'b-go':p.afcGate==='conditional'?'b-cond':p.afcGate==='nogo'?'b-nogo':'';
         var gateTxt=p.afcGate==='go'?'GO':p.afcGate==='conditional'?'COND':p.afcGate==='nogo'?'NO GO':'—';
         var catLbl='';categories.forEach(function(c){if(c.key===p.category)catLbl=c[currentLang];});
-        var impLbl='';impactTypes.forEach(function(m){if(m.key===p.impactType)impLbl=m[currentLang];});
+        var impLbl='';impactTypes.forEach(function(m){if(m.key===p.impactType)impLbl=m.en;});
         // Target date with D-day
         var targetHtml='—';
         if(p.targetDate){
