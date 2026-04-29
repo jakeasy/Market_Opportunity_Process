@@ -800,6 +800,7 @@
                         <option value="APAC">APAC</option>
                         <option value="EMEA">EMEA</option>
                         <option value="CHINA">CHINA</option>
+                        <option value="MOS Biz">MOS Biz</option>
                     </select>
                     <span class="helper-text" id="t-helper-division">Select the region submitting this request.</span>
                 </div>
@@ -1377,6 +1378,23 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     _langFromSync = true;
                     if (window._setLangImpl) window._setLangImpl(lang);
                 }
+            }
+            if (event.data && event.data.type === 'mop-user-info' && event.data.payload) {
+                try {
+                    var u = event.data.payload;
+                    var nameEl  = document.getElementById('requestOwner');
+                    var emailEl = document.getElementById('requestOwnerEmail');
+                    var regEl   = document.getElementById('division');
+                    if (nameEl  && !nameEl.value  && u.name)   nameEl.value  = u.name;
+                    if (emailEl && !emailEl.value && u.email)  emailEl.value = u.email;
+                    if (regEl   && !regEl.value   && u.region) {
+                        var opts = regEl.options;
+                        for (var i = 0; i < opts.length; i++) {
+                            if (opts[i].value === u.region) { regEl.selectedIndex = i; break; }
+                        }
+                    }
+                    [nameEl,emailEl,regEl].forEach(function(el){ if(el){ el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change')); }});
+                } catch(e) { try { __MOP_SEC.logErr('SubmissionForm user-info', e); } catch(_){} }
             }
         });
 
