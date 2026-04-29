@@ -2249,7 +2249,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             }
         };
 
-        let currentLanguage = 'en';
+        let currentLanguage = (function(){try{if(window.__MOP_INITIAL_LANG==='ko'||window.__MOP_INITIAL_LANG==='en')return window.__MOP_INITIAL_LANG;var v=localStorage.getItem('mopLang');return(v==='ko'||v==='en')?v:'en';}catch(e){return 'en';}})();
         const scores = {};
         let submissions = [];
         let currentSubmissionId = null;
@@ -2257,6 +2257,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         var _langFromSync = false;
         function setLanguage(lang) {
             currentLanguage = lang;
+            try { localStorage.setItem('mopLang', lang); } catch(e) {}
             document.querySelectorAll('.lang-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.lang === lang);
             });
