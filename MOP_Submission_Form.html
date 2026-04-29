@@ -747,6 +747,52 @@
         }
 
         .in-iframe .lang-toggle { display: none !important; }
+    
+        /* === 내 제출 (My Submissions) === */
+        .sub-tab-bar { display: flex; gap: 4px; padding: 0 2.5rem; border-bottom: 1px solid var(--border-color); background: var(--background-main); }
+        .sub-tab-btn { padding: 16px 20px; background: transparent; border: none; color: var(--text-secondary); cursor: pointer; font-weight: 500; font-size: 0.95rem; border-bottom: 2px solid transparent; font-family: inherit; transition: color 0.2s, border-color 0.2s; }
+        .sub-tab-btn.active { color: var(--primary-blue); border-bottom-color: var(--primary-blue); }
+        .sub-tab-btn:hover:not(.active) { color: var(--text-heading); }
+        .my-sub-panel { display: none; padding: 2rem 2.5rem; }
+        .my-sub-panel.active { display: block; }
+        .my-sub-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
+        .my-sub-empty .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.6; }
+        .my-sub-card { background: #1a2235; border: 1px solid var(--border-color); border-radius: 10px; padding: 20px 22px; margin-bottom: 14px; transition: border-color 0.2s, transform 0.15s; }
+        .my-sub-card:hover { border-color: var(--primary-blue); }
+        .my-sub-card-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+        .my-sub-card-title { font-size: 1.05rem; font-weight: 600; color: var(--text-heading); margin-bottom: 4px; line-height: 1.4; }
+        .my-sub-card-meta { font-size: 0.82rem; color: var(--text-secondary); margin-top: 3px; }
+        .my-sub-status-pill { display: inline-block; padding: 3px 10px; border-radius: 14px; font-size: 0.78rem; font-weight: 600; margin-top: 6px; }
+        .my-sub-status-pill.active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+        .my-sub-status-pill.done { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+        .my-sub-status-pill.dropped { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+        .my-sub-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .my-sub-btn { padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border-color); background: transparent; color: var(--text-body); font-family: inherit; transition: all 0.15s; }
+        .my-sub-btn:hover { background: rgba(255, 255, 255, 0.04); }
+        .my-sub-btn.primary { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
+        .my-sub-btn.primary:hover { background: var(--primary-blue-hover); }
+        .pipeline { display: flex; align-items: center; gap: 0; margin-top: 14px; }
+        .pipeline-step { display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; min-width: 60px; }
+        .pipeline-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; color: white; }
+        .pipeline-dot.pending { background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); }
+        .pipeline-dot.active { background: var(--primary-blue); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2); }
+        .pipeline-dot.done { background: var(--success-color); }
+        .pipeline-dot.dropped { background: var(--error-color); }
+        .pipeline-label { font-size: 0.7rem; color: var(--text-secondary); margin-top: 5px; white-space: nowrap; }
+        .pipeline-line { flex: 1; height: 2px; background: rgba(255, 255, 255, 0.08); margin: 0 4px; margin-top: -16px; }
+        .pipeline-line.done { background: var(--success-color); }
+        .edit-banner { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-left: 4px solid var(--primary-blue); border-radius: 8px; padding: 14px 18px; margin: 0 2.5rem 1.5rem; color: #93c5fd; font-size: 0.92rem; display: flex; align-items: center; gap: 10px; }
+        .edit-banner.readonly { background: rgba(148, 163, 184, 0.1); border-color: rgba(148, 163, 184, 0.3); border-left-color: #94a3b8; color: #cbd5e1; }
+        .my-sub-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9998; align-items: center; justify-content: center; padding: 20px; }
+        .my-sub-modal.active { display: flex; }
+        .my-sub-modal-box { background: var(--background-main); border-radius: 14px; max-width: 720px; width: 100%; max-height: 88vh; overflow-y: auto; padding: 32px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); }
+        .my-sub-modal-close { float: right; background: transparent; border: 1px solid var(--border-color); border-radius: 6px; width: 32px; height: 32px; color: var(--text-body); cursor: pointer; }
+        .my-sub-modal-section { margin-bottom: 22px; padding-bottom: 18px; border-bottom: 1px solid var(--border-color); }
+        .my-sub-modal-section:last-child { border-bottom: none; }
+        .my-sub-modal-label { font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+        .my-sub-modal-value { color: var(--text-heading); font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+        .my-sub-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
     </style>
 </head>
 <body>
@@ -763,6 +809,18 @@
     </header>
 
     <div class="container">
+        <div class="sub-tab-bar" style="margin-bottom:0;">
+            <button class="sub-tab-btn active" id="subTabNew" onclick="switchSubTab('new')" data-i18n-tab="new">New Submission</button>
+            <button class="sub-tab-btn" id="subTabMine" onclick="switchSubTab('mine')" data-i18n-tab="mine">My Submissions <span id="mySubCount" style="opacity:0.6;font-size:0.85em;"></span></button>
+        </div>
+        <div id="mySubPanel" class="my-sub-panel">
+            <div id="mySubList"></div>
+            <div id="mySubEmpty" class="my-sub-empty">
+                <div class="icon">📭</div>
+                <div data-i18n-tab="emptyMsg">You haven't submitted anything yet.</div>
+            </div>
+        </div>
+        <div id="formPanelWrap">
         <form id="mopForm" novalidate>
             <!-- Section 1: Basic Information -->
             <div class="form-section">
@@ -927,6 +985,7 @@
                 <button type="submit" class="btn-submit" id="submitBtn">Submit</button>
             </div>
         </form>
+        </div><!-- /formPanelWrap -->
 
         <!-- Sidebar -->
         <aside class="sidebar">
@@ -960,6 +1019,15 @@
             <p style="color:var(--text-secondary); font-size:1rem; line-height:1.6; margin-bottom:24px; white-space:pre-line;" id="t-success-message">Your MOP Submission has been successfully submitted.
 We will review and provide further guidance.</p>
             <button onclick="closeSuccess()" style="font-family:'DM Sans',sans-serif; background:var(--primary-blue); color:#fff; border:none; padding:12px 32px; border-radius:8px; font-size:1rem; font-weight:600; cursor:pointer;" id="t-success-btn">OK</button>
+        </div>
+    </div>
+
+    
+    <!-- My Submission Detail Modal -->
+    <div id="mySubModal" class="my-sub-modal" onclick="if(event.target===this)closeMyModal()">
+        <div class="my-sub-modal-box">
+            <button class="my-sub-modal-close" onclick="closeMyModal()">×</button>
+            <div id="mySubModalBody"></div>
         </div>
     </div>
 
@@ -1796,6 +1864,459 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 } catch(e2) { try { __MOP_SEC.logErr('SubmissionForm:nested', e2); } catch(_){} }
             });
         } catch(e) { try { __MOP_SEC.logErr('SubmissionForm', e); } catch(_){} }
+
+
+
+        // ============ 내 제출 (My Submissions) ============
+        var _mopSubmissions = [];
+        var _mopReviews = [];
+        var _mopAfcState = null;
+        var _mopPortfolio = null;
+        var _userInfo = null;
+        var _editingId = null;
+        var _editingOriginal = null; // 원본 timestamp/date 보존용
+
+        function _esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
+
+        window.switchSubTab = function(tab) {
+            try {
+                var newTab = document.getElementById('subTabNew');
+                var mineTab = document.getElementById('subTabMine');
+                var formWrap = document.getElementById('formPanelWrap');
+                var mineP = document.getElementById('mySubPanel');
+                if (!newTab || !mineTab) return;
+                newTab.classList.toggle('active', tab === 'new');
+                mineTab.classList.toggle('active', tab === 'mine');
+                if (formWrap) formWrap.style.display = tab === 'new' ? '' : 'none';
+                if (mineP) mineP.classList.toggle('active', tab === 'mine');
+                var sb = document.querySelector('.sidebar');
+                if (sb) sb.style.display = tab === 'new' ? '' : 'none';
+                if (tab === 'mine') renderMySubmissions();
+            } catch(e) { try { __MOP_SEC.logErr('switchSubTab', e); } catch(_){} }
+        };
+
+        function getSubStatus(sub) {
+            var id = sub.id;
+            var review = _mopReviews.find(function(r){
+                return String(r.submissionId) === String(id) || String(r.id) === String(id);
+            });
+            if (!review) return { step: 1, label: currentLang==='ko'?'검토 대기':'Pending Review', tone: 'active' };
+            var rec = (review.recKey || review.recommendation || '').toLowerCase();
+            if (rec.indexOf('not') === 0 || rec === 'no-go' || rec === 'reject' || rec === 'rejected') {
+                return { step: 2, label: currentLang==='ko'?'Drop (검토에서 거절)':'Dropped (Review Rejected)', tone: 'dropped' };
+            }
+            var afcSt = _mopAfcState && _mopAfcState.checklistState && _mopAfcState.checklistState[id];
+            if (!afcSt) return { step: 2, label: currentLang==='ko'?'검토 완료':'Review Complete', tone: 'active', score: review.percentage };
+            if (afcSt.finalized) {
+                var gate = (afcSt.gate || '').toLowerCase();
+                if (gate === 'no_go' || gate === 'no-go' || gate === 'nogo') {
+                    return { step: 3, label: currentLang==='ko'?'Drop (AFC 거절)':'Dropped (AFC Rejected)', tone: 'dropped' };
+                }
+                var proj = _mopPortfolio && _mopPortfolio.projects && _mopPortfolio.projects.find(function(p){ return String(p.mopId) === String(id); });
+                if (proj) {
+                    var pStat = (proj.status || 'todo').replace('_',' ');
+                    return { step: 4, label: (currentLang==='ko'?'포트폴리오: ':'Portfolio: ') + pStat, tone: 'active', portfolioStatus: proj.status };
+                }
+                return { step: 3, label: currentLang==='ko'?'AFC 완료':'AFC Complete', tone: 'done' };
+            }
+            return { step: 3, label: currentLang==='ko'?'AFC 진행 중':'AFC In Progress', tone: 'active' };
+        }
+
+        function renderPipelineHtml(status) {
+            var labels = currentLang === 'ko'
+                ? ['제출', '검토', 'AFC', '포트폴리오']
+                : ['Submit', 'Review', 'AFC', 'Portfolio'];
+            var html = '<div class="pipeline">';
+            for (var i = 0; i < 4; i++) {
+                var stepNum = i + 1;
+                var dotClass, dotText;
+                if (status.tone === 'dropped') {
+                    if (stepNum < status.step) { dotClass = 'done'; dotText = '✓'; }
+                    else if (stepNum === status.step) { dotClass = 'dropped'; dotText = '✕'; }
+                    else { dotClass = 'pending'; dotText = stepNum; }
+                } else {
+                    if (stepNum < status.step) { dotClass = 'done'; dotText = '✓'; }
+                    else if (stepNum === status.step) {
+                        if (status.tone === 'done' && stepNum === 3) { dotClass = 'done'; dotText = '✓'; }
+                        else { dotClass = 'active'; dotText = stepNum; }
+                    }
+                    else { dotClass = 'pending'; dotText = stepNum; }
+                }
+                html += '<div class="pipeline-step">'
+                     + '<div class="pipeline-dot ' + dotClass + '">' + dotText + '</div>'
+                     + '<div class="pipeline-label">' + labels[i] + '</div>'
+                     + '</div>';
+                if (i < 3) {
+                    var done = (stepNum < status.step) && status.tone !== 'dropped';
+                    html += '<div class="pipeline-line' + (done ? ' done' : '') + '"></div>';
+                }
+            }
+            html += '</div>';
+            return html;
+        }
+
+        function _myEmail() {
+            return _userInfo && _userInfo.email ? String(_userInfo.email).toLowerCase() : '';
+        }
+
+        function renderMySubmissions() {
+            var listEl = document.getElementById('mySubList');
+            var emptyEl = document.getElementById('mySubEmpty');
+            var countEl = document.getElementById('mySubCount');
+            if (!listEl) return;
+            var email = _myEmail();
+            var mine;
+            if (!email) { mine = []; }
+            else {
+                mine = (_mopSubmissions || []).filter(function(s) {
+                    var d = s.data || {};
+                    var em = (d.requestOwnerEmail || '').toLowerCase();
+                    return em === email;
+                });
+            }
+            if (countEl) countEl.textContent = mine.length ? '(' + mine.length + ')' : '';
+            if (!mine.length) {
+                listEl.innerHTML = '';
+                emptyEl.style.display = '';
+                return;
+            }
+            emptyEl.style.display = 'none';
+            mine.sort(function(a, b) {
+                var ta = a.timestamp || a.id || '';
+                var tb = b.timestamp || b.id || '';
+                return String(tb).localeCompare(String(ta));
+            });
+            listEl.innerHTML = mine.map(function(s) {
+                var d = s.data || {};
+                var status = getSubStatus(s);
+                var canEdit = status.step === 1 && status.tone !== 'dropped';
+                var modText = '';
+                if (s.lastModified) {
+                    try {
+                        var dt = new Date(s.lastModified);
+                        modText = (currentLang==='ko'?'수정: ':'Modified: ') + dt.toLocaleString();
+                    } catch(_){}
+                }
+                var pillClass = status.tone || 'active';
+                var btnLabel = canEdit
+                    ? (currentLang==='ko'?'수정':'Edit')
+                    : (currentLang==='ko'?'상세':'View');
+                var btnAction = canEdit ? 'enterEditMode' : 'openMyDetail';
+                return '<div class="my-sub-card">'
+                    + '<div class="my-sub-card-row">'
+                    +   '<div style="flex:1;min-width:0;">'
+                    +     '<div class="my-sub-card-title">' + _esc(d.opportunityTitle || (currentLang==='ko'?'제목 없음':'Untitled')) + '</div>'
+                    +     '<div class="my-sub-card-meta">'
+                    +       _esc(d.requestType || '-') + ' · ' + _esc(d.division || '-')
+                    +       ' · ' + _esc(s.date || '')
+                    +     '</div>'
+                    +     (modText ? '<div class="my-sub-card-meta">' + _esc(modText) + '</div>' : '')
+                    +     '<span class="my-sub-status-pill ' + pillClass + '">' + _esc(status.label) + '</span>'
+                    +   '</div>'
+                    +   '<div class="my-sub-actions">'
+                    +     '<button class="my-sub-btn ' + (canEdit?'primary':'') + '" onclick="' + btnAction + '(' + JSON.stringify(s.id) + ')">' + btnLabel + '</button>'
+                    +   '</div>'
+                    + '</div>'
+                    + renderPipelineHtml(status)
+                    + '</div>';
+            }).join('');
+        }
+
+        window.enterEditMode = function(id) {
+            try {
+                var sub = _mopSubmissions.find(function(s){ return String(s.id) === String(id); });
+                if (!sub) return;
+                var status = getSubStatus(sub);
+                if (status.step !== 1) {
+                    alert(currentLang==='ko' ? '검토가 시작되어 수정할 수 없습니다.' : 'Cannot edit: review has started.');
+                    return;
+                }
+                _editingId = id;
+                _editingOriginal = { timestamp: sub.timestamp, date: sub.date, id: sub.id };
+                var d = sub.data || {};
+                Object.keys(d).forEach(function(k) {
+                    var el = document.getElementById(k);
+                    if (el && d[k] !== undefined) {
+                        try { el.value = d[k]; el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change')); } catch(_){}
+                    }
+                });
+                _setSubmitBtnText(true);
+                _showEditBanner('edit', status);
+                switchSubTab('new');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch(e) { try { __MOP_SEC.logErr('enterEditMode', e); } catch(_){} }
+        };
+
+        window.cancelEditMode = function() {
+            try {
+                _editingId = null;
+                _editingOriginal = null;
+                var f = document.getElementById('mopForm');
+                if (f) f.reset();
+                document.querySelectorAll('#mopForm input, #mopForm textarea, #mopForm select').forEach(function(el){ el.disabled = false; });
+                _setSubmitBtnText(false);
+                _hideEditBanner();
+                if (typeof updateProgress === 'function') updateProgress();
+            } catch(e) { try { __MOP_SEC.logErr('cancelEditMode', e); } catch(_){} }
+        };
+
+        window.openMyDetail = function(id) {
+            try {
+                var sub = _mopSubmissions.find(function(s){ return String(s.id) === String(id); });
+                if (!sub) return;
+                var status = getSubStatus(sub);
+                var d = sub.data || {};
+                var review = _mopReviews.find(function(r){ return String(r.submissionId) === String(id) || String(r.id) === String(id); });
+                var afcSt = _mopAfcState && _mopAfcState.checklistState && _mopAfcState.checklistState[id];
+                var proj = _mopPortfolio && _mopPortfolio.projects && _mopPortfolio.projects.find(function(p){ return String(p.mopId) === String(id); });
+
+                var fields = currentLang === 'ko' ? {
+                    opportunityTitle: '기회 제목', requestType: '요청 유형', division: '리전',
+                    requestOwner: '담당자', requestOwnerEmail: '이메일',
+                    opportunitySummary: '기회 요약', problemBeingSolved: '해결 문제',
+                    targetCustomer: '대상 고객', strategicRelevance: '전략적 관련성',
+                    growthImpact: '성장 영향', evidence: '근거', competitorBenchmark: '경쟁/벤치마크',
+                    revenuePotential: '매출 잠재력', priorityArgument: '우선순위 근거'
+                } : {
+                    opportunityTitle: 'Opportunity Title', requestType: 'Request Type', division: 'Region',
+                    requestOwner: 'Owner', requestOwnerEmail: 'Email',
+                    opportunitySummary: 'Summary', problemBeingSolved: 'Problem',
+                    targetCustomer: 'Target Customer', strategicRelevance: 'Strategic Relevance',
+                    growthImpact: 'Growth Impact', evidence: 'Evidence', competitorBenchmark: 'Competitor / Benchmarking',
+                    revenuePotential: 'Revenue Potential', priorityArgument: 'Priority Argument'
+                };
+
+                var html = '';
+                html += '<h2 style="font-size:1.4rem;font-weight:600;color:var(--text-heading);margin-bottom:6px;">' + _esc(d.opportunityTitle || '-') + '</h2>';
+                html += '<span class="my-sub-status-pill ' + status.tone + '" style="margin-bottom:18px;">' + _esc(status.label) + '</span>';
+                html += renderPipelineHtml(status);
+
+                // 제출 정보
+                html += '<div class="my-sub-modal-section" style="margin-top:20px;">';
+                html += '<div class="my-sub-modal-label">' + (currentLang==='ko'?'제출 정보':'Submission Info') + '</div>';
+                html += '<div class="my-sub-modal-grid">';
+                ['requestType','division','requestOwner','requestOwnerEmail'].forEach(function(k){
+                    if (d[k]) {
+                        html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + fields[k] + '</div><div class="my-sub-modal-value">' + _esc(d[k]) + '</div></div>';
+                    }
+                });
+                if (s.date) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'제출일':'Submitted') + '</div><div class="my-sub-modal-value">' + _esc(s.date) + '</div></div>';
+                if (s.lastModified) {
+                    var dt = new Date(s.lastModified);
+                    html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'최근 수정':'Last Modified') + '</div><div class="my-sub-modal-value">' + _esc(dt.toLocaleString()) + '</div></div>';
+                }
+                html += '</div></div>';
+
+                // 본문
+                ['opportunitySummary','problemBeingSolved','targetCustomer','strategicRelevance','growthImpact','evidence','competitorBenchmark','priorityArgument','revenuePotential'].forEach(function(k){
+                    if (d[k]) {
+                        html += '<div class="my-sub-modal-section">';
+                        html += '<div class="my-sub-modal-label">' + fields[k] + '</div>';
+                        html += '<div class="my-sub-modal-value">' + _esc(d[k]) + '</div>';
+                        html += '</div>';
+                    }
+                });
+
+                // 검토 결과
+                if (review) {
+                    html += '<div class="my-sub-modal-section">';
+                    html += '<div class="my-sub-modal-label">' + (currentLang==='ko'?'검토 결과 (Step 2)':'Review Result (Step 2)') + '</div>';
+                    html += '<div class="my-sub-modal-grid">';
+                    if (review.percentage != null) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'점수':'Score') + '</div><div class="my-sub-modal-value">' + _esc(review.score || 0) + ' / ' + _esc(review.maxScore || 100) + ' (' + _esc(review.percentage) + '%)</div></div>';
+                    if (review.recKey || review.recommendation) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'권고':'Recommendation') + '</div><div class="my-sub-modal-value">' + _esc(review.recKey || review.recommendation) + '</div></div>';
+                    if (review.reviewer) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'평가자':'Reviewer') + '</div><div class="my-sub-modal-value">' + _esc(review.reviewer) + '</div></div>';
+                    if (review.date) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'평가일':'Review Date') + '</div><div class="my-sub-modal-value">' + _esc(review.date) + '</div></div>';
+                    html += '</div>';
+                    if (review.comments) html += '<div style="margin-top:12px;"><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'평가 의견':'Comments') + '</div><div class="my-sub-modal-value">' + _esc(review.comments) + '</div></div>';
+                    html += '</div>';
+                }
+
+                // AFC
+                if (afcSt) {
+                    html += '<div class="my-sub-modal-section">';
+                    html += '<div class="my-sub-modal-label">' + (currentLang==='ko'?'AFC 진행 (Step 3)':'AFC Progress (Step 3)') + '</div>';
+                    if (afcSt.finalized) {
+                        html += '<div class="my-sub-modal-value"><strong>' + (currentLang==='ko'?'최종 결정: ':'Final Gate: ') + '</strong>' + _esc(afcSt.gate || '-') + '</div>';
+                        if (afcSt.gateNotes) html += '<div class="my-sub-modal-value" style="margin-top:8px;">' + _esc(afcSt.gateNotes) + '</div>';
+                    } else {
+                        html += '<div class="my-sub-modal-value">' + (currentLang==='ko'?'진행 중':'In Progress') + '</div>';
+                    }
+                    html += '</div>';
+                }
+
+                // Portfolio
+                if (proj) {
+                    html += '<div class="my-sub-modal-section">';
+                    html += '<div class="my-sub-modal-label">' + (currentLang==='ko'?'포트폴리오 (Step 4)':'Portfolio (Step 4)') + '</div>';
+                    html += '<div class="my-sub-modal-grid">';
+                    html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'상태':'Status') + '</div><div class="my-sub-modal-value">' + _esc((proj.status || '').replace('_',' ')) + '</div></div>';
+                    if (proj.priority) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'우선순위':'Priority') + '</div><div class="my-sub-modal-value">' + _esc(proj.priority) + '</div></div>';
+                    if (proj.owner) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'담당자':'Owner') + '</div><div class="my-sub-modal-value">' + _esc(proj.owner) + '</div></div>';
+                    html += '</div>';
+                    html += '</div>';
+                }
+
+                document.getElementById('mySubModalBody').innerHTML = html;
+                document.getElementById('mySubModal').classList.add('active');
+            } catch(e) { try { __MOP_SEC.logErr('openMyDetail', e); } catch(_){} }
+        };
+
+        window.closeMyModal = function() {
+            var m = document.getElementById('mySubModal');
+            if (m) m.classList.remove('active');
+        };
+
+        function _setSubmitBtnText(editing) {
+            var btn = document.getElementById('submitBtn');
+            if (!btn) return;
+            var ko = currentLang === 'ko';
+            if (editing) {
+                btn.textContent = ko ? '수정 저장' : 'Save Changes';
+            } else {
+                btn.textContent = (i18n[currentLang] && i18n[currentLang]['btn-submit']) || (ko ? '제출' : 'Submit');
+            }
+        }
+
+        function _showEditBanner(mode, status) {
+            _hideEditBanner();
+            var banner = document.createElement('div');
+            banner.id = 'editBanner';
+            banner.className = 'edit-banner' + (mode === 'view' ? ' readonly' : '');
+            var ko = currentLang === 'ko';
+            if (mode === 'edit') {
+                banner.innerHTML = '✏️ <strong>' + (ko?'수정 모드':'Edit Mode') + '</strong> — ' + (ko?'기존 제출을 수정 중입니다. 저장하면 원본이 업데이트됩니다.':'Editing existing submission. Saving will update the original.') + ' <button onclick="cancelEditMode()" style="margin-left:auto;padding:4px 12px;background:transparent;border:1px solid currentColor;color:inherit;border-radius:6px;cursor:pointer;font-family:inherit;">' + (ko?'취소':'Cancel') + '</button>';
+            }
+            var formEl = document.getElementById('mopForm');
+            if (formEl) formEl.parentNode.insertBefore(banner, formEl);
+        }
+
+        function _hideEditBanner() {
+            var b = document.getElementById('editBanner');
+            if (b) b.remove();
+        }
+
+        // 메시지 수신: 데이터 동기화
+        window.addEventListener('message', function(event) {
+            try {
+                if (!__MOP_SEC.isAllowedEvent(event)) return;
+                var d = event.data || {};
+                if (d.type === 'mop-submissions-sync') {
+                    _mopSubmissions = d.payload || [];
+                    if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions();
+                    var mineCount = _myEmail() ? _mopSubmissions.filter(function(s){
+                        var dd = s.data || {}; return (dd.requestOwnerEmail||'').toLowerCase() === _myEmail();
+                    }).length : 0;
+                    var ce = document.getElementById('mySubCount');
+                    if (ce) ce.textContent = mineCount ? '(' + mineCount + ')' : '';
+                }
+                else if (d.type === 'mop-reviews-sync') { _mopReviews = d.payload || []; if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions(); }
+                else if (d.type === 'mop-afc-state-restore') { _mopAfcState = d.payload || null; if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions(); }
+                else if (d.type === 'mop-portfolio-state-restore') { _mopPortfolio = d.payload || null; if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions(); }
+                else if (d.type === 'mop-user-info' && d.payload) {
+                    _userInfo = d.payload;
+                    if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions();
+                }
+            } catch(e) { try { __MOP_SEC.logErr('SubmissionForm extra msg', e); } catch(_){} }
+        });
+
+        // ESC로 모달 닫기
+        document.addEventListener('keydown', function(e){
+            if (e.key === 'Escape') {
+                var m = document.getElementById('mySubModal');
+                if (m && m.classList.contains('active')) closeMyModal();
+            }
+        });
+
+        // 탭 라벨 다국어
+        function _refreshSubTabLabels() {
+            var ko = currentLang === 'ko';
+            var newT = document.getElementById('subTabNew');
+            var mineT = document.getElementById('subTabMine');
+            var emp = document.querySelector('#mySubEmpty [data-i18n-tab="emptyMsg"]');
+            if (newT) newT.firstChild.nodeValue = ko ? '새 제출' : 'New Submission';
+            if (mineT) {
+                var span = mineT.querySelector('span'); var raw = ko ? '내 제출 ' : 'My Submissions ';
+                mineT.firstChild.nodeValue = raw;
+                if (span && !mineT.contains(span)) mineT.appendChild(span);
+            }
+            if (emp) emp.textContent = ko ? '아직 제출한 항목이 없습니다.' : "You haven't submitted anything yet.";
+            // 수정 버튼 라벨도 갱신
+            if (_editingId) _setSubmitBtnText(true);
+            else if (typeof i18n !== 'undefined') _setSubmitBtnText(false);
+            if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions();
+        }
+        // setLang 후크 - lang 변경 시 라벨 새로고침
+        var _origSetLang = window._setLangImpl;
+        window._setLangImpl = function(lang) {
+            if (_origSetLang) _origSetLang(lang);
+            try { _refreshSubTabLabels(); } catch(_){}
+        };
+
+        // === 제출 수정 모드: doSubmit 후크 ===
+        // 원본 doSubmit를 _origDoSubmit로 보존하고, 수정 모드일 때 분기
+        var _origDoSubmit = (typeof doSubmit !== 'undefined') ? doSubmit : null;
+
+        // 위에서 doSubmit는 IIFE 안에 있어 외부 접근 불가 — 대신 form submit 이벤트에 후크
+        document.getElementById('mopForm').addEventListener('submit', function(e) {
+            if (!_editingId) return; // 새 제출은 기존 핸들러가 처리
+            // 수정 모드 경로
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            try {
+                if (!_runFormValidate()) return;
+                var formData = new FormData(document.getElementById('mopForm'));
+                var data = {};
+                formData.forEach(function(v, k){ data[k] = v; });
+                if (typeof evidenceAttachments !== 'undefined' && evidenceAttachments.length) {
+                    data.evidenceFiles = evidenceAttachments.map(function(f){ return { name: f.name, dataUrl: f.dataUrl, type: f.type, size: f.size }; });
+                }
+                var record = {
+                    id: _editingId,
+                    timestamp: (_editingOriginal && _editingOriginal.timestamp) || new Date().toISOString(),
+                    date: (_editingOriginal && _editingOriginal.date) || new Date().toLocaleString(),
+                    data: data,
+                    lastModified: new Date().toISOString()
+                };
+                // Gateway에 업데이트 송신
+                if (window.parent !== window) {
+                    __MOP_SEC.safePost(window.parent, { type: 'mop-submission-update', payload: record });
+                }
+                // 로컬 캐시도 업데이트
+                var idx = _mopSubmissions.findIndex(function(s){ return String(s.id) === String(_editingId); });
+                if (idx >= 0) _mopSubmissions[idx] = record;
+                // UI 정리
+                var ko = currentLang === 'ko';
+                alert(ko ? '수정이 저장되었습니다.' : 'Changes saved.');
+                cancelEditMode();
+                switchSubTab('mine');
+            } catch(err) { try { __MOP_SEC.logErr('update submit', err); } catch(_){} }
+        }, true /* capture phase, runs first */);
+
+        // validateForm은 IIFE 안에 있어 직접 못 부름 — 폼 native validity를 활용
+        function _runFormValidate() {
+            var f = document.getElementById('mopForm');
+            // 우리도 동일한 required 체크
+            var required = ['opportunityTitle','requestType','division','requestOwner','requestOwnerEmail','opportunitySummary','problemBeingSolved','targetCustomer','strategicRelevance','growthImpact','evidence','revenuePotential','priorityArgument'];
+            var ok = true;
+            required.forEach(function(name){
+                var el = f.querySelector('[name="'+name+'"]');
+                if (el && !el.value.trim()) { el.classList.add('error'); ok = false; }
+                else if (el) { el.classList.remove('error'); }
+            });
+            if (!ok) {
+                alert(currentLang==='ko' ? '필수 항목을 모두 입력해주세요.' : 'Please fill in all required fields.');
+            }
+            return ok;
+        }
+
+        // 페이지 로드 시 hash로 탭 자동 선택 (#mine 등)
+        try {
+            window.addEventListener('load', function() {
+                if (location.hash === '#mine') setTimeout(function(){ switchSubTab('mine'); }, 100);
+            });
+        } catch(_){}
+        // ============ /내 제출 ============
 
         })(); // END IIFE
     </script>
