@@ -3174,7 +3174,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     function showCloudBadge(state) {
         var el = document.getElementById('cloudStatus');
         if (!el) return;
-        var map = { saved: ['☁️ Saved', '#34d399'], saving: ['☁️ Saving...', '#60a5fa'], loading: ['☁️ Loading...', '#60a5fa'], loaded: ['☁️ Loaded', '#34d399'], error: ['☁️ Error', '#ef4444'], empty: ['☁️ No data', '#fbbf24'] };
+        // error/empty는 표시 안 함 — 로컬 저장이 정상 작동 중이므로 사용자에게 노출 불필요
+        if (state === 'error' || state === 'empty') {
+            el.style.opacity = '0';
+            try { console.log('[MOP] cloud badge hidden — state:', state, '(local storage active)'); } catch(_){}
+            return;
+        }
+        var map = { saved: ['☁️ Saved', '#34d399'], saving: ['☁️ Saving...', '#60a5fa'], loading: ['☁️ Loading...', '#60a5fa'], loaded: ['☁️ Loaded', '#34d399'] };
         var info = map[state] || ['☁️', '#94a3b8'];
         el.textContent = info[0]; el.style.color = info[1]; el.style.opacity = '1';
         if (state !== 'loading' && state !== 'saving') setTimeout(function() { el.style.opacity = '0'; }, 3000);
