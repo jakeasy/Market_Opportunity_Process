@@ -1440,7 +1440,8 @@
                 id: Date.now() + Math.floor(Math.random() * 1000),
                 username: email, password: pw, name: name, dept: dept, region: region,
                 role: 'general', signupDate: (function(){var d=new Date();return d.toISOString().slice(0,10)+' '+d.toTimeString().slice(0,5);})(),
-                approved: false
+                approved: false,
+                createdAt: Date.now() // ★ 생성 타임스탬프 — cloudLoad가 신규 계정을 삭제로 오인하지 않도록
             };
             _accounts.push(newAcc);
             saveAccounts();
@@ -2020,11 +2021,10 @@
             gasPost(_da_url, { type: 'accounts', payload: _accounts },
                 function(j) {
                     showCloudBadge(j && j.success ? 'saved' : 'error');
-                    if (j && j.success) {
-                        // GAS 저장 확인되면 삭제 목록 클리어
-                        _deletedUsernames = _deletedUsernames.filter(function(u){ return u !== username; });
-                        try { localStorage.setItem('mop_deleted_usernames', JSON.stringify(_deletedUsernames)); } catch(e) {}
-                    }
+                    // ★★★ 버그 픽스: _deletedUsernames를 여기서 즉시 제거하지 않음 ★★★
+                    // 이유: gasPost 성공 콜백 시점에 in-flight cloudLoad 응답이 아직 도착 안 됐을 수 있음
+                    // cloudLoad 응답이 도착하면 GAS에 해당 계정이 없음을 확인 후 자동 제거됨
+                    // (cloudLoad의 _deletedUsernames 정리 로직이 처리)
                 },
                 function() { showCloudBadge('error'); }
             );
@@ -2741,7 +2741,7 @@
         try { return JSON.parse(localStorage.getItem('mop_deleted_usernames') || '[]'); } catch(e) { return []; }
     })();
     // ★ HTML 빌드 버전 — 배포 시마다 이 값을 올려서 구버전 캐시 감지
-    var _MOP_HTML_VERSION = '20260429_04';
+    var _MOP_HTML_VERSION = '20260429_05';
 
     // ★ Apps Script URL — 배포 후 이 URL은 변경되지 않습니다
     var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbxTy0nsR-02rsfvxuuFPG3_V6BrOO6W5Wm-AuIqZxel3Qg0ihIw_2HYbbz17s7PGR0BGA/exec';
@@ -3144,6 +3144,19 @@
                         }
                     }
                     if (d.accounts && d.accounts.length) {
+                        // ★★★ _deletedUsernames 정리: GAS에 해당 계정이 없으면 삭제 확인됨 → 목록에서 제거 ★★★
+                        // (gasPost 성공 콜백에서 즉시 제거하지 않고 여기서 GAS 확인 후 제거 — 레이스 컨디션 방지)
+                        if (_deletedUsernames.length > 0) {
+                            var _gasUsernames = d.accounts.map(function(ca){ return ca.username; });
+                            var _toRemove = _deletedUsernames.filter(function(u){
+                                return _gasUsernames.indexOf(u) < 0; // GAS에 없으면 삭제 확인됨
+                            });
+                            if (_toRemove.length > 0) {
+                                _deletedUsernames = _deletedUsernames.filter(function(u){ return _toRemove.indexOf(u) < 0; });
+                                try { localStorage.setItem('mop_deleted_usernames', JSON.stringify(_deletedUsernames)); } catch(e) {}
+                            }
+                        }
+
                         // GAS 계정으로 기존 계정 업데이트 (region 등 최신 필드 반영) + 없는 계정 추가
                         d.accounts.forEach(function(ca) {
                             // ★ 삭제된 계정은 GAS 구 데이터로 재추가하지 않음
@@ -3157,6 +3170,20 @@
                                 _accounts.push(ca);
                             }
                         });
+
+                        // ★★★ 크로스-디바이스 계정 삭제 동기화 ★★★
+                        // 다른 기기에서 삭제된 계정이 로컬에 잔존하는 것을 방지
+                        // 단, 방금 로컬에서 생성되어 아직 GAS에 없는 계정은 보호 (5분 이내 생성)
+                        var _gasAccIds = d.accounts.map(function(ca){ return ca.id; });
+                        var _fiveMinAgo = Date.now() - 5 * 60 * 1000;
+                        _accounts = _accounts.filter(function(la) {
+                            if (_gasAccIds.indexOf(la.id) >= 0) return true; // GAS에 있으면 유지
+                            // GAS에 없는 경우: 방금 생성된 계정(5분 이내)은 보호
+                            if (la.createdAt && parseInt(la.createdAt) > _fiveMinAgo) return true;
+                            // 그 외: 다른 기기에서 삭제된 것으로 판단 → 로컬에서도 제거
+                            return false;
+                        });
+
                         try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(e) {}
 
                         // ★ _currentUser도 GAS 최신 데이터로 업데이트 (region / mustChangePw 동기화)
