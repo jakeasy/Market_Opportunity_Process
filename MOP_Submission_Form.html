@@ -1355,6 +1355,56 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         (function() {
         'use strict';
 
+
+        // === 사용자 정보 자동 채움 (multi-shot) ===
+        function _fillUserInfo() {
+            try {
+                var u = window.__MOP_USER_INFO;
+                if (!u) return;
+                var nameEl  = document.getElementById('requestOwner');
+                var emailEl = document.getElementById('requestOwnerEmail');
+                var regEl   = document.getElementById('division');
+                var changed = false;
+                if (nameEl && !nameEl.value && u.name) {
+                    nameEl.value = u.name; changed = true;
+                }
+                if (emailEl && !emailEl.value && u.email) {
+                    emailEl.value = u.email; changed = true;
+                }
+                if (regEl && (!regEl.value || regEl.selectedIndex <= 0) && u.region) {
+                    var opts = regEl.options;
+                    for (var i = 0; i < opts.length; i++) {
+                        if (opts[i].value === u.region) {
+                            regEl.selectedIndex = i; changed = true; break;
+                        }
+                    }
+                }
+                if (changed) {
+                    [nameEl, emailEl, regEl].forEach(function(el) {
+                        if (el) {
+                            try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
+                            try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch(_){}
+                        }
+                    });
+                }
+            } catch(e) { try { __MOP_SEC.logErr('_fillUserInfo', e); } catch(_){} }
+        }
+        // 폼 로드 후에도 여러 시점에서 시도 (메시지가 폼 준비 전 도착했을 수도 있음)
+        try {
+            window.addEventListener('DOMContentLoaded', function() {
+                setTimeout(_fillUserInfo, 0);
+                setTimeout(_fillUserInfo, 100);
+                setTimeout(_fillUserInfo, 400);
+            });
+            window.addEventListener('load', function() {
+                setTimeout(_fillUserInfo, 0);
+                setTimeout(_fillUserInfo, 200);
+                setTimeout(_fillUserInfo, 800);
+                setTimeout(_fillUserInfo, 1500);
+            });
+        } catch(_){}
+        // ============================================
+
         // ★ Google Apps Script URL (Settings에서 변경 가능)
         var APPS_SCRIPT_URL = localStorage.getItem('mopAppsScriptUrl') || 'https://script.google.com/macros/s/AKfycbxm16wAGkF6bg7ym4zt06Gv9ucl7YOfTEpdauh6C85Nb2IDYO7LWuE2dWya_nZwwN3dMA/exec';
 
@@ -1449,19 +1499,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             }
             if (event.data && event.data.type === 'mop-user-info' && event.data.payload) {
                 try {
-                    var u = event.data.payload;
-                    var nameEl  = document.getElementById('requestOwner');
-                    var emailEl = document.getElementById('requestOwnerEmail');
-                    var regEl   = document.getElementById('division');
-                    if (nameEl  && !nameEl.value  && u.name)   nameEl.value  = u.name;
-                    if (emailEl && !emailEl.value && u.email)  emailEl.value = u.email;
-                    if (regEl   && !regEl.value   && u.region) {
-                        var opts = regEl.options;
-                        for (var i = 0; i < opts.length; i++) {
-                            if (opts[i].value === u.region) { regEl.selectedIndex = i; break; }
-                        }
+                    window.__MOP_USER_INFO = event.data.payload;
+                    if (typeof _fillUserInfo === 'function') {
+                        _fillUserInfo();
+                        // 폼 로드 타이밍 race를 대비해 재시도
+                        setTimeout(_fillUserInfo, 50);
+                        setTimeout(_fillUserInfo, 300);
                     }
-                    [nameEl,emailEl,regEl].forEach(function(el){ if(el){ el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change')); }});
                 } catch(e) { try { __MOP_SEC.logErr('SubmissionForm user-info', e); } catch(_){} }
             }
         });
