@@ -843,7 +843,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         var html = b64decode(b64);
         // === Inject initial language so iframe doesn't flash 'en' before sync ===
         try {
-            var _injLang = (currentLang === 'ko' ? 'ko' : 'en');
+            var _injLang = (function(){
+                try { var v = localStorage.getItem('mopLang'); if (v === 'ko' || v === 'en') return v; } catch(_){}
+                return (currentLang === 'ko' ? 'ko' : 'en');
+            })();
             var _injScript = '<script>(function(){'
                 + 'window.__MOP_INITIAL_LANG="' + _injLang + '";'
                 + 'function _apply(){'
@@ -873,7 +876,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
         function sendLangSync() {
             try {
-                iframe.contentWindow.postMessage({ type: 'mop-lang-sync', lang: currentLang }, __MOP_SEC.targetOrigin());
+                var _liveLang = (function(){ try { var v = localStorage.getItem('mopLang'); return (v==='ko'||v==='en')?v:currentLang; } catch(_){ return currentLang; } })();
+                iframe.contentWindow.postMessage({ type: 'mop-lang-sync', lang: _liveLang }, __MOP_SEC.targetOrigin());
                 if (_currentUser) {
                     iframe.contentWindow.postMessage({ type: 'mop-user-info', payload: { name: _currentUser.name || '', email: _currentUser.username || '' } }, __MOP_SEC.targetOrigin());
                 }
@@ -2107,8 +2111,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (event.data && event.data.type === 'mop-lang-change') {
             var lang = event.data.lang;
             if (lang === 'en' || lang === 'ko') {
-                // Update gateway UI
+                // Update gateway UI + persist immediately so subsequent openTool reads it
                 currentLang = lang;
+                try { localStorage.setItem('mopLang', lang); } catch(_){}
                 try { setLang(lang); } catch(e) { __MOP_SEC.logErr('Gateway setLang', e); }
                 // Broadcast to ALL open iframes (so other tabs/views stay in sync)
                 try {
