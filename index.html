@@ -2328,6 +2328,7 @@
         }
         if (event.data && event.data.type === 'mop-submitted') { closeTool(); }
         if (event.data && event.data.type === 'mop-submission-data') {
+            if (_isJustCleared) return; // ★ 초기화 직후 재저장 차단
             var payload = event.data.payload;
             if (payload && !mopSubmissions.find(function(s){ return s.id === payload.id; })) {
                 mopSubmissions.push(payload);
@@ -2357,6 +2358,7 @@
             }
         }
         if (event.data && event.data.type === 'mop-review-data') {
+            if (_isJustCleared) return; // ★ 초기화 직후 재저장 차단
             var payload = event.data.payload;
             if (payload && !mopReviews.find(function(r){ return r.id === payload.id; })) {
                 mopReviews.push(payload);
@@ -2843,6 +2845,7 @@
     }
 
     function cloudSaveNow() {
+        if (_isJustCleared) return; // ★ 초기화 직후 재저장 차단 (clearing device 보호)
         var url = getAppsScriptUrl(); if (!url) return;
         showCloudBadge('saving');
         // 1) 기존 데이터 저장
@@ -2855,7 +2858,8 @@
             function(j) { if (!j||!j.success) showCloudBadge('error'); },
             function() { showCloudBadge('error'); }
         );
-        // 3) settings 별도 저장
+        // 3) settings 별도 저장 — cleared_at 필드는 포함하지 않음
+        //    GAS에서 MERGE 방식으로 저장하므로 기존 cleared_at 신호가 보존됨
         var settingsPayload = {
             adminEmails: _adminEmails,
             pw: { form:TOOL_PW_FORM, scoring:TOOL_PW_SCORING, afc:TOOL_PW_AFC, portfolio:TOOL_PW_PORTFOLIO },
@@ -2973,8 +2977,9 @@
                                 if (localItem) _missingSubIds.push(localItem);
                             }
                         });
-                        if (_missingSubIds.length > 0) {
+                        if (_missingSubIds.length > 0 && !_isJustCleared) {
                             // ★ 병합: GAS 데이터 + 아직 GAS에 없는 로컬 pending 항목
+                            // _isJustCleared 체크: 초기화 직후에는 병합 재업로드 차단
                             mopSubmissions = _gasSubmissions.concat(_missingSubIds);
                             // 병합된 전체 데이터를 GAS에 재업로드
                             var _reupSubUrl = getAppsScriptUrl();
@@ -2995,9 +3000,11 @@
                             if (mopSubmissions.length) localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions));
                             else localStorage.removeItem('mop_submissions');
                         } catch(e) {}
-                    } else if (!_gasHasSubmissions && mopSubmissions.length > 0 && !_isJustCleared && !_lastGasHadSubmissions) {
+                    } else if (!_gasHasSubmissions && mopSubmissions.length > 0 && !_isJustCleared && !_lastGasHadSubmissions
+                               && !parseInt(localStorage.getItem('mop_last_clear_ts') || '0')) {
                         // ★ GAS 비어있고 로컬에 데이터 있음 → GAS에 복원
                         // 조건: 초기화 직후(_isJustCleared) 아님 + 이 세션에서 GAS에 데이터가 있었던 적 없음
+                        //       + 어떤 기기에서도 초기화된 적 없음(mop_last_clear_ts=0)
                         // (의도적 초기화 후 재업로드 방지, 새 GAS 배포/초기 설정 때만 복원)
                         var _recUrl = getAppsScriptUrl();
                         if (_recUrl) {
@@ -3029,7 +3036,7 @@
                                 if (localItem) _missingRevIds.push(localItem);
                             }
                         });
-                        if (_missingRevIds.length > 0) {
+                        if (_missingRevIds.length > 0 && !_isJustCleared) {
                             mopReviews = _gasReviews.concat(_missingRevIds);
                             var _reupRevUrl = getAppsScriptUrl();
                             if (_reupRevUrl) {
@@ -3049,7 +3056,8 @@
                             if (mopReviews.length) localStorage.setItem('mop_reviews', JSON.stringify(mopReviews));
                             else localStorage.removeItem('mop_reviews');
                         } catch(e) {}
-                    } else if (!_gasHasReviews && mopReviews.length > 0 && !_isJustCleared && !_lastGasHadReviews) {
+                    } else if (!_gasHasReviews && mopReviews.length > 0 && !_isJustCleared && !_lastGasHadReviews
+                               && !parseInt(localStorage.getItem('mop_last_clear_ts') || '0')) {
                         // ★ GAS 비어있고 로컬에 리뷰 있음 → GAS에 복원 (초기화 후 재업로드 방지)
                         var _recUrl2 = getAppsScriptUrl();
                         if (_recUrl2) {
