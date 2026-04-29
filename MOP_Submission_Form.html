@@ -1729,8 +1729,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         try {
             window.addEventListener('load', function() {
                 try {
-                    // Default to 'en'; Gateway will send mop-lang-sync with correct language
-                    setLang('en');
+                    // Use injected initial lang from Gateway, or saved lang, or 'en'
+                    var _initLang = (typeof window.__MOP_INITIAL_LANG === 'string' && (window.__MOP_INITIAL_LANG === 'ko' || window.__MOP_INITIAL_LANG === 'en')) ? window.__MOP_INITIAL_LANG : null;
+                    if (!_initLang) { try { var _stored = localStorage.getItem('mopLang'); if (_stored === 'ko' || _stored === 'en') _initLang = _stored; } catch(e){} }
+                    setLang(_initLang || 'en');
                 } catch(e) { try { __MOP_SEC.logErr('SubmissionForm', e); } catch(_){} }
 
                 try {
