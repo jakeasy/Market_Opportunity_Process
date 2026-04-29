@@ -921,42 +921,38 @@
 
         /* Info Row - Opportunity & Reviewer */
         .info-row {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 12px 24px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
             margin-bottom: 32px;
             background: var(--bg-main);
             border: 1px solid var(--border-color);
             border-radius: 8px;
-            padding: 16px 24px;
+            padding: 24px;
             box-shadow: var(--shadow-subtle);
         }
 
-        .info-field {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            flex: 1;
-            min-width: 200px;
+        @media (max-width: 768px) {
+            .info-row {
+                grid-template-columns: 1fr;
+            }
         }
 
         .info-field label {
+            display: block;
             font-weight: 700;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             color: var(--text-heading);
-            white-space: nowrap;
-            flex-shrink: 0;
+            margin-bottom: 8px;
         }
 
         .info-field input {
-            flex: 1;
-            min-width: 0;
-            padding: 8px 12px;
+            width: 100%;
+            padding: 12px 16px;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             font-family: 'DM Sans', sans-serif;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             background: #1a2235;
             color: var(--text-heading);
             transition: all 0.3s ease;
@@ -971,25 +967,6 @@
         .info-field input::placeholder {
             color: var(--text-secondary);
             opacity: 0.6;
-        }
-
-        /* ── Autofill 배경 강제 다크 적용 (브라우저 흰 배경 방지) ── */
-        input, select, textarea { color-scheme: dark; }
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus,
-        input:-webkit-autofill:active,
-        select:-webkit-autofill,
-        select:-webkit-autofill:hover,
-        select:-webkit-autofill:focus,
-        textarea:-webkit-autofill,
-        textarea:-webkit-autofill:hover,
-        textarea:-webkit-autofill:focus {
-            -webkit-box-shadow: 0 0 0 1000px #1a2235 inset !important;
-            -webkit-text-fill-color: #f0f2f5 !important;
-            caret-color: #f0f2f5 !important;
-            border-color: rgba(255,255,255,0.12) !important;
-            transition: background-color 9999s ease-in-out 0s !important;
         }
 
         /* Statistics Page */
@@ -1680,16 +1657,7 @@
         <div class="container">
             <div class="submissions-toolbar">
                 <h2 data-i18n="pendingSubmissions">Pending Submissions</h2>
-                <div style="display:flex;gap:8px;align-items:center;">
-                    <div style="position:relative;">
-                        <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:#6b7280;font-size:14px;pointer-events:none;">🔍</span>
-                        <input type="text" id="submissionSearch"
-                            placeholder="Search submissions..."
-                            oninput="searchSubmissions(this.value)"
-                            style="padding:8px 12px 8px 32px;background:#1a2235;border:1px solid #2d3a4f;border-radius:8px;color:#e2e8f0;font-size:13px;width:220px;outline:none;font-family:inherit;"
-                            onfocus="this.style.borderColor='#3b82f6'"
-                            onblur="this.style.borderColor='#2d3a4f'" />
-                    </div>
+                <div style="display:flex;gap:8px;">
                 </div>
             </div>
             <!-- Region Filters -->
@@ -1732,10 +1700,6 @@
                 <div class="info-field">
                     <label data-i18n="labelReviewer">Reviewer Name</label>
                     <input type="text" id="reviewerName" placeholder="Your name" />
-                </div>
-                <div class="info-field">
-                    <label data-i18n="labelReviewerEmail">Reviewer Email</label>
-                    <input type="email" id="reviewerEmail" placeholder="reviewer@medit.com" style="background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,0.15);border-radius:0;padding:6px 2px;box-shadow:none;cursor:text;" />
                 </div>
             </div>
 
@@ -1954,6 +1918,93 @@
 
 
     <script>
+
+/* ============ MOP Security Helper v2 (auto-injected) ============ */
+window.__MOP_SEC = window.__MOP_SEC || (function() {
+  var ALLOWED_HOSTS = null; // null = same-origin only (set by Gateway if needed)
+  function _proto() { try { return window.location.protocol; } catch(e) { return ''; } }
+  function _origin() { try { return window.location.origin || ''; } catch(e) { return ''; } }
+  function allowedOrigin(origin) {
+    // Allow: same-origin / file:// (null) / empty (some IE quirks) / about:srcdoc (null)
+    if (origin === _origin()) return true;
+    if (origin === 'null' || origin === '' || origin == null) return true; // file://
+    if (ALLOWED_HOSTS && ALLOWED_HOSTS.indexOf(origin) >= 0) return true;
+    return false;
+  }
+  function targetOrigin() {
+    // For file:// (origin === 'null'), browsers reject explicit "null" — must use '*'.
+    var p = _proto();
+    if (p === 'file:' || p === 'about:') return '*';
+    return _origin() || '*';
+  }
+  function safePost(target, msg) {
+    if (!target) return;
+    try { target.postMessage(msg, targetOrigin()); }
+    catch(e) { try { target.postMessage(msg, '*'); } catch(e2) { console.error('[MOP] postMessage failed', e2); } }
+  }
+  function isAllowedEvent(event) {
+    if (!event) return false;
+    if (!allowedOrigin(event.origin)) {
+      console.warn('[MOP] blocked message from origin:', event.origin, 'type:', event.data && event.data.type);
+      return false;
+    }
+    // Type prefix check (only allow mop-* messages)
+    if (!event.data || typeof event.data.type !== 'string' || event.data.type.indexOf('mop-') !== 0) return false;
+    return true;
+  }
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+  /* ---------- Password hashing (SHA-256 + salt) ---------- */
+  var SALT = 'medit-mop-v1-2026';
+  var HASH_PREFIX = 'sha256$';
+  function isHashed(s) { return typeof s === 'string' && s.indexOf(HASH_PREFIX) === 0; }
+  function hashPwAsync(pw) {
+    return new Promise(function(resolve) {
+      try {
+        if (!window.crypto || !crypto.subtle) { resolve(null); return; }
+        var enc = new TextEncoder();
+        var buf = enc.encode(String(pw == null ? '' : pw) + ':' + SALT);
+        crypto.subtle.digest('SHA-256', buf).then(function(h) {
+          var hex = Array.prototype.map.call(new Uint8Array(h), function(b){return b.toString(16).padStart(2,'0');}).join('');
+          resolve(HASH_PREFIX + hex);
+        }, function(){ resolve(null); });
+      } catch(e) { resolve(null); }
+    });
+  }
+  /* Synchronous fallback (FNV-1a 32-bit, weak — only used when crypto.subtle unavailable, e.g. file:// in older browsers) */
+  function hashPwFallback(pw) {
+    var s = String(pw == null ? '' : pw) + ':' + SALT;
+    var h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+    return HASH_PREFIX + 'fnv:' + h.toString(16).padStart(8,'0');
+  }
+  /* Compare a plaintext input against a stored value (which may be hash or legacy plaintext) */
+  function verifyPw(input, stored) {
+    return hashPwAsync(input).then(function(h) {
+      if (stored == null) return false;
+      if (isHashed(stored)) {
+        return h === stored;
+      }
+      // Legacy plaintext fallback (one-time migration support)
+      return String(input) === String(stored);
+    });
+  }
+  function logErr(ctx, e) { try { console.error('[MOP]', ctx, e); } catch(_) {} }
+  return {
+    allowedOrigin: allowedOrigin, targetOrigin: targetOrigin,
+    safePost: safePost, isAllowedEvent: isAllowedEvent,
+    escHtml: escHtml, hashPw: hashPwAsync, hashPwFallback: hashPwFallback,
+    isHashed: isHashed, verifyPw: verifyPw, logErr: logErr,
+    HASH_PREFIX: HASH_PREFIX
+  };
+})();
+/* ============ End MOP Security Helper ============ */
+
+/* file: MOP_Submissions_v2.html */
+
         try { if (window !== window.top || window.self !== window.top) { document.documentElement.classList.add('in-iframe'); } } catch(e) { document.documentElement.classList.add('in-iframe'); }
         const translations = {
             en: {
@@ -1974,7 +2025,6 @@
                 passwordError: "Incorrect password. Please try again.",
                 labelOpportunity: "Opportunity Title",
                 labelReviewer: "Reviewer Name",
-                labelReviewerEmail: "Reviewer Email",
                 notRecommended: "Not Recommended — Does not meet minimum threshold",
                 furtherDevelopment: "Conditional — Needs further analysis or development",
                 recommended: "Recommended — Meets criteria for initiation",
@@ -2095,7 +2145,6 @@
                 passwordError: "비밀번호가 올바르지 않습니다.",
                 labelOpportunity: "기회 제목",
                 labelReviewer: "평가자 이름",
-                labelReviewerEmail: "평가자 이메일",
                 notRecommended: "비추천 — 최소 기준 미달",
                 furtherDevelopment: "조건부 — 추가 분석 또는 개발 필요",
                 recommended: "추천 — 착수 기준 충족",
@@ -2221,7 +2270,7 @@
             }
             // Notify parent Gateway (only if user clicked, not from sync)
             if (!_langFromSync) {
-                try { if (window.parent !== window) window.parent.postMessage({ type: 'mop-lang-change', lang: lang }, '*'); } catch(e) {}
+                try { if (window.parent !== window) window.parent.postMessage({ type: 'mop-lang-change', lang: lang }, __MOP_SEC.targetOrigin()); } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
             }
             _langFromSync = false;
         }
@@ -2490,7 +2539,6 @@
             const texts = translations[currentLanguage];
             const title = document.getElementById('opportunityTitle').value.trim();
             const reviewer = document.getElementById('reviewerName').value.trim();
-            const reviewerEmail = document.getElementById('reviewerEmail').value.trim();
 
             if (!title || !reviewer) {
                 showToast(texts.fillRequired);
@@ -2528,7 +2576,6 @@
                 submissionData: submissionData,
                 title: title,
                 reviewer: reviewer,
-                reviewerEmail: reviewerEmail,
                 submitter: submissionData ? (submissionData.requestOwner || '-') : '-',
                 score: Math.round(totalScore),
                 maxScore: maxScore,
@@ -2545,14 +2592,13 @@
             // Send review data to parent (Gateway) for persistence
             try {
                 var msg = { type: 'mop-review-data', payload: review };
-                window.top.postMessage(msg, '*');
-                window.parent.postMessage(msg, '*');
-            } catch(e) {}
+                window.top.postMessage(msg, __MOP_SEC.targetOrigin());
+                window.parent.postMessage(msg, __MOP_SEC.targetOrigin());
+            } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
 
             // Reset form
             document.getElementById('opportunityTitle').value = '';
             document.getElementById('reviewerName').value = '';
-            document.getElementById('reviewerEmail').value = '';
             Object.keys(scores).forEach(k => delete scores[k]);
             document.getElementById('scoreValue').textContent = '0';
             document.getElementById('scoreMax').textContent = '/ ' + maxScore;
@@ -2571,16 +2617,13 @@
             if (el) el.classList.toggle('hidden');
         }
 
-        // === Submissions Management ===
+    
+        // === XSS escape helper ===
+        function esc(s){if(s==null)return '';var d=document.createElement('div');d.textContent=String(s);return d.innerHTML;}
+    // === Submissions Management ===
 
         var currentRegionFilter = 'all';
         var currentStatusFilter = 'all';
-        var currentSearchQuery = '';
-
-        function searchSubmissions(q) {
-            currentSearchQuery = q;
-            renderSubmissionsList();
-        }
 
         function renderSubmissionsList() {
             const texts = translations[currentLanguage];
@@ -2660,28 +2703,8 @@
                 });
             }
 
-            // Filter by search query
-            if (currentSearchQuery.trim()) {
-                const q = currentSearchQuery.trim().toLowerCase();
-                filtered = filtered.filter(sub => {
-                    const d = sub.data || {};
-                    const title = (d.opportunityTitle || d.title || '').toLowerCase();
-                    const submitter = (d.requestOwner || d.submitter || '').toLowerCase();
-                    const region = (d.division || '').toLowerCase();
-                    const reqType = (d.requestType || '').toLowerCase();
-                    const review = reviews.find(r => r.submissionId === sub.id);
-                    const reviewer = review ? (review.reviewer || '').toLowerCase() : '';
-                    return title.includes(q) || submitter.includes(q) || region.includes(q) || reqType.includes(q) || reviewer.includes(q);
-                });
-            }
-
-            // Pending first, Reviewed second — each group newest first
-            const pending  = filtered.slice().reverse().filter(sub => !reviews.find(r => r.submissionId === sub.id));
-            const reviewed = filtered.slice().reverse().filter(sub =>  reviews.find(r => r.submissionId === sub.id));
-            filtered = pending.concat(reviewed);
-
             if (listEl) {
-                listEl.innerHTML = filtered.map(sub => {
+                listEl.innerHTML = filtered.slice().reverse().map(sub => {
                 const d = sub.data || {};
                 const review = reviews.find(r => r.submissionId === sub.id);
                 const isReviewed = !!review;
@@ -2709,12 +2732,9 @@
                                 <span class="review-info-score-bar"><span class="review-info-score-bar-fill" style="width:${pct}%;background:${scoreColor}"></span></span>
                                 ${pct}%
                             </span>
-                            <span class="review-info-rec ${recClass}">${recLabel}</span>
-                            <span class="review-info-reviewer">👤 ${reviewerLabel}: ${review.reviewer || '-'}</span>
-                            <span class="review-info-date">
-                                <span style="color:#64748b;font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.4px;">${isKo ? '평가 일시' : 'Reviewed'}</span>
-                                <span style="color:#94a3b8;font-size:0.8rem;margin-left:4px;">📅 ${review.date || ''}</span>
-                            </span>
+                            <span class="review-info-rec ${recClass}">${esc(recLabel)}</span>
+                            <span class="review-info-reviewer">👤 ${reviewerLabel}: ${esc(review.reviewer || '-')}</span>
+                            <span class="review-info-date">📅 ${esc(review.date || '')}</span>
                         </div>`;
                 }
 
@@ -2722,14 +2742,14 @@
                     <div class="submission-card${cardClass}" ${cardClick}>
                         <div class="submission-card-top">
                             <span class="submission-card-badge ${badgeClass}">${badgeText}</span>
-                            <div class="submission-card-title">${d.opportunityTitle || 'Untitled'}</div>
-                            <span class="submission-card-type">${d.requestType || '-'}</span>
+                            <div class="submission-card-title">${esc(d.opportunityTitle || 'Untitled')}</div>
+                            <span class="submission-card-type">${esc(d.requestType || '-')}</span>
                         </div>
                         <div class="submission-card-meta">
-                            ${region ? '<span class="submission-card-region">📍 ' + region + '</span>' : ''}
-                            ${d.requestOwner || '-'}${d.requestOwnerEmail ? ' (' + d.requestOwnerEmail + ')' : ''} &middot; ${sub.date || sub.timestamp || ''}
+                            ${region ? '<span class="submission-card-region">📍 ' + esc(region) + '</span>' : ''}
+                            ${esc(d.requestOwner || '-')}${d.requestOwnerEmail ? ' (' + d.requestOwnerEmail + ')' : ''} &middot; ${sub.date || sub.timestamp || ''}
                         </div>
-                        <div class="submission-card-summary">${d.opportunitySummary || ''}</div>
+                        <div class="submission-card-summary">${esc(d.opportunitySummary || '')}</div>
                         ${reviewInfoHtml}
                     </div>
                 `;
@@ -2738,17 +2758,11 @@
         }
 
         function filterByRegion(region) {
-            currentSearchQuery = '';
-            const searchEl = document.getElementById('submissionSearch');
-            if (searchEl) searchEl.value = '';
             currentRegionFilter = region;
             renderSubmissionsList();
         }
 
         function filterByStatus(status) {
-            currentSearchQuery = '';
-            const searchEl2 = document.getElementById('submissionSearch');
-            if (searchEl2) searchEl2.value = '';
             currentStatusFilter = status;
             renderSubmissionsList();
         }
@@ -2963,6 +2977,7 @@
 
         // Listen for messages from parent (Gateway)
         window.addEventListener('message', function(e) {
+            if (!__MOP_SEC.isAllowedEvent(e)) return;
             if (e.data && e.data.type && e.data.type.indexOf('mop-')===0 && !document.documentElement.classList.contains('in-iframe')) {
                 document.documentElement.classList.add('in-iframe');
             }
@@ -2986,30 +3001,33 @@
                 }
             }
             if (e.data && e.data.type === 'mop-submissions-sync') {
-                // REPLACE entire array (not additive) so reset properly clears old data
-                submissions = e.data.payload || [];
+                const list = e.data.payload || [];
+                list.forEach(sub => {
+                    if (!submissions.find(s => s.id === sub.id)) {
+                        submissions.push(sub);
+                    }
+                });
                 if (!document.getElementById('submissionsPage').classList.contains('hidden')) {
                     renderSubmissionsList();
                 }
             }
             // Receive reviews from Gateway (persistence sync)
             if (e.data && e.data.type === 'mop-reviews-sync') {
-                // REPLACE entire array (not additive) so reset properly clears old data
-                reviews = e.data.payload || [];
+                const list = e.data.payload || [];
+                list.forEach(r => {
+                    var existing = reviews.find(rv => rv.id === r.id);
+                    if (existing) {
+                        // Update existing review with latest data (decision, memos)
+                        Object.assign(existing, r);
+                    } else {
+                        reviews.push(r);
+                    }
+                });
                 if (!document.getElementById('statsPage').classList.contains('hidden')) {
                     renderStats();
                 }
                 if (!document.getElementById('hqListPage').classList.contains('hidden')) {
                     renderHqList();
-                }
-            }
-            if (e.data && e.data.type === 'mop-user-info') {
-                const u = e.data.payload;
-                if (u) {
-                    const nameEl  = document.getElementById('reviewerName');
-                    const emailEl = document.getElementById('reviewerEmail');
-                    if (nameEl  && !nameEl.value)  { nameEl.value  = u.name  || ''; nameEl.removeAttribute('readonly'); }
-                    if (emailEl && !emailEl.value) { emailEl.value = u.email || ''; emailEl.removeAttribute('readonly'); }
                 }
             }
         });
@@ -3034,9 +3052,9 @@
                 // Sync updated reviews back to Gateway
                 try {
                     var msg = { type: 'mop-reviews-full-sync', payload: reviews };
-                    window.top.postMessage(msg, '*');
-                    window.parent.postMessage(msg, '*');
-                } catch(e) {}
+                    window.top.postMessage(msg, __MOP_SEC.targetOrigin());
+                    window.parent.postMessage(msg, __MOP_SEC.targetOrigin());
+                } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
             }
         }
 
@@ -3309,9 +3327,9 @@
             // Sync to Gateway
             try {
                 if (window.parent !== window) {
-                    window.parent.postMessage({ type: 'mop-reviews-full-sync', payload: reviews }, '*');
+                    window.parent.postMessage({ type: 'mop-reviews-full-sync', payload: reviews }, __MOP_SEC.targetOrigin());
                 }
-            } catch(e) {}
+            } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
             delete pendingDecisions[id];
         }
 
@@ -3402,9 +3420,9 @@
                         window.parent.postMessage({
                             type: 'mop-decision-go',
                             payload: { reviewId: reviewId, title: r.title, reviewer: r.reviewer, decision: 'go' }
-                        }, '*');
+                        }, __MOP_SEC.targetOrigin());
                     }
-                } catch(e) {}
+                } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
             }
 
             // Show appropriate toast
@@ -3432,9 +3450,9 @@
         function syncReviewsToGateway() {
             try {
                 if (window.parent !== window) {
-                    window.parent.postMessage({ type: 'mop-reviews-full-sync', payload: reviews }, '*');
+                    window.parent.postMessage({ type: 'mop-reviews-full-sync', payload: reviews }, __MOP_SEC.targetOrigin());
                 }
-            } catch(e) {}
+            } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
         }
 
         // ===== EMAIL FUNCTIONS =====
@@ -3708,10 +3726,9 @@
                         '<span class="hq-card-type">' + (sd.requestType || '-') + '</span>' +
                     '</div>' +
                     '<div class="hq-card-meta">' +
-                        (region ? '<span class="submission-card-region">📍 ' + region + '</span>' : '') +
-                        texts.hqSubmitter + ': ' + escapeHtml(submitter) + ' &nbsp;·&nbsp; ' +
-                        texts.hqReviewer + ': ' + escapeHtml(r.reviewer) +
-                        (r.date ? ' &nbsp;·&nbsp; <span style="color:#64748b;font-size:0.75rem;font-weight:600;">' + (isKo ? '평가 일시' : 'Reviewed') + ':</span> <span style="color:#94a3b8;font-size:0.8rem;">📅 ' + r.date + '</span>' : '') +
+                        (region ? '<span class="submission-card-region">📍 ' + esc(region) + '</span>' : '') +
+                        texts.hqSubmitter + ': ' + escapeHtml(submitter) + ' · ' +
+                        texts.hqReviewer + ': ' + escapeHtml(r.reviewer) + ' · ' + r.date +
                     '</div>' +
                     '<div class="hq-card-scores">' +
                         '<span class="hq-score-pill" style="color:' + scoreColor + '">' +
@@ -3879,9 +3896,9 @@
 
             // Sync to Gateway
             try {
-                window.top.postMessage({ type: 'mop-review-update', payload: r }, '*');
-                window.parent.postMessage({ type: 'mop-review-update', payload: r }, '*');
-            } catch(e) {}
+                window.top.postMessage({ type: 'mop-review-update', payload: r }, __MOP_SEC.targetOrigin());
+                window.parent.postMessage({ type: 'mop-review-update', payload: r }, __MOP_SEC.targetOrigin());
+            } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
 
             renderHqMemos(r);
             showToast(isKo ? '✅ 결정이 저장되었습니다.' : '✅ Decision saved successfully.');
@@ -3892,9 +3909,9 @@
             if (!r || !r.memos) return;
             r.memos.splice(idx, 1);
             try {
-                window.top.postMessage({ type: 'mop-review-update', payload: r }, '*');
-                window.parent.postMessage({ type: 'mop-review-update', payload: r }, '*');
-            } catch(e) {}
+                window.top.postMessage({ type: 'mop-review-update', payload: r }, __MOP_SEC.targetOrigin());
+                window.parent.postMessage({ type: 'mop-review-update', payload: r }, __MOP_SEC.targetOrigin());
+            } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
             renderHqMemos(r);
         }
 
@@ -3902,7 +3919,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             initTool();
             // Signal parent that Scoring Tool is ready to receive data
-            try{if(window.parent!==window)window.parent.postMessage({type:'mop-scoring-ready'},'*');}catch(e){}
+            try{if(window.parent!==window)window.parent.postMessage({type:'mop-scoring-ready'},__MOP_SEC.targetOrigin());} catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
         });
     </script>
 </body>
