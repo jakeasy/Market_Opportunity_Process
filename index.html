@@ -2463,6 +2463,149 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         cloudSaveDebounced();
     }
 
+    // ================================================================
+    // GAS (Google Apps Script) 통신 — CORS 우회 (sendBeacon + JSONP)
+    // ================================================================
+    var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwYpGWsSZWHVFFb1XH-D6bOs3N22nnnOWFqUVpuxJ81A-bCOigrWqXF77zL_F_UaVXLng/exec';
+    function getAppsScriptUrl() { return _appsScriptUrl; }
+
+    // gasPost: navigator.sendBeacon 우선 (CORS 콘솔 에러 없음)
+    function gasPost(url, data, onSuccess, onError) {
+        try {
+            var jsonStr = JSON.stringify(data);
+            var queued = false;
+            if (navigator.sendBeacon) {
+                try {
+                    var blob = new Blob([jsonStr], { type: 'text/plain;charset=utf-8' });
+                    queued = navigator.sendBeacon(url, blob);
+                } catch(_){ queued = false; }
+            }
+            if (queued) {
+                if (onSuccess) onSuccess({ success: true, note: 'sent via sendBeacon' });
+                return;
+            }
+            fetch(url, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: jsonStr, keepalive: true
+            }).then(function(){ if (onSuccess) onSuccess({ success: true, note: 'sent via fetch no-cors' }); })
+              .catch(function(err){ if (onError) onError(String(err)); });
+        } catch(e) { if (onError) onError(String(e)); }
+    }
+
+    // gasGet: JSONP via <script> tag → CORS 우회
+    function gasGet(url, onSuccess, onError) {
+        try {
+            var cbName = '__mop_jsonp_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+            var sep = url.indexOf('?') >= 0 ? '&' : '?';
+            var fullUrl = url + sep + 'callback=' + cbName;
+            var script = document.createElement('script');
+            var done = false;
+            var timeout = setTimeout(function(){
+                if (done) return;
+                done = true; cleanup();
+                if (onError) onError('JSONP timeout (15s)');
+            }, 15000);
+            window[cbName] = function(json) {
+                if (done) return;
+                done = true; clearTimeout(timeout); cleanup();
+                try { if (onSuccess) onSuccess(json); } catch(e) { if (onError) onError(String(e)); }
+            };
+            function cleanup() {
+                try { delete window[cbName]; } catch(_){ window[cbName] = undefined; }
+                try { script.parentNode && script.parentNode.removeChild(script); } catch(_){}
+            }
+            script.onerror = function() {
+                if (done) return;
+                done = true; clearTimeout(timeout); cleanup();
+                if (onError) onError('JSONP script error');
+            };
+            script.src = fullUrl;
+            document.head.appendChild(script);
+        } catch(e) { if (onError) onError(String(e)); }
+    }
+
+    var _cloudSaveTimer = null;
+    function cloudSaveDebounced() {
+        var url = getAppsScriptUrl(); if (!url) return;
+        if (_cloudSaveTimer) clearTimeout(_cloudSaveTimer);
+        _cloudSaveTimer = setTimeout(function() { cloudSaveNow(); }, 2000);
+    }
+
+    function cloudSaveNow() {
+        var url = getAppsScriptUrl(); if (!url) return;
+        var body = {
+            type: 'all',
+            submissions: _stripDataUrls(mopSubmissions),
+            reviews: _stripDataUrls(mopReviews),
+            afcState: mopAfcState,
+            portfolio: mopPortfolioState
+        };
+        showCloudBadge('saving');
+        gasPost(url, body,
+            function(j) { showCloudBadge(j.success ? 'saved' : 'error'); },
+            function() { showCloudBadge('error'); }
+        );
+    }
+
+    function cloudLoad() {
+        var url = getAppsScriptUrl(); if (!url) return;
+        showCloudBadge('loading');
+        gasGet(url,
+            function(j) {
+                if (j && j.success && j.data) {
+                    var d = j.data;
+                    if (d.submissions && d.submissions.length) { mopSubmissions = d.submissions; try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(_){} }
+                    if (d.reviews && d.reviews.length) { mopReviews = d.reviews; try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){} }
+                    if (d.afcState) { mopAfcState = d.afcState; try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(_){} }
+                    if (d.portfolio) { mopPortfolioState = d.portfolio; try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(_){} }
+                    if (d.accounts && d.accounts.length) {
+                        d.accounts.forEach(function(ca) {
+                            if (!_accounts.find(function(la){ return la.id === ca.id; })) _accounts.push(ca);
+                        });
+                        try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(_){}
+                        try { __mopMigratePasswords(); } catch(_){}
+                    }
+                    showCloudBadge('loaded');
+                } else { showCloudBadge('empty'); }
+            },
+            function() { showCloudBadge('error'); }
+        );
+    }
+
+    function showCloudBadge(state) {
+        var el = document.getElementById('cloudStatus');
+        if (!el) return;
+        if (state === 'error' || state === 'empty') {
+            el.style.opacity = '0';
+            try { console.log('[MOP] cloud badge hidden — state:', state, '(local storage active)'); } catch(_){}
+            return;
+        }
+        var map = { saved: ['☁️ Saved', '#34d399'], saving: ['☁️ Saving...', '#60a5fa'], loading: ['☁️ Loading...', '#60a5fa'], loaded: ['☁️ Loaded', '#34d399'] };
+        var info = map[state] || ['☁️', '#94a3b8'];
+        el.textContent = info[0]; el.style.color = info[1]; el.style.opacity = '1';
+        if (state !== 'loading' && state !== 'saving') setTimeout(function() { el.style.opacity = '0'; }, 3000);
+    }
+
+    // 페이지 로드 시 cloud 데이터 불러오기
+    if (getAppsScriptUrl()) {
+        var skipLoad = false;
+        try {
+            if (sessionStorage.getItem('__mop_just_reset') === '1') { skipLoad = true; sessionStorage.removeItem('__mop_just_reset'); }
+        } catch(_){}
+        try {
+            var resetAt = parseInt(localStorage.getItem('__mop_reset_at') || '0', 10);
+            if (resetAt > 0 && (Date.now() - resetAt) < 5*60*1000) skipLoad = true;
+        } catch(_){}
+        try {
+            var disabled = parseInt(localStorage.getItem('__mop_cloud_disabled_until') || '0', 10);
+            if (disabled > Date.now()) skipLoad = true;
+        } catch(_){}
+        if (!skipLoad) setTimeout(cloudLoad, 500);
+    }
+
+    var mopAfcNeedsSync = false;
+
     window.addEventListener('message', function(event) {
         if (!__MOP_SEC.isAllowedEvent(event)) return;
         if (event.data && event.data.type === 'mop-lang-change') {
@@ -2928,7 +3071,6 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (event.data && event.data.type === 'mop-decision-go') {
             mopAfcNeedsSync = true;
         }
-        // Ready handshake: iframes signal when they're ready to receive data
         if (event.data && event.data.type === 'mop-portfolio-ready') {
             var iframe = document.getElementById('tool-iframe');
             if (!mopPortfolioState) mopPortfolioState = { projects: [], nextId: 1 };
