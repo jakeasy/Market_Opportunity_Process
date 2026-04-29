@@ -841,6 +841,23 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         var b64 = toolB64[key];
         if (!b64) return;
         var html = b64decode(b64);
+        // === Inject initial language so iframe doesn't flash 'en' before sync ===
+        try {
+            var _injLang = (currentLang === 'ko' ? 'ko' : 'en');
+            var _injScript = '<script>(function(){'
+                + 'window.__MOP_INITIAL_LANG="' + _injLang + '";'
+                + 'function _apply(){'
+                +   'try{if(typeof setLang==="function"){setLang(window.__MOP_INITIAL_LANG);}'
+                +   'else if(typeof setLanguage==="function"){setLanguage(window.__MOP_INITIAL_LANG);}}catch(e){}'
+                + '}'
+                + 'if(document.readyState==="loading"){document.addEventListener("DOMContentLoaded",_apply);}else{_apply();}'
+                + 'window.addEventListener("load",function(){setTimeout(_apply,0);setTimeout(_apply,30);setTimeout(_apply,150);});'
+                + '})();<\/script>';
+            // <head>가 있으면 그 안에 (가능한 한 빠르게), 없으면 맨 앞에
+            if (html.indexOf('<head>') >= 0) { html = html.replace('<head>', '<head>' + _injScript); }
+            else if (html.indexOf('<html>') >= 0) { html = html.replace('<html>', '<html>' + _injScript); }
+            else { html = _injScript + html; }
+        } catch(e) { try { __MOP_SEC.logErr('openTool inject lang', e); } catch(_){} }
         var iframe = document.getElementById('tool-iframe');
         // srcdoc 방식 사용 — Blob URL 없이 작동 (GitHub Pages 호환)
         iframe.removeAttribute('src');
@@ -2015,8 +2032,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }
     };
 
-    var currentLang = 'en';
+    var currentLang = (function(){
+        try { var v = localStorage.getItem('mopLang'); return (v === 'ko' || v === 'en') ? v : 'en'; }
+        catch(e) { return 'en'; }
+    })();
     function setLang(lang) {
+        try { localStorage.setItem('mopLang', lang); } catch(e) {}
         currentLang = lang;
         var t = i18n[lang];
         // ── Login screen ──
@@ -2069,7 +2090,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             }
         } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
     }
-    setLang('en');
+    setLang(currentLang);
     initAuth();
 
     var mopSubmissions = [];
