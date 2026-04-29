@@ -426,6 +426,93 @@
 </div>
 
 <script>
+
+/* ============ MOP Security Helper v2 (auto-injected) ============ */
+window.__MOP_SEC = window.__MOP_SEC || (function() {
+  var ALLOWED_HOSTS = null; // null = same-origin only (set by Gateway if needed)
+  function _proto() { try { return window.location.protocol; } catch(e) { return ''; } }
+  function _origin() { try { return window.location.origin || ''; } catch(e) { return ''; } }
+  function allowedOrigin(origin) {
+    // Allow: same-origin / file:// (null) / empty (some IE quirks) / about:srcdoc (null)
+    if (origin === _origin()) return true;
+    if (origin === 'null' || origin === '' || origin == null) return true; // file://
+    if (ALLOWED_HOSTS && ALLOWED_HOSTS.indexOf(origin) >= 0) return true;
+    return false;
+  }
+  function targetOrigin() {
+    // For file:// (origin === 'null'), browsers reject explicit "null" — must use '*'.
+    var p = _proto();
+    if (p === 'file:' || p === 'about:') return '*';
+    return _origin() || '*';
+  }
+  function safePost(target, msg) {
+    if (!target) return;
+    try { target.postMessage(msg, targetOrigin()); }
+    catch(e) { try { target.postMessage(msg, '*'); } catch(e2) { console.error('[MOP] postMessage failed', e2); } }
+  }
+  function isAllowedEvent(event) {
+    if (!event) return false;
+    if (!allowedOrigin(event.origin)) {
+      console.warn('[MOP] blocked message from origin:', event.origin, 'type:', event.data && event.data.type);
+      return false;
+    }
+    // Type prefix check (only allow mop-* messages)
+    if (!event.data || typeof event.data.type !== 'string' || event.data.type.indexOf('mop-') !== 0) return false;
+    return true;
+  }
+  function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : String(s);
+    return d.innerHTML;
+  }
+  /* ---------- Password hashing (SHA-256 + salt) ---------- */
+  var SALT = 'medit-mop-v1-2026';
+  var HASH_PREFIX = 'sha256$';
+  function isHashed(s) { return typeof s === 'string' && s.indexOf(HASH_PREFIX) === 0; }
+  function hashPwAsync(pw) {
+    return new Promise(function(resolve) {
+      try {
+        if (!window.crypto || !crypto.subtle) { resolve(null); return; }
+        var enc = new TextEncoder();
+        var buf = enc.encode(String(pw == null ? '' : pw) + ':' + SALT);
+        crypto.subtle.digest('SHA-256', buf).then(function(h) {
+          var hex = Array.prototype.map.call(new Uint8Array(h), function(b){return b.toString(16).padStart(2,'0');}).join('');
+          resolve(HASH_PREFIX + hex);
+        }, function(){ resolve(null); });
+      } catch(e) { resolve(null); }
+    });
+  }
+  /* Synchronous fallback (FNV-1a 32-bit, weak — only used when crypto.subtle unavailable, e.g. file:// in older browsers) */
+  function hashPwFallback(pw) {
+    var s = String(pw == null ? '' : pw) + ':' + SALT;
+    var h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
+    return HASH_PREFIX + 'fnv:' + h.toString(16).padStart(8,'0');
+  }
+  /* Compare a plaintext input against a stored value (which may be hash or legacy plaintext) */
+  function verifyPw(input, stored) {
+    return hashPwAsync(input).then(function(h) {
+      if (stored == null) return false;
+      if (isHashed(stored)) {
+        return h === stored;
+      }
+      // Legacy plaintext fallback (one-time migration support)
+      return String(input) === String(stored);
+    });
+  }
+  function logErr(ctx, e) { try { console.error('[MOP]', ctx, e); } catch(_) {} }
+  return {
+    allowedOrigin: allowedOrigin, targetOrigin: targetOrigin,
+    safePost: safePost, isAllowedEvent: isAllowedEvent,
+    escHtml: escHtml, hashPw: hashPwAsync, hashPwFallback: hashPwFallback,
+    isHashed: isHashed, verifyPw: verifyPw, logErr: logErr,
+    HASH_PREFIX: HASH_PREFIX
+  };
+})();
+/* ============ End MOP Security Helper ============ */
+
+/* file: MOP_Project_Portfolio_v2.html */
+
 try { if (window !== window.top || window.self !== window.top) { document.documentElement.classList.add('in-iframe'); } } catch(e) { document.documentElement.classList.add('in-iframe'); }
 // Category structure with grouping
 var categoryGroups = [
@@ -548,7 +635,7 @@ function setLang(lang){
     document.getElementById('langKo').classList.toggle('active',lang==='ko');
     document.querySelectorAll('[data-i18n]').forEach(function(el){var k=el.getAttribute('data-i18n');if(i18n[lang][k])el.textContent=i18n[lang][k];});
     populateCatFilter();populateCatSelect();populateImpactSelect();renderAll();
-    if(!_langFromSync){try{if(window.parent!==window)window.parent.postMessage({type:'mop-lang-change',lang:lang},'*');}catch(e){}}
+    if(!_langFromSync){try{if(window.parent!==window)window.parent.postMessage({type:'mop-lang-change',lang:lang},__MOP_SEC.targetOrigin());} catch(e) { try { __MOP_SEC.logErr('Portfolio', e); } catch(_){} }}
     _langFromSync=false;
 }
 
@@ -996,7 +1083,7 @@ var _allReviews=[];
 function openScoringReview(mopId){
     var review=_allReviews.find(function(r){return String(r.id)===String(mopId)||String(r.submissionId)===String(mopId);});
     if(!review){
-        try{if(window.parent!==window) window.parent.postMessage({type:'mop-request-review-data',mopId:mopId},'*');}catch(e){}
+        try{if(window.parent!==window) window.parent.postMessage({type:'mop-request-review-data',mopId:mopId},__MOP_SEC.targetOrigin());} catch(e) { try { __MOP_SEC.logErr('Portfolio', e); } catch(_){} }
         return;
     }
     showReviewResultPopup(review);
@@ -1004,7 +1091,7 @@ function openScoringReview(mopId){
 function showReviewResultPopup(r){
     var isKo=currentLang==='ko';
     document.getElementById('rrTitle').textContent=r.title||'Untitled';
-    document.getElementById('rrMeta').innerHTML=(isKo?'평가자: ':'Reviewer: ')+'<strong style="color:#e2e8f0">'+(r.reviewer||'-')+'</strong> · '+(r.date||'');
+    document.getElementById('rrMeta').innerHTML=(isKo?'평가자: ':'Reviewer: ')+'<strong style="color:#e2e8f0">'+esc(r.reviewer||'-')+'</strong> · '+(r.date||'');
     var score=r.score||0,maxScore=r.maxScore||100,pct=r.percentage||Math.round(score/maxScore*100);
     var sc=pct>=80?'#10b981':pct>=60?'#34d399':pct>=40?'#fbbf24':'#ef4444';
     document.getElementById('rrScoreBig').textContent=score;
@@ -1073,7 +1160,7 @@ function openChecklist(id) {
             if (isChecked) checked++;
             var dateStr = '';
             if (isChecked && typeof val === 'string') {
-                try { var d = new Date(val); dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); } catch(e) {}
+                try { var d = new Date(val); dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); } catch(e) { try { __MOP_SEC.logErr('Portfolio', e); } catch(_){} }
             }
             if(_guestMode){
                 html += '<div class="cl-item' + (isChecked ? ' checked' : '') + '" style="cursor:default;opacity:0.85">'
@@ -1186,7 +1273,7 @@ function printChecklist() {
             var isDone=!!val;
             if(isDone) checked++;
             var dateStr='';
-            if(isDone&&typeof val==='string'){try{var d=new Date(val);dateStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}catch(e){}}
+            if(isDone&&typeof val==='string'){try{var d=new Date(val);dateStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');} catch(e) { try { __MOP_SEC.logErr('Portfolio', e); } catch(_){} }}
             html+='<div class="item"><span class="check'+(isDone?' done':'')+'">'+( isDone?'✓':'')+'</span><span>'+item+'</span>'+(dateStr?'<span class="date">'+dateStr+'</span>':'')+'</div>';
         });
         html+='</div>';
@@ -1441,9 +1528,9 @@ function printDashboardMatrix(){
 function saveState(){
     try{
         var payload={projects:projects,nextId:nextId};
-        if(window.parent!==window)window.parent.postMessage({type:'mop-portfolio-state-save',payload:payload},'*');
-        try{localStorage.setItem('mop_portfolio_state',JSON.stringify(payload));}catch(e){}
-    }catch(e){}
+        if(window.parent!==window)window.parent.postMessage({type:'mop-portfolio-state-save',payload:payload},__MOP_SEC.targetOrigin());
+        try{localStorage.setItem('mop_portfolio_state',JSON.stringify(payload));} catch(e) { try { __MOP_SEC.logErr('Portfolio', e); } catch(_){} }
+    } catch(e) { try { __MOP_SEC.logErr('Portfolio', e); } catch(_){} }
 }
 function loadLocalState(){
     try{
@@ -1457,10 +1544,10 @@ function loadLocalState(){
                 return true;
             }
         }
-    }catch(e){}
+    } catch(e) { try { __MOP_SEC.logErr('Portfolio', e); } catch(_){} }
     return false;
 }
-window.addEventListener('message',function(e){
+window.addEventListener('message',function(e){if(!__MOP_SEC.isAllowedEvent(e))return;
     if(!e.data)return;
     // Detect iframe via Gateway messages (reliable for Blob URL context)
     if(e.data.type&&e.data.type.indexOf('mop-')===0&&!document.documentElement.classList.contains('in-iframe')){
@@ -1534,7 +1621,7 @@ loadLocalState();
 populateCatFilter();populateCatSelect();populateImpactSelect();renderAll();
 _initialized=true;
 // Signal parent that Portfolio is ready to receive data
-try{if(window.parent!==window)window.parent.postMessage({type:'mop-portfolio-ready'},'*');}catch(e){}
+try{if(window.parent!==window)window.parent.postMessage({type:'mop-portfolio-ready'},__MOP_SEC.targetOrigin());} catch(e) { try { __MOP_SEC.logErr('Portfolio', e); } catch(_){} }
 </script>
 </body>
 </html>
