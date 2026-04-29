@@ -69,7 +69,7 @@
         /* SUBMISSION PANEL */
         .submission-panel { background:#111827; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.5rem; margin-bottom:1.5rem; }
         .submission-panel h2 { font-size:1.05rem; font-weight:600; color:var(--gray-900); margin-bottom:1rem; }
-        .no-reviews { text-align:center; padding:2.5rem 1rem; color:var(--gray-500); }
+        .no-reviews { text-align:center; padding:2.5rem 1rem; color:var(--gray-500); max-width:520px; margin:0 auto; }
         .no-reviews .icon { font-size:2.5rem; margin-bottom:0.75rem; }
         .review-cards { display:flex; flex-direction:column; gap:0.75rem; }
         .review-card { border:2px solid var(--gray-200); border-radius:10px; padding:1rem 1.25rem; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; justify-content:space-between; gap:1rem; background:#1a2235; }
@@ -308,7 +308,7 @@
         <h2>📋 <span data-i18n="selectReview">Select a Reviewed Submission</span></h2>
         <div id="reviewList"><div class="no-reviews"><div class="icon">📭</div><p data-i18n="noReviews">No reviewed submissions yet. Complete Steps 1–3 first.</p></div></div>
     </div>
-    <div class="no-selection-guide" id="noSelectionGuide" style="display:none;text-align:center;padding:4rem 2rem">
+    <div class="no-selection-guide" id="noSelectionGuide" style="display:none;text-align:center;padding:4rem 2rem;max-width:520px;margin:0 auto;">
         <div style="font-size:3rem;margin-bottom:16px">📊</div>
         <div style="font-size:1.1rem;font-weight:700;color:#e2e8f0;margin-bottom:10px" id="guideTitle">Dashboard에서 Action을 열어주세요</div>
         <div style="font-size:0.88rem;color:#94a3b8;line-height:1.6" id="guideDesc">Dashboard 탭에서 검토할 항목의 Action 열에 있는 <strong style="color:#60a5fa">Open</strong> 버튼을 클릭하면<br>체크리스트가 표시됩니다.</div>
