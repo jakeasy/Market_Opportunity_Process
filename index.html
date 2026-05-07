@@ -3159,8 +3159,80 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }
     });
 
+    // ★ AFC finalize=GO/Conditional 시 자동으로 Portfolio에 추가
+    function autoSyncAfcToPortfolio() {
+        console.log('[MOP] autoSyncAfcToPortfolio 시작');
+        if (!mopAfcState || !mopAfcState.checklistState) {
+            console.log('[MOP] autoSync: AFC state 없음 — skip');
+            return;
+        }
+        var cs = mopAfcState.checklistState;
+        if (!mopPortfolioState) mopPortfolioState = { projects: [], nextId: 1 };
+        if (!mopPortfolioState.projects) mopPortfolioState.projects = [];
+        var changed = false;
+        Object.keys(cs).forEach(function(reviewId) {
+            var st = cs[reviewId];
+            if (!st || !st.finalized) return;
+            // GO 또는 Conditional이면 포트폴리오 추가
+            if (st.gate !== 'go' && st.gate !== 'conditional') {
+                console.log('[MOP] autoSync: review', reviewId, '게이트 NoGo — skip');
+                return;
+            }
+            var mopId = String(reviewId);
+            var exists = mopPortfolioState.projects.find(function(p) { return String(p.mopId) === mopId; });
+            if (exists) {
+                console.log('[MOP] autoSync: review', reviewId, '이미 portfolio에 있음');
+                return;
+            }
+            // Find review for metadata
+            var review = mopReviews.find(function(r) { return String(r.id) === mopId; })
+                      || mopReviews.find(function(r) { return String(r.submissionId) === mopId; });
+            var sd = (review && review.submissionData) || {};
+            // Find original submission for richer metadata
+            if (review && review.submissionId) {
+                var origSub = mopSubmissions.find(function(s){ return String(s.id) === String(review.submissionId); });
+                if (origSub && origSub.data) sd = origSub.data;
+            }
+            mopPortfolioState.projects.push({
+                id: mopPortfolioState.nextId || mopPortfolioState.projects.length + 1,
+                name: (review && review.title) || sd.opportunityTitle || 'Untitled',
+                category: '', impactType: '', status: 'todo', funding: 'funded', priority: 'high',
+                owner: sd.requestOwner || '',
+                mopId: mopId, notes: '', checklist: {},
+                created: st.finalizedDate || new Date().toISOString(),
+                updated: new Date().toISOString(),
+                autoAdded: true,
+                afcGate: st.gate,
+                afcFinalizedDate: st.finalizedDate || '',
+                reviewScore: (review && review.score) || 0,
+                reviewMaxScore: (review && review.maxScore) || 100,
+                reviewPercentage: (review && review.percentage) || 0,
+                reviewer: (review && review.reviewer) || '',
+                region: sd.division || '',
+                submitter: sd.requestOwner || ''
+            });
+            mopPortfolioState.nextId = (mopPortfolioState.nextId || 1) + 1;
+            changed = true;
+            console.log('[MOP] autoSync: ✓ added review', reviewId, 'to portfolio');
+        });
+        if (changed) {
+            try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(_){}
+            cloudSaveDebounced();
+            // 현재 열린 iframe에 portfolio 갱신 송신
+            try {
+                var iframe = document.getElementById('tool-iframe');
+                if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage({ type: 'mop-portfolio-state-restore', payload: mopPortfolioState }, __MOP_SEC.targetOrigin());
+                }
+            } catch(_){}
+            console.log('[MOP] autoSync: 포트폴리오 저장 완료, 총', mopPortfolioState.projects.length, 'projects');
+        } else {
+            console.log('[MOP] autoSync: 변경 없음');
+        }
+    }
+
     setTimeout(function() {
-        try { if (typeof autoSyncAfcToPortfolio === 'function') autoSyncAfcToPortfolio(); } catch(_){}
+        try { autoSyncAfcToPortfolio(); } catch(e) { console.error('[MOP] autoSync init error:', e); }
     }, 1500);
 
     </script>
