@@ -2652,28 +2652,55 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     var _cloudSaveTimer = null;
     function cloudSaveDebounced() {
         var url = getAppsScriptUrl(); if (!url) return;
+        // ★ cloudLoad 완료 전 호출 시 → 보류 (stale localStorage로 서버 덮어쓰기 방지)
+        if (!_cloudLoadDone) {
+            _pendingSaveAfterLoad = true;
+            console.log('[MOP] cloudSaveDebounced deferred — cloudLoad not yet done');
+            return;
+        }
         if (_cloudSaveTimer) clearTimeout(_cloudSaveTimer);
-        // ★ 디바운스 2000→500ms (브라우저 간 빠른 전파)
         _cloudSaveTimer = setTimeout(function() { cloudSaveNow(); }, 500);
     }
     window.cloudSaveDebounced = cloudSaveDebounced;
 
     function cloudSaveNow() {
         var url = getAppsScriptUrl(); if (!url) return;
+        // ★ cloudLoad 완료 전에는 절대 저장 금지 — stale 데이터로 서버 덮어쓰기 방지
+        if (!_cloudLoadDone) {
+            _pendingSaveAfterLoad = true;
+            console.warn('[MOP] cloudSaveNow BLOCKED — cloudLoad not yet done (will save after load)');
+            return;
+        }
         var body = {
             type: 'all',
             submissions: _stripDataUrls(mopSubmissions),
             reviews: _stripDataUrls(mopReviews),
             afcState: mopAfcState,
             portfolio: mopPortfolioState,
-            accounts: _accounts || []   // ★ 브라우저 간 계정 공유 — 'all' payload에 포함
+            accounts: _accounts || []
         };
         console.log('[MOP] cloudSaveNow → submissions=' + (mopSubmissions||[]).length + ' reviews=' + (mopReviews||[]).length + ' accounts=' + (_accounts||[]).length);
         showCloudBadge('saving');
         gasPost(url, body,
-            function(j) { showCloudBadge(j.success ? 'saved' : 'error'); console.log('[MOP] cloudSaveNow OK'); },
-            function() { showCloudBadge('error'); console.warn('[MOP] cloudSaveNow ERROR'); }
+            function(j) { showCloudBadge(j.success ? 'saved' : 'error'); console.log('[MOP] cloudSaveNow OK (POST)'); },
+            function() { showCloudBadge('error'); console.warn('[MOP] cloudSaveNow ERROR (POST)'); }
         );
+        // ★★★ 추가 안전망: reviews만 별도로 GET 경로로도 저장 시도 (no-cors fetch 실패 대비)
+        // 페이로드 작은 reviews는 GET URL에 담아 JSONP로 직접 저장
+        try {
+            var rJson = JSON.stringify(_stripDataUrls(mopReviews));
+            if (rJson.length < 6500) {  // URL 길이 한계
+                var cbn = '__mop_rsave_cb_' + Date.now();
+                window[cbn] = function(j){ console.log('[MOP] reviews JSONP save:', j); try { delete window[cbn]; } catch(_){} };
+                var s = document.createElement('script');
+                s.src = url + (url.indexOf('?')>=0?'&':'?') + 'action=save&type=reviews&data=' + encodeURIComponent(rJson) + '&callback=' + cbn;
+                s.onerror = function(){ console.warn('[MOP] reviews JSONP save script error'); };
+                document.head.appendChild(s);
+                setTimeout(function(){ try { s.parentNode && s.parentNode.removeChild(s); } catch(_){} }, 8000);
+            } else {
+                console.log('[MOP] reviews payload too large for GET save (' + (rJson.length/1024).toFixed(1) + 'KB) — POST only');
+            }
+        } catch(eGet){ console.warn('[MOP] reviews GET save exception:', eGet); }
     }
     window.cloudSaveNow = cloudSaveNow;  // ★ iframe에서 직접 호출 가능하도록
 
@@ -2681,6 +2708,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     // localStorage는 캐시로만 사용. 서버가 단일 소스(SoT).
     var _lastServerSyncTs = 0;
     var _lastServerVersion = '0';
+    // ★★★ 핵심 가드: 첫 cloudLoad 완료 전에는 cloudSave 차단
+    // (페이지 로드 직후 localStorage 기반 stale 상태로 서버를 덮어쓰는 것 방지)
+    var _cloudLoadDone = false;
+    var _pendingSaveAfterLoad = false;
     function cloudLoad(opts) {
         opts = opts || {};
         var url = getAppsScriptUrl(); if (!url) { if (opts.onComplete) opts.onComplete(false); return; }
@@ -2707,8 +2738,15 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(_){}
                     try { __mopMigratePasswords(); } catch(_){}
                     _lastServerSyncTs = Date.now();
+                    _cloudLoadDone = true;   // ★ 이제부터 cloudSave 허용
                     try { localStorage.setItem('__mop_last_sync', String(_lastServerSyncTs)); } catch(_){}
                     showCloudBadge('loaded');
+                    // 로드 중 보류된 저장이 있으면 즉시 실행
+                    if (_pendingSaveAfterLoad) {
+                        _pendingSaveAfterLoad = false;
+                        console.log('[MOP] cloudLoad done — flushing pending save');
+                        setTimeout(function(){ try { cloudSaveNow(); } catch(_){} }, 100);
+                    }
                     // 모든 iframe에 새 데이터 전송 (열려 있는 경우)
                     try {
                         var ifr = document.getElementById('tool-iframe');
@@ -2730,11 +2768,24 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             function(err) {
                 console.warn('[MOP] cloudLoad error:', err);
                 showCloudBadge('error');
+                // ★ 실패해도 cloudLoad 완료 상태로 표시 (계속 저장 차단되면 데이터 못 보냄)
+                _cloudLoadDone = true;
                 if (opts.onComplete) opts.onComplete(false);
             }
         );
     }
     window.cloudLoad = cloudLoad;
+    // ★ 안전망: 10초 안에 cloudLoad 콜백 안 오면 강제 unblock
+    setTimeout(function(){
+        if (!_cloudLoadDone) {
+            console.warn('[MOP] cloudLoad timeout — forcing _cloudLoadDone=true');
+            _cloudLoadDone = true;
+            if (_pendingSaveAfterLoad) {
+                _pendingSaveAfterLoad = false;
+                try { cloudSaveNow(); } catch(_){}
+            }
+        }
+    }, 10000);
 
     function showCloudBadge(state) {
         var el = document.getElementById('cloudStatus');
