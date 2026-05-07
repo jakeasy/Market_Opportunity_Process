@@ -3061,49 +3061,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (iframe && iframe.contentWindow) {
                     iframe.contentWindow.postMessage({ type: 'mop-portfolio-state-restore', payload: mopPortfolioState }, __MOP_SEC.targetOrigin());
                 }
-            } catch(_){}
+            } catch(e) { try { __MOP_SEC.logErr('Gateway portfolio auto-add', e); } catch(_){} }
         }
     });
 
-    // autoSyncAfcToPortfolio: AFC GO 결정 시 자동 포트폴리오 추가
-    function autoSyncAfcToPortfolio() {
-        if (!mopAfcState || !mopAfcState.checklistState) return;
-        var cs = mopAfcState.checklistState;
-        if (!mopPortfolioState) mopPortfolioState = { projects: [], nextId: 1 };
-        if (!mopPortfolioState.projects) mopPortfolioState.projects = [];
-        var changed = false;
-        Object.keys(cs).forEach(function(reviewId) {
-            var st = cs[reviewId];
-            if (!st.finalized) return;
-            if (st.gate !== 'go' && st.gate !== 'conditional') return;
-            var mopId = String(reviewId);
-            var exists = mopPortfolioState.projects.find(function(p) { return String(p.mopId) === mopId; });
-            if (exists) return;
-            var review = mopReviews.find(function(r) { return String(r.id) === mopId; }) || mopReviews.find(function(r) { return String(r.submissionId) === mopId; });
-            var sd = (review && review.submissionData) || {};
-            mopPortfolioState.projects.push({
-                id: mopPortfolioState.nextId || mopPortfolioState.projects.length + 1,
-                name: (review && review.title) || sd.opportunityTitle || 'Untitled',
-                category: '', impactType: '', status: 'todo', funding: 'funded', priority: 'high',
-                owner: (review && review.reviewer) || sd.requestOwner || '',
-                mopId: mopId, notes: '', checklist: {},
-                created: st.finalizedDate || new Date().toISOString(),
-                updated: new Date().toISOString(),
-                autoAdded: true, afcGate: st.gate, afcReadiness: 0,
-                reviewScore: (review && review.score) || 0,
-                reviewMaxScore: (review && review.maxScore) || 100,
-                reviewer: (review && review.reviewer) || '',
-                region: sd.division || '', submitter: sd.requestOwner || ''
-            });
-            mopPortfolioState.nextId = (mopPortfolioState.nextId || 1) + 1;
-            changed = true;
-        });
-        if (changed) {
-            try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(_){}
-            cloudSaveDebounced();
-        }
-    }
-    setTimeout(function() { try { autoSyncAfcToPortfolio(); } catch(_){} }, 1500);
+    setTimeout(function() {
+        try { if (typeof autoSyncAfcToPortfolio === 'function') autoSyncAfcToPortfolio(); } catch(_){}
+    }, 1500);
 
     </script>
 </body>
