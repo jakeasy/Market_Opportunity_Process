@@ -1182,11 +1182,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         try { localStorage.setItem('mop_afc_state', JSON.stringify({checklistState:{}})); } catch(_){}
         try { localStorage.setItem('mop_portfolio_state', JSON.stringify({projects:[],nextId:1})); } catch(_){}
 
-        // === 4. 클라우드 동기화 비활성 마커 (1시간) ===
-        var disableUntil = Date.now() + 60 * 60 * 1000; // 1시간
+        // === 4. 클라우드 sync 잠시만 비활성 (5초) — 다른 브라우저 빠르게 동기화 받도록 ===
+        // 이전: 1시간 → 다른 브라우저에서 너무 오래 stale 상태 유지함
+        var disableUntil = Date.now() + 5 * 1000; // 5초
         try { localStorage.setItem('__mop_cloud_disabled_until', String(disableUntil)); } catch(_){}
         try { sessionStorage.setItem('__mop_just_reset', '1'); } catch(_){}
-        console.log('[MOP] cloud sync disabled until', new Date(disableUntil).toLocaleString());
+        console.log('[MOP] cloud sync briefly disabled (5s)');
 
         // === 5. GAS에 clear 요청 (POST + GET 동시 시도 — 계정/설정 제외 모두 비움) ===
         var url = getAppsScriptUrl();
@@ -2886,7 +2887,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         } catch(_){}
         try {
             var disabled = parseInt(localStorage.getItem('__mop_cloud_disabled_until') || '0', 10);
-            if (disabled > Date.now()) skipLoad = true;
+            // ★ 차단 시간 30초 이상이면 stale로 간주 → 무시하고 cloudLoad 진행
+            // (이전 버전의 1시간 차단이 cross-browser sync을 막고 있었음)
+            if (disabled > Date.now() && (disabled - Date.now()) < 30000) skipLoad = true;
+            else if (disabled > Date.now()) {
+                console.warn('[MOP] stale cloud-disable flag detected (' + Math.round((disabled-Date.now())/60000) + 'min remaining) — clearing');
+                localStorage.removeItem('__mop_cloud_disabled_until');
+            }
         } catch(_){}
         if (!skipLoad) {
             cloudLoad();   // ★ 즉시 호출
