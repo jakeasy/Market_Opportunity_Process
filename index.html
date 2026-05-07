@@ -2353,31 +2353,44 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }
     }
     // ★ 모든 메일 본문에 MOP 바로가기 CTA 버튼 자동 첨부
-    // 위치: 'Track progress' 또는 'automated email' 텍스트 직전(본문 마지막), 못 찾으면 </td></tr> 직전, 마지막 fallback </body>
+    // 통일된 위치: 본문 안내 문구(Track progress / automated / do not reply / 푸터) 직전
     var _MOP_PUBLIC_URL = 'https://jakeasy.github.io/Market_Opportunity_Process';
     function _appendMopCta(htmlBody) {
         if (!htmlBody) return htmlBody;
         var cta = '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;"><tr><td align="center">'
             + '<a href="' + _MOP_PUBLIC_URL + '" style="display:inline-block;padding:12px 32px;background:#3b82f6;color:#fff;font-size:14px;font-weight:700;text-decoration:none;border-radius:8px;letter-spacing:0.3px;box-shadow:0 4px 10px rgba(59,130,246,0.25);">🔗 Open MOP System &rarr;</a>'
             + '</td></tr></table>';
-        // 1차: "Track progress" 텍스트가 들어 있는 <p> 직전에 삽입
-        var trackIdx = htmlBody.indexOf('Track progress in MOP');
-        if (trackIdx > 0) {
-            // 그 <p> 시작점 찾기
-            var pStart = htmlBody.lastIndexOf('<p', trackIdx);
-            if (pStart > 0) {
-                return htmlBody.slice(0, pStart) + cta + htmlBody.slice(pStart);
+        // 우선순위 마커 — 가장 먼저 찾히는 위치 직전에 삽입
+        var markers = [
+            'Track progress in MOP',
+            'Track progress in',
+            'automated email',
+            'do not reply',
+            'Please do not reply',
+            'please contact',
+            'MEDIT MOP System'  // 푸터
+        ];
+        for (var i = 0; i < markers.length; i++) {
+            var idx = htmlBody.indexOf(markers[i]);
+            if (idx > 0) {
+                // 그 마커가 들어 있는 가장 가까운 <p>, <div>, <tr>, <table> 시작점 찾기
+                var tagPositions = [
+                    htmlBody.lastIndexOf('<p ', idx),
+                    htmlBody.lastIndexOf('<p>', idx),
+                    htmlBody.lastIndexOf('<tr>', idx),
+                    htmlBody.lastIndexOf('<tr ', idx),
+                    htmlBody.lastIndexOf('<div ', idx),
+                    htmlBody.lastIndexOf('<div>', idx)
+                ].filter(function(v){ return v > 0; });
+                if (tagPositions.length > 0) {
+                    var insertAt = Math.max.apply(null, tagPositions);
+                    return htmlBody.slice(0, insertAt) + cta + htmlBody.slice(insertAt);
+                }
+                // 태그 못 찾으면 marker 자체 위치 직전
+                return htmlBody.slice(0, idx) + cta + htmlBody.slice(idx);
             }
         }
-        // 2차: "automated email" 텍스트 직전
-        var autoIdx = htmlBody.indexOf('automated email');
-        if (autoIdx > 0) {
-            var pStart2 = htmlBody.lastIndexOf('<p', autoIdx);
-            if (pStart2 > 0) {
-                return htmlBody.slice(0, pStart2) + cta + htmlBody.slice(pStart2);
-            }
-        }
-        // 3차 fallback: </body> 직전
+        // 마지막 fallback: </body> 직전
         var closeIdx = htmlBody.lastIndexOf('</body>');
         if (closeIdx >= 0) {
             return htmlBody.slice(0, closeIdx) + cta + htmlBody.slice(closeIdx);
