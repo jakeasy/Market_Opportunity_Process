@@ -3218,10 +3218,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (iframe && iframe.contentWindow) {
                     iframe.contentWindow.postMessage({ type: 'mop-portfolio-state-restore', payload: mopPortfolioState }, __MOP_SEC.targetOrigin());
                 }
-            } catch(_){}
-            console.log('[MOP] autoSync: saved, total', mopPortfolioState.projects.length, 'projects');
-        } else {
-            console.log('[MOP] autoSync: no changes');
+            } catch(e) { try { __MOP_SEC.logErr('Gateway portfolio auto-add', e); } catch(_){} }
         }
     }
 
