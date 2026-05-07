@@ -2287,7 +2287,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             };
         });
     })();
-    console.log("%c[MOP] Gateway loaded — version: v2.AFCFIX.20260507-1700", "color:#3b82f6;font-weight:bold");
+    console.log("%c[MOP] Gateway loaded — version: v2.MAILDIAG.20260507-2200", "color:#3b82f6;font-weight:bold");
     // ★ 인라인 onclick에서 호출되는 함수들을 window에 명시 노출 (스코프 안전망)
     try { if (typeof doLogin === 'function') window.doLogin = doLogin; } catch(_){}
     try { if (typeof showSignup === 'function') window.showSignup = showSignup; } catch(_){}
@@ -2524,27 +2524,68 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     function getAppsScriptUrl() { return _appsScriptUrl; }
 
     // gasPost: navigator.sendBeacon 우선 (CORS 콘솔 에러 없음)
+    // ★ 이메일 전용: 항상 fetch 사용 (sendBeacon이 GAS doPost에 안 닿는 케이스 회피)
+    function gasPostEmail(url, data, onSuccess, onError) {
+        try {
+            var jsonStr = JSON.stringify(data);
+            console.log('[MOP gasPostEmail] payload size:', (jsonStr.length/1024).toFixed(1), 'KB');
+            console.log('[MOP gasPostEmail] keys:', Object.keys(data));
+            console.log('[MOP gasPostEmail] to:', data.to, '| adminTo:', data.adminTo);
+            console.log('[MOP gasPostEmail] adminSubject present:', !!data.adminSubject, '| adminHtml present:', !!data.adminHtml);
+            fetch(url, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: jsonStr
+            }).then(function(){
+                console.log('[MOP gasPostEmail] ✓ fetch sent');
+                if (onSuccess) onSuccess({ success: true, note: 'fetch direct' });
+            }).catch(function(err){
+                console.error('[MOP gasPostEmail] fetch error:', err);
+                if (onError) onError(String(err));
+            });
+        } catch(e) {
+            console.error('[MOP gasPostEmail] exception:', e);
+            if (onError) onError(String(e));
+        }
+    }
+
     function gasPost(url, data, onSuccess, onError) {
         try {
             var jsonStr = JSON.stringify(data);
+            var sizeKb = (jsonStr.length / 1024).toFixed(1);
+            console.log('[MOP gasPost] payload size:', sizeKb, 'KB');
+            // sendBeacon 64KB 한계 확인 (대부분 브라우저 64KB 제한)
+            var BEACON_LIMIT = 60 * 1024; // 60KB safe margin
             var queued = false;
-            if (navigator.sendBeacon) {
+            if (navigator.sendBeacon && jsonStr.length < BEACON_LIMIT) {
                 try {
                     var blob = new Blob([jsonStr], { type: 'text/plain;charset=utf-8' });
                     queued = navigator.sendBeacon(url, blob);
-                } catch(_){ queued = false; }
+                    console.log('[MOP gasPost] sendBeacon queued:', queued);
+                } catch(beErr){ console.warn('[MOP gasPost] sendBeacon error:', beErr); queued = false; }
+            } else if (jsonStr.length >= BEACON_LIMIT) {
+                console.log('[MOP gasPost] payload too large for sendBeacon (' + sizeKb + 'KB), using fetch');
             }
             if (queued) {
-                if (onSuccess) onSuccess({ success: true, note: 'sent via sendBeacon' });
+                if (onSuccess) onSuccess({ success: true, note: 'sent via sendBeacon (' + sizeKb + 'KB)' });
                 return;
             }
+            console.log('[MOP gasPost] using fetch fallback');
             fetch(url, {
                 method: 'POST', mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                 body: jsonStr, keepalive: true
-            }).then(function(){ if (onSuccess) onSuccess({ success: true, note: 'sent via fetch no-cors' }); })
-              .catch(function(err){ if (onError) onError(String(err)); });
-        } catch(e) { if (onError) onError(String(e)); }
+            }).then(function(){
+                console.log('[MOP gasPost] fetch sent ✓');
+                if (onSuccess) onSuccess({ success: true, note: 'sent via fetch no-cors (' + sizeKb + 'KB)' });
+            }).catch(function(err){
+                console.error('[MOP gasPost] fetch error:', err);
+                if (onError) onError(String(err));
+            });
+        } catch(e) {
+            console.error('[MOP gasPost] exception:', e);
+            if (onError) onError(String(e));
+        }
     }
 
     // gasGet: JSONP via <script> tag → CORS 우회
@@ -2899,7 +2940,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 console.log('  - payload keys:', Object.keys(newSubPayload));
                 if (!_email || _email.indexOf('@') < 0) console.error('[MOP] ⚠️ submitter email MISSING/INVALID — only admin will receive');
                 // gasPost 사용 (sendBeacon 우선, fetch fallback) — CORS 안전
-                gasPost(url, newSubPayload,
+                gasPostEmail(url, newSubPayload,
                     function(res){ console.log('✓ MOP dual-email sent via', res && res.note ? res.note : 'unknown'); },
                     function(err){ console.error('✗ MOP email error:', err); }
                 );
@@ -3114,48 +3155,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (iframe && iframe.contentWindow) {
                     iframe.contentWindow.postMessage({ type: 'mop-portfolio-state-restore', payload: mopPortfolioState }, __MOP_SEC.targetOrigin());
                 }
-            } catch(_){}
+            } catch(e) { try { __MOP_SEC.logErr('Gateway portfolio auto-add', e); } catch(_){} }
         }
     });
 
-    function autoSyncAfcToPortfolio() {
-        if (!mopAfcState || !mopAfcState.checklistState) return;
-        var cs = mopAfcState.checklistState;
-        if (!mopPortfolioState) mopPortfolioState = { projects: [], nextId: 1 };
-        if (!mopPortfolioState.projects) mopPortfolioState.projects = [];
-        var changed = false;
-        Object.keys(cs).forEach(function(reviewId) {
-            var st = cs[reviewId];
-            if (!st.finalized) return;
-            if (st.gate !== 'go' && st.gate !== 'conditional') return;
-            var mopId = String(reviewId);
-            var exists = mopPortfolioState.projects.find(function(p) { return String(p.mopId) === mopId; });
-            if (exists) return;
-            var review = mopReviews.find(function(r) { return String(r.id) === mopId; }) || mopReviews.find(function(r) { return String(r.submissionId) === mopId; });
-            var sd = (review && review.submissionData) || {};
-            mopPortfolioState.projects.push({
-                id: mopPortfolioState.nextId || mopPortfolioState.projects.length + 1,
-                name: (review && review.title) || sd.opportunityTitle || 'Untitled',
-                category: '', impactType: '', status: 'todo', funding: 'funded', priority: 'high',
-                owner: (review && review.reviewer) || sd.requestOwner || '',
-                mopId: mopId, notes: '', checklist: {},
-                created: st.finalizedDate || new Date().toISOString(),
-                updated: new Date().toISOString(),
-                autoAdded: true, afcGate: st.gate, afcReadiness: 0,
-                reviewScore: (review && review.score) || 0,
-                reviewMaxScore: (review && review.maxScore) || 100,
-                reviewer: (review && review.reviewer) || '',
-                region: sd.division || '', submitter: sd.requestOwner || ''
-            });
-            mopPortfolioState.nextId = (mopPortfolioState.nextId || 1) + 1;
-            changed = true;
-        });
-        if (changed) {
-            try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(_){}
-            cloudSaveDebounced();
-        }
-    }
-    setTimeout(function() { try { autoSyncAfcToPortfolio(); } catch(_){} }, 1500);
+    setTimeout(function() {
+        try { if (typeof autoSyncAfcToPortfolio === 'function') autoSyncAfcToPortfolio(); } catch(_){}
+    }, 1500);
 
     </script>
 </body>
