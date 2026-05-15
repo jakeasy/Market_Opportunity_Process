@@ -1138,6 +1138,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (newSPw && newSPw.trim()) { SETTINGS_PW = newSPw.trim(); localStorage.setItem('mop_settings_pw', SETTINGS_PW); }
         // 관리자 이메일 저장
         localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails));
+        // ★ FIX 2026-05-15: 설정 저장 직후 cloud sync (다른 브라우저에 즉시 반영)
+        try { if (typeof cloudSaveNow === 'function') cloudSaveNow(); } catch(_){}
         document.getElementById('settingsOverlay').classList.remove('active');
     }
     function clearAllData() {
@@ -2746,15 +2748,35 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
     function cloudSaveNow() {
         var url = getAppsScriptUrl(); if (!url) return;
+        // ★ FIX 2026-05-15: settings도 함께 동기화 (Chrome ↔ Edge 등 브라우저 간 동기화)
+        var _settingsSnapshot = null;
+        try {
+            _settingsSnapshot = {
+                adminEmails: (_adminEmails || []).slice(),
+                pw: {
+                    form:      localStorage.getItem('mop_pw_form')      || '1111',
+                    scoring:   localStorage.getItem('mop_pw_scoring')   || '1111',
+                    afc:       localStorage.getItem('mop_pw_afc')       || '1111',
+                    portfolio: localStorage.getItem('mop_pw_portfolio') || '1111'
+                },
+                pwOn: {
+                    form:      (localStorage.getItem('mop_pw_on_form')      || 'true') === 'true',
+                    scoring:   (localStorage.getItem('mop_pw_on_scoring')   || 'true') === 'true',
+                    afc:       (localStorage.getItem('mop_pw_on_afc')       || 'true') === 'true',
+                    portfolio: (localStorage.getItem('mop_pw_on_portfolio') || 'true') === 'true'
+                }
+            };
+        } catch(_){}
         var body = {
             type: 'all',
             submissions: _stripDataUrls(mopSubmissions),
             reviews: _stripDataUrls(mopReviews),
             afcState: mopAfcState,
             portfolio: mopPortfolioState,
-            accounts: _accounts || []
+            accounts: _accounts || [],
+            settings: _settingsSnapshot
         };
-        console.log('[MOP] cloudSaveNow → submissions=' + (mopSubmissions||[]).length + ' reviews=' + (mopReviews||[]).length + ' accounts=' + (_accounts||[]).length);
+        console.log('[MOP] cloudSaveNow → submissions=' + (mopSubmissions||[]).length + ' reviews=' + (mopReviews||[]).length + ' accounts=' + (_accounts||[]).length + ' settings=' + (_settingsSnapshot ? 'yes' : 'no'));
         showCloudBadge('saving');
         gasPost(url, body,
             function(j) { showCloudBadge(j.success ? 'saved' : 'error'); console.log('[MOP] cloudSaveNow OK (POST)'); },
@@ -2801,6 +2823,32 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     if (d.reviews && d.reviews.length) { mopReviews = d.reviews; try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){} }
                     if (d.afcState) { mopAfcState = d.afcState; try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(_){} }
                     if (d.portfolio) { mopPortfolioState = d.portfolio; try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(_){} }
+                    // ★ FIX 2026-05-15: settings 동기화 (Chrome ↔ Edge 등 브라우저 간 sync)
+                    if (d.settings && typeof d.settings === 'object') {
+                        try {
+                            var _s = d.settings;
+                            // pw 객체 → localStorage 개별 키로 분배
+                            if (_s.pw && typeof _s.pw === 'object') {
+                                if (_s.pw.form      != null) { localStorage.setItem('mop_pw_form',      String(_s.pw.form));      try { TOOL_PW_FORM      = String(_s.pw.form);      } catch(_){} }
+                                if (_s.pw.scoring   != null) { localStorage.setItem('mop_pw_scoring',   String(_s.pw.scoring));   try { TOOL_PW_SCORING   = String(_s.pw.scoring);   } catch(_){} }
+                                if (_s.pw.afc       != null) { localStorage.setItem('mop_pw_afc',       String(_s.pw.afc));       try { TOOL_PW_AFC       = String(_s.pw.afc);       } catch(_){} }
+                                if (_s.pw.portfolio != null) { localStorage.setItem('mop_pw_portfolio', String(_s.pw.portfolio)); try { TOOL_PW_PORTFOLIO = String(_s.pw.portfolio); } catch(_){} }
+                            }
+                            // pwOn 객체 → localStorage + 전역 변수 갱신
+                            if (_s.pwOn && typeof _s.pwOn === 'object') {
+                                if (_s.pwOn.form      != null) { localStorage.setItem('mop_pw_on_form',      String(!!_s.pwOn.form));      try { PW_ON_FORM      = !!_s.pwOn.form;      } catch(_){} }
+                                if (_s.pwOn.scoring   != null) { localStorage.setItem('mop_pw_on_scoring',   String(!!_s.pwOn.scoring));   try { PW_ON_SCORING   = !!_s.pwOn.scoring;   } catch(_){} }
+                                if (_s.pwOn.afc       != null) { localStorage.setItem('mop_pw_on_afc',       String(!!_s.pwOn.afc));       try { PW_ON_AFC       = !!_s.pwOn.afc;       } catch(_){} }
+                                if (_s.pwOn.portfolio != null) { localStorage.setItem('mop_pw_on_portfolio', String(!!_s.pwOn.portfolio)); try { PW_ON_PORTFOLIO = !!_s.pwOn.portfolio; } catch(_){} }
+                            }
+                            // adminEmails 동기화
+                            if (Array.isArray(_s.adminEmails)) {
+                                _adminEmails = _s.adminEmails.slice();
+                                try { localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails)); } catch(_){}
+                            }
+                            console.log('[MOP] cloudLoad: settings applied — pwOn=', _s.pwOn);
+                        } catch(_e){ console.warn('[MOP] settings apply error:', _e); }
+                    }
                     if (d.accounts && Array.isArray(d.accounts)) {
                         // ★ FIX: 서버 우선 upsert (기존 계정의 변경사항도 반영, 신규 가입 계정도 머지)
                         var _accIdx = {};
