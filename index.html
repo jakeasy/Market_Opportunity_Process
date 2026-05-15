@@ -2010,6 +2010,20 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (!confirm('이 Account을 삭제하시겠습니까?')) return;
         _accounts = _accounts.filter(function(a){ return a.id !== id; });
         saveAccounts();
+        // ★ FIX 2026-05-15: 서버측이 머지 모드라서 그냥 saveAccounts만 하면 다음 머지에서 부활함.
+        //    명시적 delete-account 엔드포인트 호출로 시트에서도 제거.
+        try {
+            if (typeof _appsScriptUrl === 'string' && _appsScriptUrl) {
+                var _delUrl = _appsScriptUrl;
+                fetch(_delUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    keepalive: true,
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: JSON.stringify({ type: 'delete-account', id: id })
+                }).catch(function(){});
+            }
+        } catch(_){}
         // 현재 로그인 중인 Account 삭제 시 자동 로그아웃
         if (_currentUser && _currentUser.id === id) {
             doLogout();
@@ -2562,7 +2576,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     // ================================================================
     // GAS (Google Apps Script) 통신 — CORS 우회 (sendBeacon + JSONP)
     // ================================================================
-    var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwYpGWsSZWHVFFb1XH-D6bOs3N22nnnOWFqUVpuxJ81A-bCOigrWqXF77zL_F_UaVXLng/exec';
+    var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwLhrwK7EaD_SSt73689f7hdoKh-Ta_6mMAyMusn5MdHaZcjnA83Wx6xGBq-Rpfu5_Zzw/exec';
     function getAppsScriptUrl() { return _appsScriptUrl; }
 
     // gasPost: navigator.sendBeacon 우선 (CORS 콘솔 에러 없음)
