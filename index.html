@@ -1485,9 +1485,14 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (pw && pw2 && pw !== pw2) { showFieldErr('regPwConfirm', lt.regErrPwMatch); hasErr = true; }
         else if (pw2 && pw.length < 8) { /* already flagged above */ }
         if (hasErr) return;
-        // Hash the password before storing
+        // ★ FIX: 타임스탬프 기반 id (브라우저 간 _accEditNextId 충돌 방지)
+        //    Date.now()는 ms 단위 → 같은 브라우저에서도 1ms 이내 중복 가입은 거의 불가.
+        //    혹시 모를 충돌 대비 random suffix 추가.
+        var _signupId = Date.now() * 1000 + Math.floor(Math.random() * 1000);
+        // local _accEditNextId도 같이 밀어서 admin이 같은 세션에 새 계정 추가해도 충돌 안 나게
+        if (typeof _accEditNextId !== 'undefined' && _signupId >= _accEditNextId) _accEditNextId = _signupId + 1;
         var newAcc = {
-            id: _accEditNextId++,
+            id: _signupId,
             username: email,
             password: pw, /* will be replaced by hash below */
             name: name,
@@ -1501,6 +1506,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (h) newAcc.password = h;
             _accounts.push(newAcc);
             saveAccounts();
+            // ★ FIX: 즉시 전체 클라우드 동기화 (admin 다른 브라우저에서 바로 보이도록)
+            try { if (typeof cloudSaveNow === 'function') cloudSaveNow(); } catch(_){}
             // Send both emails in ONE request (user confirmation + admin notification)
             sendSignupEmails(newAcc);
         });
@@ -1664,11 +1671,14 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
     /* ── Settings Tabs ── */
     function reloadAccounts() {
+        // 1) localStorage에서 즉시 표시
         try {
             var s = localStorage.getItem('mop_accounts');
             if (s) _accounts = JSON.parse(s);
         } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
         renderAccList();
+        // 2) ★ FIX: 클라우드에서도 강제 새로고침 → 다른 브라우저 가입 즉시 보이도록
+        try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
         // 버튼 회전 애니메이션
         var btn = document.querySelector('[onclick="reloadAccounts()"]');
         if (btn) {
@@ -1688,9 +1698,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         var accBtns = document.getElementById('settingsAccBtns');
         if (accBtns) accBtns.style.display = tab === 'accounts' ? 'flex' : 'none';
         if (tab === 'accounts') {
-            // 최신 Account 목록 로드
+            // 1) localStorage에서 즉시 표시 (fallback)
             try { var s=localStorage.getItem('mop_accounts'); if(s) _accounts=JSON.parse(s); } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
             renderAccList();
+            // 2) ★ FIX: 클라우드 강제 새로고침 → 다른 브라우저에서 가입한 계정 즉시 반영
+            //    (cloudLoad 완료 후 자동으로 renderAccList가 다시 호출됨)
+            try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
         }
     }
 
@@ -2738,12 +2751,29 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     if (d.reviews && d.reviews.length) { mopReviews = d.reviews; try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){} }
                     if (d.afcState) { mopAfcState = d.afcState; try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(_){} }
                     if (d.portfolio) { mopPortfolioState = d.portfolio; try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(_){} }
-                    if (d.accounts && d.accounts.length) {
-                        d.accounts.forEach(function(ca) {
-                            if (!_accounts.find(function(la){ return la.id === ca.id; })) _accounts.push(ca);
+                    if (d.accounts && Array.isArray(d.accounts)) {
+                        // ★ FIX: 서버 우선 upsert (기존 계정의 변경사항도 반영, 신규 가입 계정도 머지)
+                        var _accIdx = {};
+                        _accounts.forEach(function(la){ if (la && la.id != null) _accIdx[la.id] = la; });
+                        d.accounts.forEach(function(ca){
+                            if (ca && ca.id != null) _accIdx[ca.id] = ca; // 서버 값이 로컬을 덮음
                         });
+                        _accounts = Object.keys(_accIdx).map(function(k){ return _accIdx[k]; });
+                        // ★ _accEditNextId 재계산 → 다른 브라우저 가입 id와 충돌 방지
+                        try {
+                            var __mx = 0;
+                            _accounts.forEach(function(a){ if (a && typeof a.id === 'number' && a.id > __mx) __mx = a.id; });
+                            if (typeof _accEditNextId !== 'undefined' && __mx + 1 > _accEditNextId) _accEditNextId = __mx + 1;
+                        } catch(_){}
                         try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(_){}
                         try { __mopMigratePasswords(); } catch(_){}
+                        // ★ Account 관리 탭이 열려있으면 즉시 다시 그리기
+                        try {
+                            var __accBox = document.getElementById('settingsTabAccounts');
+                            if (__accBox && __accBox.style.display !== 'none' && typeof renderAccList === 'function') {
+                                renderAccList();
+                            }
+                        } catch(_){}
                     }
                     showCloudBadge('loaded');
                 } else { showCloudBadge('empty'); }
