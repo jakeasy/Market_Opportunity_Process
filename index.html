@@ -1507,6 +1507,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         __MOP_SEC.hashPw(pw).then(function(h) {
             if (h) newAcc.password = h;
             _accounts.push(newAcc);
+            // ★ FIX 2026-05-15: 신규 가입 보호 마커 — cloudLoad가 race로 제거 못 하게
+            try { localStorage.setItem('__mop_recent_signup', JSON.stringify({ id: newAcc.id, at: Date.now() })); } catch(_){}
             saveAccounts();
             // ★ FIX: 즉시 전체 클라우드 동기화 (admin 다른 브라우저에서 바로 보이도록)
             try { if (typeof cloudSaveNow === 'function') cloudSaveNow(); } catch(_){}
@@ -2850,7 +2852,31 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         } catch(_e){ console.warn('[MOP] settings apply error:', _e); }
                     }
                     if (d.accounts && Array.isArray(d.accounts)) {
-                        // ★ FIX: 서버 우선 upsert (기존 계정의 변경사항도 반영, 신규 가입 계정도 머지)
+                        // ★ FIX 2026-05-15: 서버 우선 upsert + 서버 삭제 감지
+                        //   - 서버에 있는 계정 → 서버 값으로 갱신/추가
+                        //   - 서버에 없는 로컬 계정 → 제거 (다른 브라우저에서 삭제된 것으로 간주)
+                        //   - 단, 최근 5분 내 가입한 신규 계정은 보호 (cloudSaveNow가 완료되기 전 race 방지)
+                        var _serverIds = {};
+                        d.accounts.forEach(function(ca){ if (ca && ca.id != null) _serverIds[ca.id] = true; });
+                        var _recent = null;
+                        try { _recent = JSON.parse(localStorage.getItem('__mop_recent_signup') || 'null'); } catch(_){}
+                        var _NOW = Date.now();
+                        var _PROTECT_MS = 5 * 60 * 1000;
+
+                        // 1단계: 서버에 없는 로컬 계정 제거 (신규 가입 보호 제외)
+                        _accounts = _accounts.filter(function(la){
+                            if (!la || la.id == null) return false;
+                            if (_serverIds[la.id]) return true; // 서버에 존재 → 보존
+                            // 서버에 없음 — 최근 가입이면 보호
+                            if (_recent && _recent.id === la.id && (_NOW - _recent.at) < _PROTECT_MS) {
+                                console.log('[cloudLoad] 신규 가입 보호:', la.username);
+                                return true;
+                            }
+                            console.log('[cloudLoad] 서버 삭제 감지, 로컬에서 제거:', la.username);
+                            return false; // 서버에서 삭제됨
+                        });
+
+                        // 2단계: upsert (서버 값으로 덮어쓰기/추가)
                         var _accIdx = {};
                         _accounts.forEach(function(la){ if (la && la.id != null) _accIdx[la.id] = la; });
                         d.accounts.forEach(function(ca){
