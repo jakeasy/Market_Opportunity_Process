@@ -1758,9 +1758,24 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }).join('');
     }
 
+    // ★ FIX 2026-05-18: 고아(orphan) 리뷰 제외 — submission이 삭제되면 리뷰도 카운트 X
+    //   기존 버그: 리뷰가 가리키는 submission이 삭제돼도 acc 화면에 카운트 남아있음
     function countUserReviews(username) {
         try {
-            return mopReviews.filter(function(r){ return (r.reviewerEmail||'').toLowerCase() === username.toLowerCase(); }).length;
+            var uname = (username || '').toLowerCase();
+            // 살아있는 submission ID 집합 (tombstone된 것도 자동 제외 — mopSubmissions에서 빠져있음)
+            var aliveSubIds = {};
+            (mopSubmissions || []).forEach(function(s){
+                if (s && s.id != null) aliveSubIds[String(s.id)] = true;
+            });
+            return (mopReviews || []).filter(function(r){
+                if (!r) return false;
+                // 1) 본인 리뷰인지
+                if ((r.reviewerEmail || '').toLowerCase() !== uname) return false;
+                // 2) 대상 submission이 살아있는지
+                if (r.submissionId == null) return false;
+                return !!aliveSubIds[String(r.submissionId)];
+            }).length;
         } catch(e) { return 0; }
     }
 
@@ -2859,6 +2874,40 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     if (d.reviews && d.reviews.length) {
                         mopReviews = d.reviews.filter(function(r){ return !_isTomb('reviews', r && r.id); });
                         try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){}
+
+                        // ★ FIX 2026-05-18: 고아 리뷰 자동 정리
+                        //   submission이 tombstoned 됐거나 시트에서 사라진 경우, 그 리뷰도 의미 없음
+                        try {
+                            var _aliveSubs = {};
+                            (d.submissions || []).forEach(function(s){ if (s && s.id != null) _aliveSubs[String(s.id)] = true; });
+                            var _subTomb = _tomb.submissions || {};
+                            var _orphans = mopReviews.filter(function(r){
+                                if (!r || r.submissionId == null) return false;
+                                var sid = String(r.submissionId);
+                                // 살아있지 않거나, submission이 tombstoned된 경우 → 고아
+                                return !_aliveSubs[sid] || _subTomb[sid];
+                            });
+                            if (_orphans.length > 0) {
+                                console.log('[cloudLoad] 고아 리뷰 ' + _orphans.length + '개 자동 정리 시작:', _orphans.map(function(r){return r.id;}));
+                                var _delUrl = getAppsScriptUrl();
+                                _orphans.forEach(function(or){
+                                    try {
+                                        fetch(_delUrl, {
+                                            method: 'POST',
+                                            mode: 'no-cors',
+                                            keepalive: true,
+                                            headers: { 'Content-Type': 'text/plain' },
+                                            body: JSON.stringify({ type: 'delete-review', id: or.id })
+                                        }).catch(function(){});
+                                    } catch(_){}
+                                });
+                                // 로컬에서도 즉시 제거
+                                var _orphanIds = {};
+                                _orphans.forEach(function(or){ _orphanIds[String(or.id)] = true; });
+                                mopReviews = mopReviews.filter(function(r){ return !(r && r.id != null && _orphanIds[String(r.id)]); });
+                                try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){}
+                            }
+                        } catch(_e){ console.warn('[cloudLoad] 고아 리뷰 정리 오류:', _e); }
                     } else if (_tomb.reviews && Object.keys(_tomb.reviews).length) {
                         try {
                             var _lr = JSON.parse(localStorage.getItem('mop_reviews') || '[]');
