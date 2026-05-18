@@ -2748,6 +2748,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         } catch(e) { console.warn('[MOP] _gasGetSave exception:', e); return false; }
     }
 
+    // ★ FIX 2026-05-18: tombstone 캐시 (cloudLoad가 채워줌, 다음 cloudSaveNow가 사용)
+    var _tombstoneCache = { accounts:{}, submissions:{}, reviews:{} };
+    function _stripTombstoned(type, arr) {
+        var t = _tombstoneCache[type] || {};
+        if (Object.keys(t).length === 0) return arr;
+        return (arr || []).filter(function(item){ return !(item && item.id != null && t[String(item.id)]); });
+    }
     function cloudSaveNow() {
         var url = getAppsScriptUrl(); if (!url) return;
         // ★ FIX 2026-05-15: settings도 함께 동기화 (Chrome ↔ Edge 등 브라우저 간 동기화)
@@ -2769,13 +2776,17 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 }
             };
         } catch(_){}
+        // ★ FIX 2026-05-18: tombstone된 항목은 push 단계에서도 제거 (방어, 서버측 필터링도 있음)
+        var _accForPush = _stripTombstoned('accounts', _accounts || []);
+        var _subForPush = _stripTombstoned('submissions', _stripDataUrls(mopSubmissions));
+        var _revForPush = _stripTombstoned('reviews', _stripDataUrls(mopReviews));
         var body = {
             type: 'all',
-            submissions: _stripDataUrls(mopSubmissions),
-            reviews: _stripDataUrls(mopReviews),
+            submissions: _subForPush,
+            reviews: _revForPush,
             afcState: mopAfcState,
             portfolio: mopPortfolioState,
-            accounts: _accounts || [],
+            accounts: _accForPush,
             settings: _settingsSnapshot
         };
         console.log('[MOP] cloudSaveNow → submissions=' + (mopSubmissions||[]).length + ' reviews=' + (mopReviews||[]).length + ' accounts=' + (_accounts||[]).length + ' settings=' + (_settingsSnapshot ? 'yes' : 'no'));
@@ -2821,8 +2832,43 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             function(j) {
                 if (j && j.success && j.data) {
                     var d = j.data;
-                    if (d.submissions && d.submissions.length) { mopSubmissions = d.submissions; try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(_){} }
-                    if (d.reviews && d.reviews.length) { mopReviews = d.reviews; try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){} }
+                    // ★ FIX 2026-05-18: Tombstone 적용 — 서버에서 삭제된 항목을 로컬에서도 제거
+                    var _tomb = (d.tombstones && typeof d.tombstones === 'object') ? d.tombstones : { accounts:{}, submissions:{}, reviews:{} };
+                    if (!_tomb.accounts) _tomb.accounts = {};
+                    if (!_tomb.submissions) _tomb.submissions = {};
+                    if (!_tomb.reviews) _tomb.reviews = {};
+                    _tombstoneCache = _tomb; // ★ 캐시에 저장하여 cloudSaveNow 시 사용
+                    var _isTomb = function(type, id) { return id != null && _tomb[type] && _tomb[type][String(id)]; };
+
+                    if (d.submissions && d.submissions.length) {
+                        mopSubmissions = d.submissions.filter(function(s){ return !_isTomb('submissions', s && s.id); });
+                        try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(_){}
+                    } else if (_tomb.submissions && Object.keys(_tomb.submissions).length) {
+                        // 서버에 submissions 없어도 tombstone 있으면 로컬에서 제거
+                        try {
+                            var _ls = JSON.parse(localStorage.getItem('mop_submissions') || '[]');
+                            var _lsf = _ls.filter(function(s){ return !_isTomb('submissions', s && s.id); });
+                            if (_lsf.length !== _ls.length) {
+                                mopSubmissions = _lsf;
+                                localStorage.setItem('mop_submissions', JSON.stringify(_lsf));
+                                console.log('[cloudLoad] tombstone으로 로컬 submissions 정리: ' + _ls.length + ' → ' + _lsf.length);
+                            }
+                        } catch(_){}
+                    }
+                    if (d.reviews && d.reviews.length) {
+                        mopReviews = d.reviews.filter(function(r){ return !_isTomb('reviews', r && r.id); });
+                        try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){}
+                    } else if (_tomb.reviews && Object.keys(_tomb.reviews).length) {
+                        try {
+                            var _lr = JSON.parse(localStorage.getItem('mop_reviews') || '[]');
+                            var _lrf = _lr.filter(function(r){ return !_isTomb('reviews', r && r.id); });
+                            if (_lrf.length !== _lr.length) {
+                                mopReviews = _lrf;
+                                localStorage.setItem('mop_reviews', JSON.stringify(_lrf));
+                                console.log('[cloudLoad] tombstone으로 로컬 reviews 정리: ' + _lr.length + ' → ' + _lrf.length);
+                            }
+                        } catch(_){}
+                    }
                     if (d.afcState) { mopAfcState = d.afcState; try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(_){} }
                     if (d.portfolio) { mopPortfolioState = d.portfolio; try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(_){} }
                     // ★ FIX 2026-05-15: settings 동기화 (Chrome ↔ Edge 등 브라우저 간 sync)
@@ -2852,6 +2898,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         } catch(_e){ console.warn('[MOP] settings apply error:', _e); }
                     }
                     if (d.accounts && Array.isArray(d.accounts)) {
+                        // ★ FIX 2026-05-18: tombstone 적용 — 서버측 삭제 마커가 있는 계정은 로컬에서 영구 제거
+                        var _accTomb = _tomb.accounts || {};
+                        _accounts = _accounts.filter(function(la){ return !(la && la.id != null && _accTomb[String(la.id)]); });
+
                         // ★ FIX 2026-05-15: 서버 우선 upsert + 서버 삭제 감지
                         //   - 서버에 있는 계정 → 서버 값으로 갱신/추가
                         //   - 서버에 없는 로컬 계정 → 제거 (다른 브라우저에서 삭제된 것으로 간주)
