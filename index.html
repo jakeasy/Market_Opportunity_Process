@@ -109,6 +109,36 @@
             text-align: center; box-shadow: 0 24px 64px rgba(0,0,0,0.5);
             animation: fadeDown 0.3s ease;
         }
+        /* ★ FIX 2026-05-18: 다크 테마 친화적 스크롤바 (Account 관리 등) */
+        .pw-modal::-webkit-scrollbar,
+        #accListContainer::-webkit-scrollbar {
+            width: 10px;
+            height: 10px;
+        }
+        .pw-modal::-webkit-scrollbar-track,
+        #accListContainer::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.6);
+            border-radius: 8px;
+        }
+        .pw-modal::-webkit-scrollbar-thumb,
+        #accListContainer::-webkit-scrollbar-thumb {
+            background: rgba(100, 116, 139, 0.5);
+            border-radius: 8px;
+            border: 2px solid transparent;
+            background-clip: padding-box;
+            transition: background 0.2s;
+        }
+        .pw-modal::-webkit-scrollbar-thumb:hover,
+        #accListContainer::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.8);
+            background-clip: padding-box;
+            border: 2px solid transparent;
+        }
+        /* Firefox */
+        .pw-modal, #accListContainer {
+            scrollbar-width: thin;
+            scrollbar-color: rgba(100, 116, 139, 0.6) rgba(15, 23, 42, 0.4);
+        }
         .pw-modal .pw-icon { font-size: 2.4rem; margin-bottom: 12px; }
         .pw-modal .pw-title { font-size: 1.1rem; font-weight: 700; color: #fff; margin-bottom: 6px; }
         .pw-modal .pw-role { font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.5; }
@@ -3579,4 +3609,3 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     </script>
 </body>
 </html>
-    
