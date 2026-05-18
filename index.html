@@ -1280,7 +1280,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var encoded = encodeURIComponent(JSON.stringify(_accounts));
                 if (encoded.length < 7000) {  // URL 길이 한계
                     var s = document.createElement('script');
-                    s.src = url + (url.indexOf('?')>=0?'&':'?') + 'action=save-accounts&data=' + encoded + '&callback=__mop_acc_cb_' + Date.now();
+                    // ★ AUTH: 토큰 포함
+                    s.src = url + (url.indexOf('?')>=0?'&':'?') + 'action=save-accounts&data=' + encoded + '&callback=__mop_acc_cb_' + Date.now() + '&token=' + encodeURIComponent(MOP_API_TOKEN);
                     document.head.appendChild(s);
                     setTimeout(function(){ try { s.parentNode && s.parentNode.removeChild(s); } catch(_){} }, 5000);
                 }
@@ -2078,7 +2079,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }, 8000);
 
         // delete-account를 GET으로 호출 (JSONP)
-        var qs = 'action=delete-account&id=' + encodeURIComponent(id) + '&callback=' + encodeURIComponent(cbName);
+        // ★ AUTH: 토큰 포함
+        var qs = 'action=delete-account&id=' + encodeURIComponent(id) + '&callback=' + encodeURIComponent(cbName) + '&token=' + encodeURIComponent(MOP_API_TOKEN);
         script.src = url + (url.indexOf('?') >= 0 ? '&' : '?') + qs;
         script.onerror = function() {
             cleanup();
@@ -2633,12 +2635,18 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     // GAS (Google Apps Script) 통신 — CORS 우회 (sendBeacon + JSONP)
     // ================================================================
     var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwLhrwK7EaD_SSt73689f7hdoKh-Ta_6mMAyMusn5MdHaZcjnA83Wx6xGBq-Rpfu5_Zzw/exec';
+    // ★★★ API SECRET TOKEN — 2026-05-18
+    // GAS의 MOP_API_TOKEN과 반드시 동일해야 함.
+    // 모든 write 요청에 자동 포함됨 (gasPost, gasPostEmail, deleteAcc 등)
+    var MOP_API_TOKEN = 'medit-mop-2026-04ab7c8d5e3f9201';
     function getAppsScriptUrl() { return _appsScriptUrl; }
 
     // gasPost: navigator.sendBeacon 우선 (CORS 콘솔 에러 없음)
     // ★ 이메일 전용: 항상 fetch 사용 (sendBeacon이 GAS doPost에 안 닿는 케이스 회피)
     function gasPostEmail(url, data, onSuccess, onError) {
         try {
+            // ★ AUTH: 토큰 자동 주입
+            if (data && typeof data === 'object' && !data.token) data.token = MOP_API_TOKEN;
             var jsonStr = JSON.stringify(data);
             console.log('[MOP gasPostEmail] payload size:', (jsonStr.length/1024).toFixed(1), 'KB');
             console.log('[MOP gasPostEmail] keys:', Object.keys(data));
@@ -2663,6 +2671,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
     function gasPost(url, data, onSuccess, onError) {
         try {
+            // ★ AUTH: 토큰 자동 주입
+            if (data && typeof data === 'object' && !data.token) data.token = MOP_API_TOKEN;
             var jsonStr = JSON.stringify(data);
             var sizeKb = (jsonStr.length / 1024).toFixed(1);
             console.log('[MOP gasPost] payload size:', sizeKb, 'KB');
@@ -3569,4 +3579,3 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     </script>
 </body>
 </html>
-    
