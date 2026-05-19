@@ -1153,9 +1153,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         document.getElementById('settingsPwAfc').value = TOOL_PW_AFC;
         document.getElementById('settingsPwPortfolio').value = TOOL_PW_PORTFOLIO;
         // ★ FIX 2026-05-18: 브라우저 autocomplete/restoration 방어 — 명시적 force-set
-        function _applyPwOn(k) {
+        // ★ FIX 2026-05-19: window.로 노출하여 reloadAccounts에서도 호출 가능
+        window._applyPwOn = function(k) {
             // localStorage가 진짜 소스 — 글로벌이 race로 오염될 수 있어 다시 읽음
-            var key = k==='Form' ? 'form' : k.toLowerCase();
             var ls = localStorage.getItem('mop_pw_on_' + (k==='Form'?'form':k==='Scoring'?'scoring':k==='Afc'?'afc':'portfolio'));
             var on = (ls === null) ? true : (ls !== 'false');
             // 글로벌도 동기화
@@ -1172,11 +1172,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if(inp) inp.disabled = !on;
             if(inp) inp.style.opacity = on ? '1' : '0.35';
             return on;
-        }
-        ['Form','Scoring','Afc','Portfolio'].forEach(function(k){ _applyPwOn(k); });
+        };
+        ['Form','Scoring','Afc','Portfolio'].forEach(function(k){ window._applyPwOn(k); });
         // 모달 렌더 후 한 번 더 적용 (브라우저가 autocomplete으로 재설정해도 덮어씀)
         setTimeout(function(){
-            ['Form','Scoring','Afc','Portfolio'].forEach(function(k){ _applyPwOn(k); });
+            ['Form','Scoring','Afc','Portfolio'].forEach(function(k){ window._applyPwOn(k); });
             console.log('[MOP] Settings opened — pwOn states:', {
                 form: PW_ON_FORM, scoring: PW_ON_SCORING, afc: PW_ON_AFC, portfolio: PW_ON_PORTFOLIO
             });
@@ -1749,6 +1749,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
 
     /* ── Settings Tabs ── */
+    // ★ FIX 2026-05-19: 새로고침 버튼이 일반 탭(비번/이메일)과 Account 관리 탭 모두 갱신
     function reloadAccounts() {
         // 1) localStorage에서 즉시 표시
         try {
@@ -1756,8 +1757,34 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (s) _accounts = JSON.parse(s);
         } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
         renderAccList();
-        // 2) ★ FIX: 클라우드에서도 강제 새로고침 → 다른 브라우저 가입 즉시 보이도록
+        // 2) 클라우드에서도 강제 새로고침 → 다른 브라우저 변경사항 즉시 반영
         try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
+        // 3) cloudLoad 완료 후 일반 탭 UI도 다시 그림 (비번, 이메일, pwOn 등)
+        setTimeout(function(){
+            try {
+                // 비밀번호 입력란 갱신
+                var pwEls = {
+                    Form: document.getElementById('settingsPwForm'),
+                    Scoring: document.getElementById('settingsPwScoring'),
+                    Afc: document.getElementById('settingsPwAfc'),
+                    Portfolio: document.getElementById('settingsPwPortfolio')
+                };
+                if (pwEls.Form)      pwEls.Form.value      = localStorage.getItem('mop_pw_form')      || '1111';
+                if (pwEls.Scoring)   pwEls.Scoring.value   = localStorage.getItem('mop_pw_scoring')   || '1111';
+                if (pwEls.Afc)       pwEls.Afc.value       = localStorage.getItem('mop_pw_afc')       || '1111';
+                if (pwEls.Portfolio) pwEls.Portfolio.value = localStorage.getItem('mop_pw_portfolio') || '1111';
+                // 체크박스 + 라벨 force-set
+                if (typeof window._applyPwOn === 'function') {
+                    ['Form','Scoring','Afc','Portfolio'].forEach(function(k){ try { window._applyPwOn(k); } catch(_){} });
+                }
+                // 관리자 이메일 목록 갱신
+                if (typeof renderAdminEmailList === 'function') renderAdminEmailList();
+                // Account 목록도 한 번 더
+                renderAccList();
+                console.log('[MOP] reloadAccounts: 일반 + Account 모두 새로고침 완료');
+            } catch(e) { console.warn('[MOP] reloadAccounts re-render error:', e); }
+        }, 600); // cloudLoad가 fetch + apply 완료할 시간
+
         // 버튼 회전 애니메이션
         var btn = document.querySelector('[onclick="reloadAccounts()"]');
         if (btn) {
