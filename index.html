@@ -1145,6 +1145,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (!_currentUser || _currentUser.role !== 'admin') return;
         // 항상 최신 Account 목록을 localStorage에서 로드
         try { var _s = localStorage.getItem('mop_accounts'); if (_s) _accounts = JSON.parse(_s); } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
+        // ★ FIX 2026-05-19: Settings 열기 직전 cloudLoad 강제 호출 — 멀티 admin 동시 편집 race 방어
+        //   다른 admin이 방금 변경한 settings를 즉시 반영해서 옛 값을 덮어쓰는 사고 방지
+        try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
         document.getElementById('settingsPwForm').value = TOOL_PW_FORM;
         document.getElementById('settingsPwScoring').value = TOOL_PW_SCORING;
         document.getElementById('settingsPwAfc').value = TOOL_PW_AFC;
@@ -1209,7 +1212,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (newSPw && newSPw.trim()) { SETTINGS_PW = newSPw.trim(); localStorage.setItem('mop_settings_pw', SETTINGS_PW); }
         // 관리자 이메일 저장
         localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails));
-        // ★ FIX 2026-05-15: 설정 저장 직후 cloud sync (다른 브라우저에 즉시 반영)
+        // ★ FIX 2026-05-19: 명시적 settings 저장 → dirty flag set → cloudSaveNow가 push 포함
+        _settingsDirty = true;
+        console.log('[MOP] saveSettings: _settingsDirty=true → cloudSaveNow가 서버에 push 예정');
         try { if (typeof cloudSaveNow === 'function') cloudSaveNow(); } catch(_){}
         document.getElementById('settingsOverlay').classList.remove('active');
     }
@@ -2980,27 +2985,37 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (Object.keys(t).length === 0) return arr;
         return (arr || []).filter(function(item){ return !(item && item.id != null && t[String(item.id)]); });
     }
+    // ★★★ FIX 2026-05-19: Settings는 명시적 변경 시에만 push (stale 덮어쓰기 차단)
+    //   기존 버그: 모든 cloudSaveNow가 settings를 push → 다른 브라우저의 stale localStorage가
+    //   서버를 덮어써서 Step 1 OFF 등이 자꾸 ON으로 부활하는 문제 발생
+    //   해결: saveSettings에서만 _settingsDirty 플래그 set → cloudSaveNow는 dirty일 때만 push
+    var _settingsDirty = false;
     function cloudSaveNow() {
         var url = getAppsScriptUrl(); if (!url) return;
-        // ★ FIX 2026-05-15: settings도 함께 동기화 (Chrome ↔ Edge 등 브라우저 간 동기화)
+        // ★ Settings: dirty일 때만 snapshot 만들어서 push (그 외엔 null → 서버 settings 불변)
         var _settingsSnapshot = null;
-        try {
-            _settingsSnapshot = {
-                adminEmails: (_adminEmails || []).slice(),
-                pw: {
-                    form:      localStorage.getItem('mop_pw_form')      || '1111',
-                    scoring:   localStorage.getItem('mop_pw_scoring')   || '1111',
-                    afc:       localStorage.getItem('mop_pw_afc')       || '1111',
-                    portfolio: localStorage.getItem('mop_pw_portfolio') || '1111'
-                },
-                pwOn: {
-                    form:      (localStorage.getItem('mop_pw_on_form')      || 'true') === 'true',
-                    scoring:   (localStorage.getItem('mop_pw_on_scoring')   || 'true') === 'true',
-                    afc:       (localStorage.getItem('mop_pw_on_afc')       || 'true') === 'true',
-                    portfolio: (localStorage.getItem('mop_pw_on_portfolio') || 'true') === 'true'
-                }
-            };
-        } catch(_){}
+        if (_settingsDirty) {
+            try {
+                _settingsSnapshot = {
+                    _settingsTs: Date.now(), // ★ FIX 2026-05-19: stale 차단용 타임스탬프
+                    adminEmails: (_adminEmails || []).slice(),
+                    pw: {
+                        form:      localStorage.getItem('mop_pw_form')      || '1111',
+                        scoring:   localStorage.getItem('mop_pw_scoring')   || '1111',
+                        afc:       localStorage.getItem('mop_pw_afc')       || '1111',
+                        portfolio: localStorage.getItem('mop_pw_portfolio') || '1111'
+                    },
+                    pwOn: {
+                        form:      (localStorage.getItem('mop_pw_on_form')      || 'true') === 'true',
+                        scoring:   (localStorage.getItem('mop_pw_on_scoring')   || 'true') === 'true',
+                        afc:       (localStorage.getItem('mop_pw_on_afc')       || 'true') === 'true',
+                        portfolio: (localStorage.getItem('mop_pw_on_portfolio') || 'true') === 'true'
+                    }
+                };
+                console.log('[MOP] cloudSaveNow: settings DIRTY → push 포함', _settingsSnapshot.pwOn);
+                _settingsDirty = false; // 한 번 push 했으므로 flag 해제
+            } catch(_){}
+        }
         // ★ FIX 2026-05-18: tombstone된 항목은 push 단계에서도 제거 (방어, 서버측 필터링도 있음)
         var _accForPush = _stripTombstoned('accounts', _accounts || []);
         var _subForPush = _stripTombstoned('submissions', _stripDataUrls(mopSubmissions));
