@@ -752,12 +752,33 @@
                 <button class="pw-btn pw-btn-enter" onclick="saveSettings()">Save</button>
             </div>
             </div><!-- /settingsTabGeneral -->
-            <!-- Accounts Tab -->
+            <!-- Accounts Tab — ★ UX 개선 2026-05-18 -->
             <div id="settingsTabAccounts" style="display:none;">
-                <div style="margin-bottom:12px;">
-                    <span style="font-size:0.82rem;font-weight:600;color:#94a3b8;">👥 Account 목록</span>
+                <!-- 통계 카드 (역할별 + 승인대기) -->
+                <div id="accStats" style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px;"></div>
+
+                <!-- 검색 + 필터 -->
+                <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" id="accSearchBox" placeholder="🔍 이름 / 이메일 / 부서 검색…" autocomplete="off" oninput="filterAccList()"
+                        style="flex:1;min-width:200px;background:#0f1525;border:1px solid #2d3a4f;border-radius:8px;padding:8px 12px;color:#fff;font-size:0.82rem;outline:none;font-family:inherit;" />
+                    <select id="accSortBy" onchange="filterAccList()"
+                        style="background:#0f1525;border:1px solid #2d3a4f;border-radius:8px;padding:8px 12px;color:#fff;font-size:0.78rem;cursor:pointer;outline:none;font-family:inherit;">
+                        <option value="pending">정렬: 승인대기 우선</option>
+                        <option value="recent">정렬: 최근 로그인순</option>
+                        <option value="name">정렬: 이름 (가나다)</option>
+                        <option value="signup">정렬: 가입일 (최신)</option>
+                        <option value="loginCount">정렬: 로그인 횟수</option>
+                    </select>
                 </div>
-                <div id="accListContainer" style="max-height:520px;overflow-y:auto;display:flex;flex-direction:column;"></div>
+
+                <!-- 역할별 필터 탭 -->
+                <div id="accRoleTabs" style="display:flex;gap:6px;margin-bottom:10px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:8px;flex-wrap:wrap;"></div>
+
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                    <span id="accListCount" style="font-size:0.74rem;color:#94a3b8;"></span>
+                    <span style="font-size:0.7rem;color:#64748b;">👥 Account 목록</span>
+                </div>
+                <div id="accListContainer" style="max-height:480px;overflow-y:auto;display:flex;flex-direction:column;"></div>
             </div><!-- /settingsTabAccounts -->
             <!-- Accounts tab bottom close button -->
             <div id="settingsAccBtns" style="display:none;" class="pw-btns">
@@ -1762,18 +1783,118 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
 
     /* ── Account CRUD ── */
+    // ★ UX 개선 2026-05-18: 필터/검색/정렬 상태
+    var _accFilter = { role: 'all', search: '', sort: 'pending' };
+    window.filterAccList = function() {
+        try {
+            _accFilter.search = (document.getElementById('accSearchBox').value || '').trim().toLowerCase();
+            _accFilter.sort = document.getElementById('accSortBy').value || 'pending';
+            renderAccList();
+        } catch(e){}
+    };
+    window.setAccRoleFilter = function(role) {
+        _accFilter.role = role;
+        renderAccList();
+    };
+
+    function _renderAccStats() {
+        var el = document.getElementById('accStats');
+        if (!el) return;
+        var stats = { all: 0, pending: 0, admin: 0, manager: 0, general: 0 };
+        _accounts.forEach(function(a){
+            stats.all++;
+            if (a.approved === false) stats.pending++;
+            if (a.role === 'admin') stats.admin++;
+            else if (a.role === 'manager') stats.manager++;
+            else stats.general++;
+        });
+        function _card(label, value, color, bg) {
+            return '<div style="background:' + bg + ';border:1px solid ' + color + '33;border-radius:8px;padding:10px 8px;text-align:center;">'
+                + '<div style="font-size:1.3rem;font-weight:700;color:' + color + ';">' + value + '</div>'
+                + '<div style="font-size:0.68rem;color:#94a3b8;margin-top:2px;">' + label + '</div>'
+                + '</div>';
+        }
+        el.innerHTML =
+            _card('전체', stats.all, '#60a5fa', 'rgba(59,130,246,0.08)') +
+            _card('승인대기', stats.pending, '#fbbf24', 'rgba(245,158,11,0.08)') +
+            _card('관리자', stats.admin, '#f87171', 'rgba(239,68,68,0.08)') +
+            _card('일반관리자', stats.manager, '#60a5fa', 'rgba(59,130,246,0.08)') +
+            _card('일반', stats.general, '#34d399', 'rgba(16,185,129,0.08)');
+    }
+
+    function _renderAccRoleTabs() {
+        var el = document.getElementById('accRoleTabs');
+        if (!el) return;
+        var tabs = [
+            { key: 'all',     label: '전체',     color: '#60a5fa' },
+            { key: 'pending', label: '⏳ 승인대기', color: '#fbbf24' },
+            { key: 'admin',   label: '관리자',     color: '#f87171' },
+            { key: 'manager', label: '일반관리자', color: '#60a5fa' },
+            { key: 'general', label: '일반',       color: '#34d399' }
+        ];
+        el.innerHTML = tabs.map(function(t){
+            var active = _accFilter.role === t.key;
+            return '<button onclick="setAccRoleFilter(\'' + t.key + '\')" '
+                + 'style="background:' + (active ? t.color : 'transparent') + ';'
+                + 'color:' + (active ? '#fff' : '#94a3b8') + ';'
+                + 'border:1px solid ' + (active ? t.color : 'rgba(255,255,255,0.08)') + ';'
+                + 'border-radius:7px;padding:5px 12px;font-size:0.74rem;font-weight:600;cursor:pointer;font-family:inherit;'
+                + 'transition:all 0.15s;">' + t.label + '</button>';
+        }).join('');
+    }
+
     function renderAccList() {
         var el = document.getElementById('accListContainer');
         if (!el) return;
-        if (_accounts.length === 0) { el.innerHTML = '<div style="font-size:0.78rem;color:#64748b;padding:12px 0;text-align:center;">등록된 Account 없음</div>'; return; }
-        // Sort: pending first, then by id
-        var sorted = _accounts.slice().sort(function(a,b){
-            var pa = a.approved===false?0:a.approved==='rejected'?1:2;
-            var pb = b.approved===false?0:b.approved==='rejected'?1:2;
-            if(pa !== pb) return pa - pb;
-            return a.id - b.id;
+        _renderAccStats();
+        _renderAccRoleTabs();
+        if (_accounts.length === 0) { el.innerHTML = '<div style="font-size:0.78rem;color:#64748b;padding:24px 0;text-align:center;">등록된 Account 없음</div>'; return; }
+
+        // 필터링
+        var filtered = _accounts.filter(function(a){
+            // role 필터
+            if (_accFilter.role === 'pending') {
+                if (a.approved !== false) return false;
+            } else if (_accFilter.role !== 'all') {
+                if (a.role !== _accFilter.role) return false;
+            }
+            // 검색
+            if (_accFilter.search) {
+                var hay = ((a.name||'') + ' ' + (a.username||'') + ' ' + (a.dept||'') + ' ' + (a.region||'')).toLowerCase();
+                if (hay.indexOf(_accFilter.search) < 0) return false;
+            }
+            return true;
         });
-        el.innerHTML = sorted.map(function(acc) {
+
+        // 정렬
+        filtered.sort(function(a,b){
+            switch(_accFilter.sort) {
+                case 'recent':
+                    return String(b.lastLogin||'').localeCompare(String(a.lastLogin||''));
+                case 'name':
+                    return String(a.name||'').localeCompare(String(b.name||''), 'ko');
+                case 'signup':
+                    return String(b.signupDate||'').localeCompare(String(a.signupDate||''));
+                case 'loginCount':
+                    return (b.loginCount||0) - (a.loginCount||0);
+                case 'pending':
+                default:
+                    var pa = a.approved===false?0:a.approved==='rejected'?1:2;
+                    var pb = b.approved===false?0:b.approved==='rejected'?1:2;
+                    if(pa !== pb) return pa - pb;
+                    return a.id - b.id;
+            }
+        });
+
+        var countEl = document.getElementById('accListCount');
+        if (countEl) countEl.textContent = filtered.length + '명 표시 (전체 ' + _accounts.length + '명 중)';
+
+        if (filtered.length === 0) {
+            el.innerHTML = '<div style="font-size:0.78rem;color:#64748b;padding:24px 0;text-align:center;">조건에 맞는 계정 없음</div>';
+            return;
+        }
+
+        el.innerHTML = filtered.map(function(acc) {
             var permDesc = acc.role === 'admin' ? 'Step 1~4 + Settings' : acc.role === 'manager' ? 'Step 1~4' : 'Step 1';
             var isPending  = acc.approved === false;
             var isRejected = acc.approved === 'rejected';
