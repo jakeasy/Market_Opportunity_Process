@@ -1275,6 +1275,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             ];
             clearAttempts.forEach(function(p){
                 try {
+                    p.token = MOP_API_TOKEN; // ★ AUTH 토큰 주입
                     fetch(url, {
                         method: 'POST',
                         mode: 'no-cors',
@@ -1447,19 +1448,18 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             + '<tr><td style="background:#f8fafc;padding:18px 32px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;">MEDIT MOP System<br><span style="font-size:10px;color:#cbd5e1;">© 2026 MEDIT Corp. All rights reserved.</span></td></tr>'
             + '</table></td></tr></table></body></html>';
         // Single fetch: sends to user (to) + admin (adminTo/adminSubject/adminHtml)
-        fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'},
-            body: JSON.stringify({
-                type: 'custom-email',
-                to: acc.username,
-                subject: '[MOP][Submitter] Sign-up Request Received — Pending Approval',
-                htmlBody: _appendMopCta(userHtml),
-                textBody: 'Hi ' + acc.name + ', your MOP System account request has been received.',
-                adminTo: getAdminEmailsStr(),
-                adminSubject: '[MOP Admin] New Account Approval Request — ' + acc.name + ' (' + acc.username + ')',
-                adminHtml: _appendMopCta(adminHtml),
-                adminText: 'New signup: ' + acc.name + ' (' + acc.username + ') — Please approve in MOP Settings.'
-            })
-        }).catch(function(e){ console.warn('Signup email error:', e); });
+        // ★ FIX 2026-05-19: gasPostEmail로 변경 — token 자동 주입 + sendBeacon 안정성
+        gasPostEmail(url, {
+            type: 'custom-email',
+            to: acc.username,
+            subject: '[MOP][Submitter] Sign-up Request Received — Pending Approval',
+            htmlBody: _appendMopCta(userHtml),
+            textBody: 'Hi ' + acc.name + ', your MOP System account request has been received.',
+            adminTo: getAdminEmailsStr(),
+            adminSubject: '[MOP Admin] New Account Approval Request — ' + acc.name + ' (' + acc.username + ')',
+            adminHtml: _appendMopCta(adminHtml),
+            adminText: 'New signup: ' + acc.name + ' (' + acc.username + ') — Please approve in MOP Settings.'
+        });
     }
 
     function sendSignupNotification(acc) {
@@ -1497,12 +1497,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             htmlBody: _appendMopCta(adminHtml),
             textBody: 'New signup request: ' + acc.name + ' (' + acc.username + ') / ' + (acc.dept||'') + ' — Please approve in MOP Settings.'
         };
-        fetch(url, {
-            method: 'POST', mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(payload)
-        }).then(function(){ console.log('✓ Signup notification sent to admin:', getAdminEmailsStr()); })
-          .catch(function(e){ console.warn('Signup email error:', e); });
+        // ★ FIX 2026-05-19: gasPostEmail로 변경 — token + sendBeacon 안정성
+        gasPostEmail(url, payload,
+            function(){ console.log('✓ Signup notification sent to admin:', getAdminEmailsStr()); },
+            function(e){ console.warn('Signup email error:', e); });
     }
 
     window.showSignup = showSignup;
@@ -1989,11 +1987,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             + '</td></tr>'
             + '<tr><td style="background:#f8fafc;padding:18px 32px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;">MEDIT MOP System<br><span style="font-size:10px;color:#cbd5e1;">© 2026 MEDIT Corp. All rights reserved.</span></td></tr>'
             + '</table></td></tr></table></body></html>';
-        fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'},
-            body: JSON.stringify({ type:'custom-email', to: acc.username,
-                subject: '[MOP][Submitter] Account Application Result',
-                htmlBody: _appendMopCta(html), textBody: 'Hi ' + acc.name + ', your MOP System account request has been declined. Please contact your system administrator for more information.' })
-        }).catch(function(e){ console.warn('Rejection email error:', e); });
+        // ★ FIX 2026-05-19: gasPostEmail로 변경 — token 자동 주입
+        gasPostEmail(url, { type:'custom-email', to: acc.username,
+            subject: '[MOP][Submitter] Account Application Result',
+            htmlBody: _appendMopCta(html), textBody: 'Hi ' + acc.name + ', your MOP System account request has been declined. Please contact your system administrator for more information.' },
+            null, function(e){ console.warn('Rejection email error:', e); });
     }
 
     function sendUserSignupConfirmEmail(acc) {
@@ -2023,11 +2021,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             + '</td></tr>'
             + '<tr><td style="background:#f8fafc;padding:18px 32px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;">MEDIT MOP System<br><span style="font-size:10px;color:#cbd5e1;">© 2026 MEDIT Corp. All rights reserved.</span></td></tr>'
             + '</table></td></tr></table></body></html>';
-        fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'},
-            body: JSON.stringify({ type:'custom-email', to: acc.username,
-                subject: '[MOP][Submitter] Sign-up Request Received — Pending Approval',
-                htmlBody: _appendMopCta(html), textBody: 'Hi ' + acc.name + ', your MOP System account request has been received. You will be notified once an admin approves your account.' })
-        }).catch(function(e){ console.warn('Signup confirm email error:', e); });
+        // ★ FIX 2026-05-19: gasPostEmail로 변경 — token 자동 주입
+        gasPostEmail(url, { type:'custom-email', to: acc.username,
+            subject: '[MOP][Submitter] Sign-up Request Received — Pending Approval',
+            htmlBody: _appendMopCta(html), textBody: 'Hi ' + acc.name + ', your MOP System account request has been received. You will be notified once an admin approves your account.' },
+            null, function(e){ console.warn('Signup confirm email error:', e); });
     }
 
     function sendApprovalEmail(acc) {
@@ -2054,11 +2052,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             + '</td></tr>'
             + '<tr><td style="background:#f8fafc;padding:18px 32px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;">MEDIT MOP System<br><span style="font-size:10px;color:#cbd5e1;">© 2026 MEDIT Corp. All rights reserved.</span></td></tr>'
             + '</table></td></tr></table></body></html>';
-        fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'},
-            body: JSON.stringify({ type:'custom-email', to: acc.username,
-                subject: '[MOP][Submitter] Account Approved — Welcome!',
-                htmlBody: _appendMopCta(html), textBody: 'Hi ' + acc.name + ', your MOP System account has been approved! You can now log in at: ID: ' + acc.username + ' | Access: ' + permDesc })
-        }).catch(function(e){ console.warn('Approval email error:', e); });
+        // ★ FIX 2026-05-19: gasPostEmail로 변경 — token 자동 주입
+        gasPostEmail(url, { type:'custom-email', to: acc.username,
+            subject: '[MOP][Submitter] Account Approved — Welcome!',
+            htmlBody: _appendMopCta(html), textBody: 'Hi ' + acc.name + ', your MOP System account has been approved! You can now log in at: ID: ' + acc.username + ' | Access: ' + permDesc },
+            null, function(e){ console.warn('Approval email error:', e); });
     }
 
     function resetAccPw(id) {
@@ -2113,12 +2111,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             + '</td></tr>'
             + '<tr><td style="background:#f8fafc;padding:18px 32px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;">MEDIT MOP System<br><span style="font-size:10px;color:#cbd5e1;">© 2026 MEDIT Corp. All rights reserved.</span></td></tr>'
             + '</table></td></tr></table></body></html>';
-        fetch(url, { method:'POST', mode:'no-cors', headers:{'Content-Type':'text/plain;charset=utf-8'},
-            body: JSON.stringify({ type:'custom-email', to: acc.username,
-                subject: '[MOP][Submitter] Password Reset Complete',
-                htmlBody: _appendMopCta(html),
-                textBody: 'Hi ' + acc.name + ', your MOP System password has been reset to: 1111\nPlease log in and change your password immediately.\nLogin ID: ' + acc.username })
-        }).catch(function(e){ console.warn('Password reset email error:', e); });
+        // ★ FIX 2026-05-19: gasPostEmail로 변경 — token 자동 주입
+        gasPostEmail(url, { type:'custom-email', to: acc.username,
+            subject: '[MOP][Submitter] Password Reset Complete',
+            htmlBody: _appendMopCta(html),
+            textBody: 'Hi ' + acc.name + ', your MOP System password has been reset to: 1111\nPlease log in and change your password immediately.\nLogin ID: ' + acc.username },
+            null, function(e){ console.warn('Password reset email error:', e); });
     }
 
     function doChangePw() {
@@ -2785,12 +2783,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         console.log('  - admin(adminTo):', getAdminEmailsStr(), ' [valid:', !!(getAdminEmailsStr() && getAdminEmailsStr().indexOf('@')>0), ']');
         console.log('  - title:', title);
         if (!submitterEmail || submitterEmail.indexOf('@') < 0) console.error('[MOP] ⚠️ submitter email MISSING — only admin will receive');
-        fetch(url, {
-            method: 'POST', mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(payload)
-        }).then(function(){ console.log('✓ MOP score-complete email sent'); })
-          .catch(function(err){ console.error('✗ MOP score-complete email error:', err); });
+        // ★ FIX 2026-05-19: gasPostEmail로 변경 — token + sendBeacon 안정성
+        gasPostEmail(url, payload,
+            function(){ console.log('✓ MOP score-complete email sent'); },
+            function(err){ console.error('✗ MOP score-complete email error:', err); });
     }
 
     function saveReviews() {
