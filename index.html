@@ -2696,21 +2696,54 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             // ★ AUTH: 토큰 자동 주입
             if (data && typeof data === 'object' && !data.token) data.token = MOP_API_TOKEN;
             var jsonStr = JSON.stringify(data);
-            console.log('[MOP gasPostEmail] payload size:', (jsonStr.length/1024).toFixed(1), 'KB');
+            var sizeKb = (jsonStr.length/1024).toFixed(1);
+            console.log('[MOP gasPostEmail] payload size:', sizeKb, 'KB');
             console.log('[MOP gasPostEmail] keys:', Object.keys(data));
             console.log('[MOP gasPostEmail] to:', data.to, '| adminTo:', data.adminTo);
             console.log('[MOP gasPostEmail] adminSubject present:', !!data.adminSubject, '| adminHtml present:', !!data.adminHtml);
-            fetch(url, {
-                method: 'POST', mode: 'no-cors',
-                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: jsonStr
-            }).then(function(){
-                console.log('[MOP gasPostEmail] ✓ fetch sent');
-                if (onSuccess) onSuccess({ success: true, note: 'fetch direct' });
-            }).catch(function(err){
-                console.error('[MOP gasPostEmail] fetch error:', err);
-                if (onError) onError(String(err));
-            });
+
+            // ★ FIX 2026-05-18: sendBeacon 우선 (China VPN 등 불안정 네트워크 강건성 ↑)
+            //   sendBeacon은 페이지 unload 시에도 큐에 보관 후 백그라운드 전송 → 안정적
+            //   64KB 미만일 때만 사용 가능. 큰 이메일은 fetch fallback.
+            var BEACON_LIMIT = 60 * 1024; // 60KB safe margin
+            var queued = false;
+            if (navigator.sendBeacon && jsonStr.length < BEACON_LIMIT) {
+                try {
+                    var blob = new Blob([jsonStr], { type: 'text/plain;charset=utf-8' });
+                    queued = navigator.sendBeacon(url, blob);
+                    console.log('[MOP gasPostEmail] sendBeacon queued:', queued);
+                } catch(beErr) {
+                    console.warn('[MOP gasPostEmail] sendBeacon error:', beErr);
+                    queued = false;
+                }
+            } else if (jsonStr.length >= BEACON_LIMIT) {
+                console.log('[MOP gasPostEmail] payload too large (' + sizeKb + 'KB), using fetch');
+            }
+            if (queued) {
+                if (onSuccess) onSuccess({ success: true, note: 'sent via sendBeacon (' + sizeKb + 'KB)' });
+                return;
+            }
+
+            // sendBeacon 실패 또는 사용 불가 → fetch fallback + 재시도 1회
+            function _fetchAttempt(attempt) {
+                fetch(url, {
+                    method: 'POST', mode: 'no-cors', keepalive: true,
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: jsonStr
+                }).then(function(){
+                    console.log('[MOP gasPostEmail] ✓ fetch sent (attempt ' + attempt + ')');
+                    if (onSuccess) onSuccess({ success: true, note: 'fetch attempt ' + attempt });
+                }).catch(function(err){
+                    console.error('[MOP gasPostEmail] fetch error (attempt ' + attempt + '):', err);
+                    if (attempt < 2) {
+                        console.log('[MOP gasPostEmail] retrying in 2s...');
+                        setTimeout(function(){ _fetchAttempt(attempt + 1); }, 2000);
+                    } else {
+                        if (onError) onError(String(err));
+                    }
+                });
+            }
+            _fetchAttempt(1);
         } catch(e) {
             console.error('[MOP gasPostEmail] exception:', e);
             if (onError) onError(String(e));
