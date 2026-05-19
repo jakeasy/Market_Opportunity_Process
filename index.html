@@ -778,7 +778,8 @@
                     <span id="accListCount" style="font-size:0.74rem;color:#94a3b8;"></span>
                     <span style="font-size:0.7rem;color:#64748b;">👥 Account 목록</span>
                 </div>
-                <div id="accListContainer" style="max-height:480px;overflow-y:auto;display:flex;flex-direction:column;"></div>
+                <!-- ★ FIX 2026-05-19: 계정 수에 무관하게 고정 높이로 모달 크기 안정화 -->
+                <div id="accListContainer" style="height:480px;overflow-y:auto;display:flex;flex-direction:column;"></div>
             </div><!-- /settingsTabAccounts -->
             <!-- Accounts tab bottom close button -->
             <div id="settingsAccBtns" style="display:none;" class="pw-btns">
