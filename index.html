@@ -737,14 +737,24 @@
                     </div>
                 </div>
             </div>
-            <div style="text-align:left;margin-bottom:20px;display:flex;flex-direction:column;gap:10px;">
-                <div>
-                    <button onclick="clearAllData()" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;">🗑️ Reset All Data</button>
-                    <span style="font-size:0.72rem;color:#64748b;margin-left:8px;">모든 Submission/Review 데이터 초기화</span>
-                </div>
-                <div>
-                    <button onclick="resetAllAccountPasswords()" style="background:rgba(245,158,11,0.1);color:#f59e0b;border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;">🔑 Reset Passwords</button>
-                    <span style="font-size:0.72rem;color:#64748b;margin-left:8px;">모든 Account Password를 1111로 초기화 (Admin 제외)</span>
+            <!-- ★ FIX 2026-05-19: 위험 기능은 평소 숨김. 톱니바퀴 클릭 시에만 펼침 (admin 전용) -->
+            <div id="dangerZoneWrap" style="text-align:left;margin-bottom:20px;border-top:1px solid rgba(255,255,255,0.05);padding-top:12px;">
+                <button type="button" id="dangerZoneToggle" onclick="toggleDangerZone()"
+                    style="background:transparent;border:none;color:#64748b;font-size:0.72rem;cursor:pointer;display:flex;align-items:center;gap:6px;padding:4px 0;font-family:inherit;transition:color 0.2s;"
+                    onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#64748b'">
+                    <span id="dangerZoneIcon" style="display:inline-block;transition:transform 0.2s;">⚙️</span>
+                    <span id="dangerZoneLabel">고급 설정</span>
+                </button>
+                <div id="dangerZoneContent" style="display:none;margin-top:12px;display:none;flex-direction:column;gap:10px;background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.12);border-radius:10px;padding:14px 16px;">
+                    <div style="font-size:0.7rem;color:#f87171;font-weight:600;margin-bottom:4px;">⚠️ 위험 작업 — 신중히 사용</div>
+                    <div>
+                        <button onclick="clearAllData()" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;">🗑️ Reset All Data</button>
+                        <span style="font-size:0.72rem;color:#64748b;margin-left:8px;">모든 Submission/Review 데이터 초기화</span>
+                    </div>
+                    <div>
+                        <button onclick="resetAllAccountPasswords()" style="background:rgba(245,158,11,0.1);color:#f59e0b;border:1px solid rgba(245,158,11,0.25);border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;">🔑 Reset Passwords</button>
+                        <span style="font-size:0.72rem;color:#64748b;margin-left:8px;">모든 Account Password를 1111로 초기화 (Admin 제외)</span>
+                    </div>
                 </div>
             </div>
             <div class="pw-btns">
@@ -1184,6 +1194,17 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         renderAdminEmailList();
         var spEl = document.getElementById('settingsAccessPw');
         if (spEl) spEl.value = SETTINGS_PW;
+        // ★ FIX 2026-05-19: dangerZone 영역 — admin만 보임 (기본 접힌 상태)
+        try {
+            var dz = document.getElementById('dangerZoneWrap');
+            var dzc = document.getElementById('dangerZoneContent');
+            var dzi = document.getElementById('dangerZoneIcon');
+            var dzl = document.getElementById('dangerZoneLabel');
+            if (dz) dz.style.display = (_currentUser && _currentUser.role === 'admin') ? '' : 'none';
+            if (dzc) dzc.style.display = 'none'; // 항상 접힌 상태로 시작
+            if (dzi) dzi.style.transform = '';
+            if (dzl) dzl.textContent = '고급 설정';
+        } catch(_){}
         switchSettingsTab('general');
         document.getElementById('settingsOverlay').classList.add('active');
     }
@@ -1604,12 +1625,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
     window.doLogin = doLogin;
     function doLogin() {
-        var uname = (document.getElementById('loginUsername').value || '').trim();
+        // ★ FIX 2026-05-19: 이메일은 대소문자 무관하게 처리 (signup이 toLowerCase로 저장하므로)
+        var uname = (document.getElementById('loginUsername').value || '').trim().toLowerCase();
         var pw = document.getElementById('loginPassword').value || '';
-        // Find candidate account by username, then verify password (hashed or legacy plaintext)
+        // Find candidate account by username (case-insensitive), then verify password
         var candidate = null;
         for (var i = 0; i < _accounts.length; i++) {
-            if (_accounts[i].username === uname) { candidate = _accounts[i]; break; }
+            if ((_accounts[i].username || '').toLowerCase() === uname) { candidate = _accounts[i]; break; }
         }
         if (!candidate) {
             document.getElementById('loginError').textContent = i18n[currentLang].loginErrInvalid;
@@ -1747,6 +1769,25 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             }
         }
     }
+
+    // ★ FIX 2026-05-19: 위험 기능(Reset All / Reset Passwords) 펼치기 토글 — admin 전용
+    window.toggleDangerZone = function() {
+        if (!_currentUser || _currentUser.role !== 'admin') return;
+        var content = document.getElementById('dangerZoneContent');
+        var icon = document.getElementById('dangerZoneIcon');
+        var label = document.getElementById('dangerZoneLabel');
+        if (!content) return;
+        var opened = content.style.display === 'flex';
+        if (opened) {
+            content.style.display = 'none';
+            if (icon) icon.style.transform = '';
+            if (label) label.textContent = '고급 설정';
+        } else {
+            content.style.display = 'flex';
+            if (icon) icon.style.transform = 'rotate(90deg)';
+            if (label) label.textContent = '고급 설정 닫기';
+        }
+    };
 
     /* ── Settings Tabs ── */
     // ★ FIX 2026-05-19: 새로고침 버튼이 일반 탭(비번/이메일)과 Account 관리 탭 모두 갱신
@@ -3196,6 +3237,26 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 try { localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails)); } catch(_){}
                             }
                             console.log('[MOP] cloudLoad: settings applied — pwOn=', _s.pwOn);
+                            // ★ FIX 2026-05-19: Settings 모달이 열려있으면 UI 즉시 재렌더
+                            //    cloudLoad가 localStorage 갱신 후 modal UI를 안 바꾸면 옛 값 보임 → 사용자가
+                            //    무의식 Save 시 OLD 값이 서버 덮어쓰는 사고 발생. UI 동기화 필수.
+                            try {
+                                var _sov = document.getElementById('settingsOverlay');
+                                if (_sov && _sov.classList.contains('active')) {
+                                    // 비밀번호 input.value
+                                    var _ePF = document.getElementById('settingsPwForm');     if (_ePF)     _ePF.value     = localStorage.getItem('mop_pw_form')      || '1111';
+                                    var _ePS = document.getElementById('settingsPwScoring');  if (_ePS)     _ePS.value     = localStorage.getItem('mop_pw_scoring')   || '1111';
+                                    var _ePA = document.getElementById('settingsPwAfc');      if (_ePA)     _ePA.value     = localStorage.getItem('mop_pw_afc')       || '1111';
+                                    var _ePP = document.getElementById('settingsPwPortfolio'); if (_ePP)    _ePP.value     = localStorage.getItem('mop_pw_portfolio') || '1111';
+                                    // 체크박스 + 라벨
+                                    if (typeof window._applyPwOn === 'function') {
+                                        ['Form','Scoring','Afc','Portfolio'].forEach(function(k){ try { window._applyPwOn(k); } catch(_){} });
+                                    }
+                                    // 관리자 이메일
+                                    if (typeof renderAdminEmailList === 'function') renderAdminEmailList();
+                                    console.log('[MOP] cloudLoad → Settings 모달 UI 동기화 완료');
+                                }
+                            } catch(_e2){ console.warn('[MOP] settings UI sync error:', _e2); }
                         } catch(_e){ console.warn('[MOP] settings apply error:', _e); }
                     }
                     if (d.accounts && Array.isArray(d.accounts)) {
