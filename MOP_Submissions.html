@@ -3015,13 +3015,27 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             ];
 
             // Build evidence files section
+            // ★ FIX 2026-05-19: driveUrl 우선 사용 (영구 URL), dataUrl은 fallback
             var filesHtml = '';
             if (d.evidenceFiles && d.evidenceFiles.length) {
                 filesHtml = '<div class="detail-field full-width">'
                     + '<div class="detail-field-label">' + (texts.fieldEvidenceFiles || 'Attached Files') + '</div>'
                     + '<div class="detail-field-value">' + d.evidenceFiles.map(function(f) {
-                        return '<a href="' + f.dataUrl + '" target="_blank" style="color:#004fec;text-decoration:none;cursor:pointer;display:inline-block;margin:2px 0" onclick="event.preventDefault();window.open().document.write(\'<html><head><title>' + (f.name||'').replace(/'/g,"\\'") + '</title></head><body style=\\\'margin:0\\\'>' + (f.type && f.type.startsWith('image/') ? '<img src=\\\''+f.dataUrl+'\\\' style=\\\'max-width:95vw;max-height:95vh\\\'>' : '<iframe src=\\\''+f.dataUrl+'\\\' style=\\\'width:100%;height:100vh;border:none\\\'></iframe>') + '</body></html>\')">📄 ' + (f.name||'file') + '</a>';
-                    }).join('<br>') + '</div></div>';
+                        if (!f) return '';
+                        var fname = (f.name||'file');
+                        var fsize = f.size ? ' (' + (f.size>1048576 ? (f.size/1048576).toFixed(1)+'MB' : (f.size/1024).toFixed(1)+'KB') + ')' : '';
+                        // 1순위: Drive viewUrl (영구 URL, 모든 사용자 접근 가능)
+                        if (f.viewUrl || f.driveUrl) {
+                            return '<a href="' + (f.viewUrl||f.driveUrl) + '" target="_blank" rel="noopener" style="color:#3b82f6;text-decoration:none;display:inline-block;margin:2px 0">📎 ' + fname + fsize + '</a>';
+                        }
+                        // 2순위: dataUrl (메모리 잔존 시)
+                        if (f.dataUrl) {
+                            var safeName = fname.replace(/'/g,"\\'");
+                            return '<a href="#" onclick="event.preventDefault();var w=window.open();w.document.write(\'<html><head><title>' + safeName + '</title></head><body style=\\\'margin:0\\\'>' + (f.type && f.type.startsWith('image/') ? '<img src=\\\''+f.dataUrl+'\\\' style=\\\'max-width:95vw;max-height:95vh\\\'>' : '<iframe src=\\\''+f.dataUrl+'\\\' style=\\\'width:100%;height:100vh;border:none\\\'></iframe>') + '</body></html>\');" style="color:#3b82f6;text-decoration:none;display:inline-block;margin:2px 0">📄 ' + fname + fsize + '</a>';
+                        }
+                        // 3순위: 메타정보만 (이름만 표시)
+                        return '<span style="color:#94a3b8;display:inline-block;margin:2px 0">📄 ' + fname + fsize + ' <small>(file unavailable)</small></span>';
+                    }).filter(Boolean).join('<br>') + '</div></div>';
             }
 
             const body = document.getElementById('submissionDetailBody');
@@ -3877,6 +3891,20 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (!_anyShown) {
                     body += '<tr><td colspan="2" style="color:#94a3b8;font-style:italic;text-align:center;padding:20px;">' +
                         (isKo ? '\uC81C\uCD9C \uC138\uBD80 \uC815\uBCF4\uAC00 \uBE44\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.' : 'Submission details are empty.') + '</td></tr>';
+                }
+                // \u2605 FIX 2026-05-19: \uCCA8\uBD80\uD30C\uC77C (Drive URL \uB610\uB294 dataUrl)
+                if (sd.evidenceFiles && sd.evidenceFiles.length) {
+                    var _fileLinks = sd.evidenceFiles.map(function(f){
+                        if (!f) return '';
+                        var nm = escapeHtml(f.name||'file');
+                        var sz = f.size ? ' (' + (f.size>1048576?(f.size/1048576).toFixed(1)+'MB':(f.size/1024).toFixed(1)+'KB') + ')' : '';
+                        var url = f.viewUrl || f.driveUrl || f.dataUrl;
+                        if (url) return '<a href="' + url + '" target="_blank" rel="noopener" style="color:#1e40af;text-decoration:none;">\uD83D\uDCCE ' + nm + sz + '</a>';
+                        return '<span style="color:#94a3b8;">\uD83D\uDCCE ' + nm + sz + '</span>';
+                    }).filter(Boolean).join('<br>');
+                    if (_fileLinks) {
+                        body += '<tr><td class="label-col">' + (isKo ? '\uCCA8\uBD80\uD30C\uC77C' : 'Attached Files') + '</td><td class="val-col">' + _fileLinks + '</td></tr>';
+                    }
                 }
                 body += '</table>';
             } else {
