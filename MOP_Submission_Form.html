@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%233b82f6'/><stop offset='1' stop-color='%238b5cf6'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><path d='M22 78 L22 28 L36 28 L50 56 L64 28 L78 28 L78 78 L66 78 L66 50 L54 74 L46 74 L34 50 L34 78 Z' fill='white'/></svg>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOP Submission Form - Medit</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -352,6 +353,20 @@
             font-family: 'DM Sans', sans-serif;
             scrollbar-color:#334155 #1a2235;
         }
+
+        /* ★ FIX 2026-05-19: 전역 다크 테마 스크롤바 (페이지 본문 스크롤) */
+        html, body { scrollbar-width: thin; scrollbar-color: rgba(100,116,139,0.5) rgba(15,23,42,0.4); }
+        html::-webkit-scrollbar, body::-webkit-scrollbar { width:12px; height:12px; }
+        html::-webkit-scrollbar-track, body::-webkit-scrollbar-track { background:rgba(15,23,42,0.6); border-radius:8px; }
+        html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb {
+            background:rgba(100,116,139,0.5); border-radius:8px;
+            border:2px solid transparent; background-clip:padding-box;
+            transition:background 0.2s;
+        }
+        html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover {
+            background:rgba(148,163,184,0.8); background-clip:padding-box; border:2px solid transparent;
+        }
+        html::-webkit-scrollbar-corner, body::-webkit-scrollbar-corner { background:rgba(15,23,42,0.6); }
 
         select {
             cursor: pointer;
@@ -757,31 +772,32 @@
         .my-sub-panel.active { display: block; }
         .my-sub-empty { text-align: center; padding: 60px 20px; color: var(--text-secondary); }
         .my-sub-empty .icon { font-size: 2.5rem; margin-bottom: 12px; opacity: 0.6; }
-        .my-sub-card { background: #1a2235; border: 1px solid var(--border-color); border-radius: 10px; padding: 20px 22px; margin-bottom: 14px; transition: border-color 0.2s, transform 0.15s; }
+        .my-sub-card { background: #1a2235; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px 16px; margin-bottom: 8px; transition: border-color 0.2s; }
         .my-sub-card:hover { border-color: var(--primary-blue); }
-        .my-sub-card-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
-        .my-sub-card-title { font-size: 1.05rem; font-weight: 600; color: var(--text-heading); margin-bottom: 4px; line-height: 1.4; }
-        .my-sub-card-meta { font-size: 0.82rem; color: var(--text-secondary); margin-top: 3px; }
-        .my-sub-status-pill { display: inline-block; padding: 3px 10px; border-radius: 14px; font-size: 0.78rem; font-weight: 600; margin-top: 6px; }
+        .my-sub-card-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .my-sub-card-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .my-sub-card-line1 { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .my-sub-card-line2 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.78rem; color: var(--text-secondary); }
+        .my-sub-card-title { font-size: 0.95rem; font-weight: 600; color: var(--text-heading); line-height: 1.3; }
+        .my-sub-card-meta { font-size: 0.78rem; color: var(--text-secondary); }
+        .my-sub-status-pill { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
         .my-sub-status-pill.active { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
         .my-sub-status-pill.done { background: rgba(52, 211, 153, 0.15); color: #34d399; }
         .my-sub-status-pill.dropped { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-        .my-sub-actions { display: flex; gap: 8px; flex-shrink: 0; }
-        .my-sub-btn { padding: 8px 16px; border-radius: 6px; font-size: 0.85rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border-color); background: transparent; color: var(--text-body); font-family: inherit; transition: all 0.15s; }
+        .my-sub-actions { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+        .my-sub-btn { padding: 6px 12px; border-radius: 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; border: 1px solid var(--border-color); background: transparent; color: var(--text-body); font-family: inherit; transition: all 0.15s; }
         .my-sub-btn:hover { background: rgba(255, 255, 255, 0.04); }
         .my-sub-btn.primary { background: var(--primary-blue); color: white; border-color: var(--primary-blue); }
         .my-sub-btn.primary:hover { background: var(--primary-blue-hover); }
-        .pipeline { display: flex; align-items: center; gap: 0; margin-top: 14px; }
-        .pipeline-step { display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; min-width: 60px; }
-        .pipeline-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; color: white; }
-        .pipeline-dot.pending { background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); }
-        .pipeline-dot.active { background: var(--primary-blue); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2); }
-        .pipeline-dot.done { background: var(--success-color); }
-        .pipeline-dot.dropped { background: var(--error-color); }
-        .pipeline-label { font-size: 0.7rem; color: var(--text-secondary); margin-top: 5px; white-space: nowrap; }
-        .pipeline-line { flex: 1; height: 2px; background: rgba(255, 255, 255, 0.08); margin: 0 4px; margin-top: -16px; }
-        .pipeline-line.done { background: var(--success-color); }
-        .edit-banner { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-left: 4px solid var(--primary-blue); border-radius: 8px; padding: 14px 18px; margin: 0 2.5rem 1.5rem; color: #93c5fd; font-size: 0.92rem; display: flex; align-items: center; gap: 10px; }
+        .pipeline-mini { display: inline-flex; align-items: center; gap: 3px; }
+        .pipeline-mini-dot { width: 14px; height: 14px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; color: white; flex-shrink: 0; }
+        .pipeline-mini-dot.pending { background: rgba(255, 255, 255, 0.08); color: rgba(255,255,255,0.4); }
+        .pipeline-mini-dot.active { background: var(--primary-blue); box-shadow: 0 0 0 2px rgba(59,130,246,0.25); }
+        .pipeline-mini-dot.done { background: var(--success-color); }
+        .pipeline-mini-dot.dropped { background: var(--error-color); }
+        .pipeline-mini-bar { width: 14px; height: 2px; background: rgba(255,255,255,0.08); flex-shrink: 0; }
+        .pipeline-mini-bar.done { background: var(--success-color); }
+        .edit-banner { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.3); border-left: 3px solid var(--primary-blue); border-radius: 6px; padding: 6px 12px; margin: 0 2.5rem 0.75rem; color: #93c5fd; font-size: 0.78rem; display: flex; align-items: center; gap: 8px; line-height: 1.4; }
         .edit-banner.readonly { background: rgba(148, 163, 184, 0.1); border-color: rgba(148, 163, 184, 0.3); border-left-color: #94a3b8; color: #cbd5e1; }
         .my-sub-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 9998; align-items: center; justify-content: center; padding: 20px; }
         .my-sub-modal.active { display: flex; }
@@ -793,11 +809,119 @@
         .my-sub-modal-value { color: var(--text-heading); font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
         .my-sub-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
+    
+        /* 큰 파이프라인 (모달용) */
+        .pipeline { display: flex; align-items: center; gap: 0; margin-top: 14px; padding: 0 4px; }
+        .pipeline-step { display: flex; flex-direction: column; align-items: center; flex: 0 0 auto; min-width: 56px; }
+        .pipeline-dot { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.78rem; font-weight: 700; color: white; }
+        .pipeline-dot.pending { background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); }
+        .pipeline-dot.active { background: var(--primary-blue); box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.2); }
+        .pipeline-dot.done { background: var(--success-color); }
+        .pipeline-dot.dropped { background: var(--error-color); }
+        .pipeline-label { font-size: 0.72rem; color: var(--text-secondary); margin-top: 6px; white-space: nowrap; }
+        .pipeline-line { flex: 1; height: 2px; background: rgba(255, 255, 255, 0.08); margin: -16px 4px 0; align-self: flex-start; margin-top: 14px; }
+        .pipeline-line.done { background: var(--success-color); }
+
+        /* 모달 스크롤바 스타일 (webkit) */
+        .my-sub-modal-box::-webkit-scrollbar { width: 8px; }
+        .my-sub-modal-box::-webkit-scrollbar-track { background: transparent; }
+        .my-sub-modal-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        .my-sub-modal-box::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+        .my-sub-modal-box { scrollbar-color: rgba(255,255,255,0.15) transparent; scrollbar-width: thin; }
+
+        /* 모달 헤더 영역 정리 */
+        .my-sub-modal-box h2 { margin: 0; }
+        .my-sub-modal-close { background: transparent; border: 1px solid var(--border-color); border-radius: 6px; width: 28px; height: 28px; color: var(--text-body); cursor: pointer; font-size: 1.1rem; line-height: 1; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s; }
+        .my-sub-modal-close:hover { background: rgba(255,255,255,0.06); border-color: var(--text-secondary); }
+
+        /* 모달 본문 간격 */
+        .my-sub-modal-section { margin-bottom: 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border-color); }
+        .my-sub-modal-section:last-child { border-bottom: none; padding-bottom: 0; }
+        .my-sub-modal-label { font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+        .my-sub-modal-value { color: var(--text-heading); font-size: 0.92rem; line-height: 1.6; white-space: pre-wrap; word-break: break-word; }
+        .my-sub-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+
+    
+        /* === 모달 시각적 계층 === */
+        .mop-modal-h2 { font-size:1.3rem; font-weight:700; color:var(--text-heading); margin:0; line-height:1.3; }
+        .mop-modal-pipeline-wrap { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:18px 16px; margin:14px 0 22px; }
+        .mop-modal-card { background:rgba(255,255,255,0.025); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:16px 18px; margin-bottom:14px; transition:border-color 0.2s; }
+        .mop-modal-card:hover { border-color:rgba(255,255,255,0.12); }
+        .mop-modal-card.review { border-left:3px solid #8b5cf6; background:rgba(139,92,246,0.04); }
+        .mop-modal-card.afc { border-left:3px solid #34d399; background:rgba(52,211,153,0.04); }
+        .mop-modal-card.portfolio { border-left:3px solid #f59e0b; background:rgba(245,158,11,0.04); }
+        .mop-modal-card.dropped { border-left:3px solid #ef4444; background:rgba(239,68,68,0.04); }
+        .mop-modal-card-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+        .mop-modal-card-icon { font-size:1rem; line-height:1; }
+        .mop-modal-card-title { font-size:0.78rem; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:0.6px; }
+        .mop-modal-card-body { color:var(--text-heading); font-size:0.93rem; line-height:1.7; white-space:pre-wrap; word-break:break-word; }
+
+        .mop-info-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px 18px; }
+        .mop-info-cell { background:rgba(255,255,255,0.03); border-radius:8px; padding:10px 12px; }
+        .mop-info-label { font-size:0.7rem; color:var(--text-secondary); font-weight:600; text-transform:uppercase; letter-spacing:0.4px; margin-bottom:4px; }
+        .mop-info-value { font-size:0.88rem; color:var(--text-heading); font-weight:500; word-break:break-word; }
+
+        .mop-score-display { display:flex; align-items:baseline; gap:8px; }
+        .mop-score-num { font-size:1.7rem; font-weight:800; }
+        .mop-score-max { font-size:0.85rem; color:var(--text-secondary); }
+        .mop-score-pct { font-size:1rem; font-weight:700; padding:3px 10px; border-radius:14px; }
+
+    
+        /* === 컴팩트 모달 디자인 (Review Result 패턴) === */
+        .pv-box { background:#111827; border-radius:12px; overflow:hidden; border:1px solid rgba(255,255,255,0.08); }
+        .pv-header { padding:18px 22px 14px; background:linear-gradient(180deg,rgba(59,130,246,0.12),rgba(59,130,246,0)); border-bottom:1px solid rgba(255,255,255,0.06); position:relative; }
+        .pv-header h2 { margin:0; font-size:1.25rem; font-weight:700; color:#f1f5f9; line-height:1.3; padding-right:42px; }
+        .pv-header-row { display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:8px; font-size:0.82rem; color:#94a3b8; align-items:center; }
+        .pv-header-row .lbl { color:#64748b; margin-right:4px; }
+        .pv-header-row strong { color:#cbd5e1; font-weight:500; }
+
+        .pv-pipeline-wrap { padding:14px 22px 12px; border-bottom:1px solid rgba(255,255,255,0.06); }
+
+        .pv-section { padding:14px 22px; border-bottom:1px solid rgba(255,255,255,0.06); }
+        .pv-section:last-child { border-bottom:none; }
+        .pv-section-title { font-size:0.72rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.6px; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+
+        /* 2열 그리드 (Review Result 스타일) */
+        .pv-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px 28px; }
+        .pv-cell .lbl { font-size:0.74rem; color:#64748b; font-weight:500; margin-bottom:3px; display:block; }
+        .pv-cell .val { font-size:0.92rem; color:#f1f5f9; word-break:break-word; line-height:1.4; }
+
+        /* 긴 텍스트 — 컴팩트 */
+        .pv-long { display:flex; flex-direction:column; gap:8px; }
+        .pv-long-item .lbl { font-size:0.7rem; color:#64748b; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:2px; display:block; }
+        .pv-long-item .val { font-size:0.88rem; color:#e2e8f0; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
+
+        /* 강조 섹션 (Review/AFC/Portfolio) — 살짝 다른 배경 + 좌측 강조 띠 */
+        .pv-section-emph { background:rgba(255,255,255,0.025); border-left:3px solid var(--primary-blue); padding:14px 22px 14px 19px; }
+        .pv-section-emph.review { border-left-color:#8b5cf6; background:rgba(139,92,246,0.06); }
+        .pv-section-emph.afc { border-left-color:#34d399; background:rgba(52,211,153,0.06); }
+        .pv-section-emph.portfolio { border-left-color:#f59e0b; background:rgba(245,158,11,0.06); }
+        .pv-section-emph.dropped { border-left-color:#ef4444; background:rgba(239,68,68,0.06); }
+
+        /* 점수 막대 (있을 때) */
+        .pv-score-list { display:flex; flex-direction:column; gap:5px; }
+        .pv-score-row { display:grid; grid-template-columns:1fr 110px 42px; align-items:center; gap:10px; font-size:0.86rem; color:#cbd5e1; padding:3px 0; }
+        .pv-score-bar { height:5px; background:rgba(255,255,255,0.08); border-radius:3px; overflow:hidden; }
+        .pv-score-bar-fill { height:100%; border-radius:3px; }
+        .pv-score-val { font-size:0.82rem; color:#94a3b8; text-align:right; font-weight:600; }
+
+        .pv-status-pill { display:inline-block; padding:2px 9px; border-radius:11px; font-size:0.74rem; font-weight:700; }
+        .pv-status-pill.active { background:rgba(59,130,246,0.18); color:#93c5fd; }
+        .pv-status-pill.dropped { background:rgba(239,68,68,0.18); color:#fca5a5; }
+        .pv-status-pill.done { background:rgba(52,211,153,0.18); color:#6ee7b7; }
+
+        .pv-close { position:absolute; top:14px; right:16px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.12); border-radius:8px; width:30px; height:30px; color:#cbd5e1; cursor:pointer; font-size:1rem; display:flex; align-items:center; justify-content:center; transition:background 0.15s; }
+        .pv-close:hover { background:rgba(255,255,255,0.12); color:#fff; }
+
+        /* 모달 박스 (외곽) */
+        .my-sub-modal-box { padding:0; max-width:760px; background:transparent; box-shadow:none; }
+
+
     </style>
 </head>
 <body>
     <!-- Language Toggle -->
-    <div class="lang-toggle">
+    <div class="lang-toggle" id="formLangToggle" style="display:none;">
         <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
         <button class="lang-btn" id="langKo" onclick="setLang('ko')">한국어</button>
     </div>
@@ -864,7 +988,7 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="required" id="t-label-reqOwner">Request Owner</label>
+                    <label class="required" id="t-label-reqOwner">Submitter</label>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
                         <input type="text" id="requestOwner" name="requestOwner" placeholder="Name" maxlength="150" required>
                         <input type="email" id="requestOwnerEmail" name="requestOwnerEmail" placeholder="Email" maxlength="200" required>
@@ -940,6 +1064,7 @@
                             📎 <span id="t-attach-label">Attach Files</span>
                             <input type="file" id="evidenceFiles" multiple style="display:none" onchange="handleEvidenceFiles(this)">
                         </label>
+                        <span class="helper-text" id="t-attach-hint" style="margin-left:8px;font-size:0.8rem;color:var(--text-secondary);">Up to 25MB per file (50MB total)</span>
                         <div class="file-list" id="evidenceFileList"></div>
                     </div>
                 </div>
@@ -1026,7 +1151,6 @@ We will review and provide further guidance.</p>
     <!-- My Submission Detail Modal -->
     <div id="mySubModal" class="my-sub-modal" onclick="if(event.target===this)closeMyModal()">
         <div class="my-sub-modal-box">
-            <button class="my-sub-modal-close" onclick="closeMyModal()">×</button>
             <div id="mySubModalBody"></div>
         </div>
     </div>
@@ -1043,11 +1167,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
   function _proto() { try { return window.location.protocol; } catch(e) { return ''; } }
   function _origin() { try { return window.location.origin || ''; } catch(e) { return ''; } }
   function allowedOrigin(origin) {
-    // Allow: same-origin / file:// (null) / empty (some IE quirks) / about:srcdoc (null)
-    if (origin === _origin()) return true;
-    if (origin === 'null' || origin === '' || origin == null) return true; // file://
-    if (ALLOWED_HOSTS && ALLOWED_HOSTS.indexOf(origin) >= 0) return true;
-    return false;
+    // 정책: mop-* 타입 prefix 검사가 이미 있어 origin은 관대하게.
+    // srcdoc iframe origin이 'null'/'about:srcdoc'/parent origin 등 다양하므로 모두 허용.
+    return true;
   }
   function targetOrigin() {
     // For file:// (origin === 'null'), browsers reject explicit "null" — must use '*'.
@@ -1123,7 +1245,27 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
 /* file: MOP_Submission_Form_v2.html */
 
-        try { if (window !== window.top || window.self !== window.top) { document.documentElement.classList.add('in-iframe'); } } catch(e) { document.documentElement.classList.add('in-iframe'); }
+        try {
+    if (window !== window.top || window.self !== window.top) {
+        document.documentElement.classList.add('in-iframe');
+        if (document.body) document.body.classList.add('in-iframe');
+        else document.addEventListener('DOMContentLoaded', function(){ document.body && document.body.classList.add('in-iframe'); });
+        var _hideLT = function(){ var lt = document.querySelector('.lang-toggle'); if (lt) lt.style.display = 'none'; };
+        _hideLT();
+        document.addEventListener('DOMContentLoaded', _hideLT);
+    }
+} catch(e) {
+    document.documentElement.classList.add('in-iframe');
+    try { if (document.body) document.body.classList.add('in-iframe'); } catch(_){}
+}
+        // standalone 모드에서만 Form의 언어 토글 노출 (iframe 안에선 Gateway 토글 사용)
+        try {
+            var _isEmbedded = (window !== window.top) || (window.parent !== window);
+            if (!_isEmbedded) {
+                var _flt = document.getElementById('formLangToggle');
+                if (_flt) _flt.style.display = '';
+            }
+        } catch(_){}
         // ====== GLOBALS (needed by inline onclick handlers) ======
         let currentLang = 'en';
         function setLang(lang) { if (window._setLangImpl) window._setLangImpl(lang); }
@@ -1146,7 +1288,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 'label-oppTitle': 'Opportunity Title',
                 'label-reqType': 'Request Type',
                 'label-division': 'Region',
-                'label-reqOwner': 'Request Owner',
+                'label-reqOwner': 'Submitter',
                 'label-oppSummary': 'Opportunity Summary',
                 'label-problem': 'Problem Being Solved',
                 'label-targetCust': 'Target Customer / Segment',
@@ -1154,6 +1296,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 'label-growth': 'Growth Impact Hypothesis',
                 'label-evidence': 'Evidence',
                 'attach-label': 'Attach Files',
+                'attach-hint': 'Up to 25MB per file (50MB total)',
                 'label-competitor': 'Competitor / Benchmarking',
                 'label-revenuePotential': 'Revenue / Growth Potential',
                 'helper-competitor': 'Describe competitor products, features, or benchmarking data that support your proposal.',
@@ -1162,7 +1305,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 'helper-oppTitle': 'A concise name for this opportunity that captures its essence.',
                 'helper-reqType': 'Categorize the nature of your request.',
                 'helper-division': 'Select the region submitting this request.',
-                'helper-reqOwner': 'Who will be the primary contact for follow-up questions?',
+                'helper-reqOwner': 'Who is the primary contact for this submission?',
                 'helper-oppSummary': 'Provide a high-level overview that anyone can quickly understand.',
                 'helper-problem': 'Articulate the specific pain point or gap this addresses.',
                 'helper-targetCust': 'Be as specific as possible. Who benefits most from this opportunity?',
@@ -1202,7 +1345,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 'label-oppTitle': '기회 제목',
                 'label-reqType': '요청 유형',
                 'label-division': '리전',
-                'label-reqOwner': '요청 담당자',
+                'label-reqOwner': '제출자',
                 'label-oppSummary': '기회 요약',
                 'label-problem': '해결하려는 문제',
                 'label-targetCust': '대상 고객 / 세그먼트',
@@ -1210,6 +1353,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 'label-growth': '성장 영향 가설',
                 'label-evidence': '근거 자료',
                 'attach-label': '파일 첨부',
+                'attach-hint': '파일당 최대 25MB (총 50MB)',
                 'label-competitor': '경쟁사 / 벤치마킹',
                 'label-revenuePotential': '매출 / 성장 잠재력',
                 'helper-competitor': '제안을 뒷받침하는 경쟁사 제품, 기능 또는 벤치마킹 데이터를 설명하세요.',
@@ -1251,8 +1395,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 'opportunityTitle': 'Please enter the Opportunity Title.',
                 'requestType': 'Please select the Request Type.',
                 'division': 'Please select the Region.',
-                'requestOwner': 'Please enter the Request Owner name.',
-                'requestOwnerEmail': 'Please enter the Request Owner email.',
+                'requestOwner': 'Please enter the Submitter name.',
+                'requestOwnerEmail': 'Please enter the Submitter email.',
                 'opportunitySummary': 'Please enter the Opportunity Summary.',
                 'problemBeingSolved': 'Please enter the Problem Being Solved.',
                 'targetCustomer': 'Please enter the Target Customer / Segment.',
@@ -1266,8 +1410,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 'opportunityTitle': '기회 제목을 입력해 주세요.',
                 'requestType': '요청 유형을 선택해 주세요.',
                 'division': '리전을 선택해 주세요.',
-                'requestOwner': '요청 담당자 이름을 입력해 주세요.',
-                'requestOwnerEmail': '요청 담당자 이메일을 입력해 주세요.',
+                'requestOwner': '제출자 이름을 입력해 주세요.',
+                'requestOwnerEmail': '제출자 이메일을 입력해 주세요.',
                 'opportunitySummary': '기회 요약을 입력해 주세요.',
                 'problemBeingSolved': '해결하려는 문제를 입력해 주세요.',
                 'targetCustomer': '대상 고객 / 세그먼트를 입력해 주세요.',
@@ -1281,11 +1425,42 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
         // ====== FILE ATTACHMENT ======
         var evidenceAttachments = []; // {name, dataUrl, type, size}
+        var MAX_FILE_SIZE = 25 * 1024 * 1024;   // 25 MB per file
+        var MAX_TOTAL_SIZE = 50 * 1024 * 1024;  // 50 MB total
+
+        function _attachToast(msg, color) {
+            try {
+                var t = document.createElement('div');
+                t.textContent = msg;
+                t.style.cssText = 'position:fixed;bottom:24px;right:24px;background:' + (color||'#ef4444') + ';color:#fff;padding:10px 16px;border-radius:8px;font-size:14px;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.4);max-width:360px;';
+                document.body.appendChild(t);
+                setTimeout(function(){ try { t.remove(); } catch(_){} }, 5000);
+            } catch(_){}
+        }
+
+        function _currentTotalSize() {
+            var t = 0;
+            for (var i = 0; i < evidenceAttachments.length; i++) t += (evidenceAttachments[i].size || 0);
+            return t;
+        }
 
         function handleEvidenceFiles(input) {
             var files = input.files;
+            var totalNow = _currentTotalSize();
+            var rejected = [];
             for (var i = 0; i < files.length; i++) {
                 (function(file) {
+                    // 1) 개별 파일 한도
+                    if (file.size > MAX_FILE_SIZE) {
+                        rejected.push(file.name + ' (' + formatFileSize(file.size) + ' > 25MB)');
+                        return;
+                    }
+                    // 2) 누적 한도
+                    if (totalNow + file.size > MAX_TOTAL_SIZE) {
+                        rejected.push(file.name + ' (총 50MB 초과)');
+                        return;
+                    }
+                    totalNow += file.size;
                     var reader = new FileReader();
                     reader.onload = function(e) {
                         evidenceAttachments.push({
@@ -1296,8 +1471,14 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         });
                         renderEvidenceFiles();
                     };
+                    reader.onerror = function() {
+                        _attachToast('파일 읽기 실패: ' + file.name);
+                    };
                     reader.readAsDataURL(file);
                 })(files[i]);
+            }
+            if (rejected.length) {
+                _attachToast('첨부 거부: ' + rejected.join(', '), '#f59e0b');
             }
             input.value = '';
         }
@@ -1356,11 +1537,75 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         'use strict';
 
 
-        // === 사용자 정보 자동 채움 (multi-shot) ===
-        function _fillUserInfo() {
+        // === 사용자 정보 자동 채움 (multi-shot + multi-source) ===
+        // window 전역으로 노출 (다른 모듈에서도 호출 가능)
+        window._resolveUserInfo = _resolveUserInfo;
+        window._fillUserInfo = function(){ return _fillUserInfo.apply(this, arguments); };
+        function _resolveUserInfo() {
+            // Source 1: Gateway가 HTML에 주입한 값
+            if (window.__MOP_USER_INFO) return window.__MOP_USER_INFO;
+            // Source 2: 부모(Gateway) sessionStorage 직접 읽기 (srcdoc iframe은 동일 origin)
             try {
-                var u = window.__MOP_USER_INFO;
+                var ps = window.parent && window.parent.sessionStorage && window.parent.sessionStorage.getItem('mop_session');
+                if (ps) {
+                    var pu = JSON.parse(ps);
+                    return { name: pu.name || '', email: pu.username || '', region: pu.region || '', dept: pu.dept || '', role: pu.role || '' };
+                }
+            } catch(_){}
+            // Source 3: 부모(Gateway) localStorage 백업
+            try {
+                var pl = window.parent && window.parent.localStorage && window.parent.localStorage.getItem('mop_user_info');
+                if (pl) return JSON.parse(pl);
+            } catch(_){}
+            // Source 4: 자체 localStorage (혹시 이전에 저장된 게 있다면)
+            try {
+                var ll = localStorage.getItem('mop_user_info');
+                if (ll) return JSON.parse(ll);
+            } catch(_){}
+            return null;
+        }
+
+        // 수동 자동채움 — 사용자 클릭 시 강제로 다시 채움 (덮어쓰기 허용)
+        window._fillUserInfoForce = function() {
+            try {
+                var u = (typeof _resolveUserInfo === 'function') ? _resolveUserInfo() : null;
+                if (!u) {
+                    var ko = (currentLang === 'ko');
+                    alert(ko ? '로그인 정보를 찾을 수 없습니다. 다시 로그인해 주세요.' : 'Login info not found. Please re-login.');
+                    return;
+                }
+                window.__MOP_USER_INFO = u;
+                var nameEl  = document.getElementById('requestOwner');
+                var emailEl = document.getElementById('requestOwnerEmail');
+                var regEl   = document.getElementById('division');
+                if (nameEl  && u.name)   nameEl.value  = u.name;
+                if (emailEl && u.email)  emailEl.value = u.email;
+                if (regEl   && u.region) {
+                    var opts = regEl.options;
+                    for (var i = 0; i < opts.length; i++) {
+                        if (opts[i].value === u.region) { regEl.selectedIndex = i; break; }
+                    }
+                }
+                [nameEl, emailEl, regEl].forEach(function(el) {
+                    if (el) {
+                        try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
+                        try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch(_){}
+                    }
+                });
+                var btn = document.getElementById('autofillBtn');
+                if (btn) {
+                    var orig = btn.innerHTML;
+                    btn.innerHTML = '✓ ' + ((currentLang === 'ko') ? '채움 완료' : 'Filled');
+                    setTimeout(function() { btn.innerHTML = orig; }, 1500);
+                }
+            } catch(e) { try { __MOP_SEC.logErr('_fillUserInfoForce', e); } catch(_){} }
+        };
+
+                function _fillUserInfo() {
+            try {
+                var u = _resolveUserInfo();
                 if (!u) return;
+                window.__MOP_USER_INFO = u;
                 var nameEl  = document.getElementById('requestOwner');
                 var emailEl = document.getElementById('requestOwnerEmail');
                 var regEl   = document.getElementById('division');
@@ -1407,6 +1652,59 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
         // ★ Google Apps Script URL (Settings에서 변경 가능)
         var APPS_SCRIPT_URL = localStorage.getItem('mopAppsScriptUrl') || 'https://script.google.com/macros/s/AKfycbxm16wAGkF6bg7ym4zt06Gv9ucl7YOfTEpdauh6C85Nb2IDYO7LWuE2dWya_nZwwN3dMA/exec';
+        // ★ FIX 2026-05-19: GAS API 토큰 (Gateway와 동일)
+        var MOP_API_TOKEN = 'medit-mop-2026-04ab7c8d5e3f9201';
+
+        // ★ FIX 2026-05-19: 첨부파일을 GAS → Drive에 업로드하여 영구 URL 획득
+        //   기존 버그: base64 dataUrl을 localStorage/시트에 저장하려고 했으나 quota/크기 한계로 stripped
+        //          → Step 2/3/4 + 다른 사용자에게 첨부파일이 안 보이는 문제
+        //   해결: Drive에 업로드 후 공유 URL을 저장
+        function _uploadAttachmentToDrive(file) {
+            return new Promise(function(resolve) {
+                try {
+                    if (!file || !file.dataUrl) { resolve(file); return; }
+                    var payload = {
+                        type: 'upload-attachment',
+                        token: MOP_API_TOKEN,
+                        name: file.name || 'attachment',
+                        mimeType: file.type || 'application/octet-stream',
+                        dataBase64: file.dataUrl
+                    };
+                    fetch(APPS_SCRIPT_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(payload)
+                    }).then(function(res){ return res.json(); }).then(function(j){
+                        if (j && j.success && j.fileId) {
+                            console.log('[MOP] uploaded to Drive:', file.name, '→', j.fileId);
+                            resolve({
+                                name: file.name,
+                                type: file.type,
+                                size: file.size,
+                                fileId: j.fileId,
+                                driveUrl: j.viewUrl || j.url,
+                                viewUrl: j.viewUrl,
+                                directUrl: j.url
+                                // dataUrl은 제거 — Drive URL로 대체
+                            });
+                        } else {
+                            console.warn('[MOP] Drive upload failed for', file.name, j);
+                            resolve(file); // 실패 시 dataUrl 그대로 (메모리 fallback)
+                        }
+                    }).catch(function(err){
+                        console.error('[MOP] Drive upload error for', file.name, err);
+                        resolve(file); // 실패 시 dataUrl 그대로
+                    });
+                } catch(e) {
+                    console.error('[MOP] upload exception:', e);
+                    resolve(file);
+                }
+            });
+        }
+        function _uploadAllAttachments(attachments) {
+            if (!attachments || !attachments.length) return Promise.resolve([]);
+            return Promise.all(attachments.map(_uploadAttachmentToDrive));
+        }
 
         var form = document.getElementById('mopForm');
         var submitBtn = document.getElementById('submitBtn');
@@ -1565,8 +1863,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 opportunityTitle: 'Opportunity Title',
                 requestType: 'Request Type',
                 division: 'Region',
-                requestOwner: 'Request Owner (Name)',
-                requestOwnerEmail: 'Request Owner (Email)',
+                requestOwner: 'Submitter (Name)',
+                requestOwnerEmail: 'Submitter (Email)',
                 opportunitySummary: 'Opportunity Summary',
                 problemBeingSolved: 'Problem Being Solved',
                 targetCustomer: 'Target Customer',
@@ -1581,8 +1879,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 opportunityTitle: '기회 제목',
                 requestType: '요청 유형',
                 division: '리전',
-                requestOwner: '요청 담당자 (이름)',
-                requestOwnerEmail: '요청 담당자 (이메일)',
+                requestOwner: '제출자 (이름)',
+                requestOwnerEmail: '제출자 (이메일)',
                 opportunitySummary: '기회 요약',
                 problemBeingSolved: '해결 문제',
                 targetCustomer: '대상 고객',
@@ -1725,7 +2023,14 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         // ====== Core submission logic ======
         function doSubmit() {
             try {
+                console.log('[MOP] doSubmit() entered — __MOP_SUBMITTING=', !!window.__MOP_SUBMITTING);
+                if (window.__MOP_SUBMITTING) {
+                    console.warn('[MOP] Already submitting — ignoring duplicate click');
+                    return;
+                }
                 if (!validateForm(true)) return;
+                window.__MOP_SUBMITTING = true;
+                setTimeout(function(){ window.__MOP_SUBMITTING = false; }, 5000);
 
                 var originalText = submitBtn.textContent;
                 submitBtn.textContent = currentLang === 'en' ? 'Submitting...' : '제출 중...';
@@ -1736,12 +2041,36 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         var formData = new FormData(form);
                         var submissionData = {};
                         formData.forEach(function(value, key) { submissionData[key] = value; });
-                        // Attach evidence files metadata
+
+                        // ★ FIX 2026-05-19: 첨부파일을 Drive에 먼저 업로드 → driveUrl 획득 후 제출
+                        var _uploadPromise;
                         if (evidenceAttachments.length) {
-                            submissionData.evidenceFiles = evidenceAttachments.map(function(f) {
-                                return { name: f.name, dataUrl: f.dataUrl, type: f.type, size: f.size };
+                            submitBtn.textContent = '📤 ' + (currentLang==='ko'?'첨부파일 업로드 중...':'Uploading attachments...');
+                            _uploadPromise = _uploadAllAttachments(evidenceAttachments).then(function(uploaded){
+                                submissionData.evidenceFiles = uploaded.map(function(f){
+                                    // Drive 업로드 성공 시 dataUrl 제외하고 driveUrl 저장. 실패 시 dataUrl 유지 (메모리만)
+                                    if (f && f.driveUrl) {
+                                        return { name: f.name, type: f.type, size: f.size, fileId: f.fileId, driveUrl: f.driveUrl, viewUrl: f.viewUrl, directUrl: f.directUrl };
+                                    } else if (f && f.dataUrl) {
+                                        return { name: f.name, type: f.type, size: f.size, dataUrl: f.dataUrl }; // 실패 시 dataUrl fallback
+                                    }
+                                    return { name: f.name, type: f.type, size: f.size };
+                                });
+                                console.log('[MOP] attachments processed:', submissionData.evidenceFiles.length, 'with Drive URLs:', submissionData.evidenceFiles.filter(function(x){return x.driveUrl;}).length);
                             });
+                        } else {
+                            _uploadPromise = Promise.resolve();
                         }
+
+                        _uploadPromise.then(function(){ _continueSubmit(submissionData); }).catch(function(err){
+                            console.error('[MOP] upload chain error:', err);
+                            _continueSubmit(submissionData); // 업로드 실패해도 제출은 진행
+                        });
+                        return; // 아래 코드는 _continueSubmit 안으로 이동
+                    } catch(_eOuter) { console.error('[MOP] submit outer error:', _eOuter); }
+
+                    function _continueSubmit(submissionData) {
+                        try {
 
                         // Save submission
                         var timestamp = Date.now();
@@ -1753,35 +2082,30 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                             data: submissionData
                         };
                         memoryStore[key] = record;
-                        try { localStorage.setItem(key, JSON.stringify(record)); } catch(e) { try { __MOP_SEC.logErr('SubmissionForm', e); } catch(_){} }
+                        // 자체 'mop_submission_<ts>' 개별 키는 더 이상 사용하지 않음
+                        // Gateway의 'mop_submissions' 통합 배열이 SoT
+                        try { /* skip per-submission key */ } catch(e) { try { __MOP_SEC.logErr('SubmissionForm', e); } catch(_){} }
                         try { localStorage.removeItem('mopFormDraft'); } catch(e) { try { __MOP_SEC.logErr('SubmissionForm', e); } catch(_){} }
 
                         // Send full submission data to parent (Gateway)
                         try {
                             var msg = { type: 'mop-submission-data', payload: record };
                             window.parent.postMessage(msg, __MOP_SEC.targetOrigin());
+                            console.log('[MOP] sent mop-submission-data id=', record.id, 'title=', (record.data && record.data.opportunityTitle) || '(no title)');
                         } catch(e) { try { __MOP_SEC.logErr('SubmissionForm', e); } catch(_){} }
+                        // 200ms / 800ms 후 부모에 최신 데이터 요청 (송신 누락 안전망)
+                        try {
+                            setTimeout(function(){
+                                try { if (window.parent !== window) window.parent.postMessage({ type: 'mop-request-sync' }, __MOP_SEC.targetOrigin()); } catch(_){}
+                            }, 200);
+                            setTimeout(function(){
+                                try { if (window.parent !== window) window.parent.postMessage({ type: 'mop-request-sync' }, __MOP_SEC.targetOrigin()); } catch(_){}
+                            }, 1500);
+                        } catch(_){}
 
                         // Send email request to Gateway (if embedded in MOP_Gateway)
                         try {
-                            window.parent.postMessage({
-                                type: 'mop-send-email',
-                                payload: {
-                                    email: submissionData.requestOwnerEmail || '',
-                                    submitter: submissionData.requestOwner || '',
-                                    title: submissionData.opportunityTitle || '',
-                                    region: submissionData.division || '',
-                                    requestType: submissionData.requestType || '',
-                                    date: new Date().toLocaleString(),
-                                    submissionId: key
-                                }
-                            }, __MOP_SEC.targetOrigin());
-                        } catch(e) { try { __MOP_SEC.logErr('SubmissionForm', e); } catch(_){} }
-
-                        // Send email directly to Google Apps Script (standalone form)
-                        try {
-                            var emailPayload = {
-                                type: 'email',
+                            var _emailPayload = {
                                 email: submissionData.requestOwnerEmail || '',
                                 submitter: submissionData.requestOwner || '',
                                 title: submissionData.opportunityTitle || '',
@@ -1790,12 +2114,50 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 date: new Date().toLocaleString(),
                                 submissionId: key
                             };
-                            fetch(APPS_SCRIPT_URL, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                                body: JSON.stringify(emailPayload)
-                            }).catch(function(err) { console.log('Email sent (or queued)'); });
-                        } catch(e) { console.error('Email fetch error:', e); }
+                            console.log('[MOP Form] Sending mop-send-email to Gateway:');
+                            console.log('  - email:', _emailPayload.email, '[valid:', !!(_emailPayload.email && _emailPayload.email.indexOf('@')>0), ']');
+                            console.log('  - submitter:', _emailPayload.submitter);
+                            console.log('  - title:', _emailPayload.title);
+                            console.log('  - submissionData keys:', Object.keys(submissionData));
+                            console.log('  - requestOwnerEmail value:', submissionData.requestOwnerEmail);
+                            console.log('  - requestOwner value:', submissionData.requestOwner);
+                            if (!_emailPayload.email || _emailPayload.email.indexOf('@') < 0) {
+                                console.error('[MOP Form] ⚠️ submitter email INVALID — form field requestOwnerEmail empty!');
+                            }
+                            window.parent.postMessage({
+                                type: 'mop-send-email',
+                                payload: _emailPayload
+                            }, __MOP_SEC.targetOrigin());
+                            console.log('[MOP Form] postMessage sent ✓');
+                        } catch(e) { console.error('[MOP Form] Email post error:', e); try { __MOP_SEC.logErr('SubmissionForm', e); } catch(_){} }
+
+                        // Email: Gateway 경로(mop-send-email)로만 보내고, 직접 fetch는 임베드 시 생략
+                        // standalone(부모 없음)에서만 직접 fetch (백업 경로)
+                        try {
+                            var isEmbedded = (window.parent && window.parent !== window);
+                            if (!isEmbedded) {
+                                var emailPayload = {
+                                    type: 'email',
+                                    email: submissionData.requestOwnerEmail || '',
+                                    submitter: submissionData.requestOwner || '',
+                                    title: submissionData.opportunityTitle || '',
+                                    region: submissionData.division || '',
+                                    requestType: submissionData.requestType || '',
+                                    date: new Date().toLocaleString(),
+                                    submissionId: key
+                                };
+                                fetch(APPS_SCRIPT_URL, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                    body: JSON.stringify(emailPayload)
+                                }).catch(function(err) { console.log('[MOP] Email queued/sent (standalone path)'); });
+                            } else {
+                                console.log('[MOP] Email handled by Gateway (embedded mode) — skipping direct fetch to avoid duplicate');
+                            }
+                        } catch(e) { console.error('[MOP] Email path check error:', e); }
+
+                        // 제출 완료 플래그 — beforeunload 경고 차단
+                        window.__MOP_SUBMITTED = true;
 
                         // Show success overlay
                         var overlay = document.getElementById('successOverlay');
@@ -1805,6 +2167,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         setTimeout(function() {
                             try {
                                 form.reset();
+                                evidenceAttachments = [];
+                                if (typeof renderEvidenceFiles === 'function') renderEvidenceFiles();
                                 updateProgress();
                                 submitBtn.textContent = originalText;
                                 submitBtn.disabled = false;
@@ -1815,6 +2179,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         submitBtn.textContent = originalText;
                         submitBtn.disabled = false;
                     }
+                    } // close _continueSubmit
                 }, 800);
             } catch(e) {
                 console.error('MOP: submit error', e);
@@ -1894,20 +2259,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             });
         } catch(e) { try { __MOP_SEC.logErr('SubmissionForm', e); } catch(_){} }
 
-        // Prevent accidental navigation if form has unsaved changes
-        try {
-            window.addEventListener('beforeunload', function(e) {
-                try {
-                    var formData = new FormData(form);
-                    var hasChanges = false;
-                    formData.forEach(function(value) { if (value !== '') hasChanges = true; });
-                    if (hasChanges && !submitBtn.disabled) {
-                        e.preventDefault();
-                        e.returnValue = '';
-                    }
-                } catch(e2) { try { __MOP_SEC.logErr('SubmissionForm:nested', e2); } catch(_){} }
-            });
-        } catch(e) { try { __MOP_SEC.logErr('SubmissionForm', e); } catch(_){} }
+        // beforeunload 경고 완전 제거 (사용자 요청)
+        // — 어떤 경우에도 페이지 이탈 시 경고를 띄우지 않음
+        window.__MOP_SUBMITTED = true;
 
 
 
@@ -1922,6 +2276,126 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
         function _esc(s){var d=document.createElement('div');d.textContent=s==null?'':String(s);return d.innerHTML;}
 
+
+        // 레거시 자체 'mop_submission_<ts>' 개별 키 정리 (한 번만)
+        try {
+            if (!localStorage.getItem('__mop_legacy_cleaned')) {
+                var toRemove = [];
+                for (var i = 0; i < localStorage.length; i++) {
+                    var k = localStorage.key(i);
+                    if (k && k.indexOf('mop_submission_') === 0) toRemove.push(k);
+                }
+                toRemove.forEach(function(k){ try { localStorage.removeItem(k); } catch(_){} });
+                if (toRemove.length) console.log('[MOP] cleaned', toRemove.length, 'legacy submission keys');
+                localStorage.setItem('__mop_legacy_cleaned', '1');
+            }
+        } catch(_){}
+
+        // === 부모(Gateway) 저장소에서 모든 상태 데이터 hydrate ===
+        // SoT: Gateway의 localStorage (mop_submissions, mop_reviews, mop_afc_state, mop_portfolio_state)
+        function _hydrateLocalSubmissions() {
+            try {
+                var pl = window.parent && window.parent.localStorage;
+                if (!pl) {
+                    if (!Array.isArray(_mopSubmissions)) _mopSubmissions = [];
+                    return _mopSubmissions.length;
+                }
+                // Submissions
+                try {
+                    var s1 = pl.getItem('mop_submissions');
+                    if (s1) {
+                        var arr1 = JSON.parse(s1);
+                        if (Array.isArray(arr1)) {
+                            _mopSubmissions = arr1;
+                            console.log('[MOP] hydrated submissions:', arr1.length);
+                        }
+                    }
+                } catch(_){}
+                // Reviews — Step 2 평가 결과를 가져와야 상태(검토 완료 등) 표시 가능
+                try {
+                    var s2 = pl.getItem('mop_reviews');
+                    if (s2) {
+                        var arr2 = JSON.parse(s2);
+                        if (Array.isArray(arr2)) {
+                            _mopReviews = arr2;
+                            console.log('[MOP] hydrated reviews:', arr2.length);
+                        }
+                    }
+                } catch(_){}
+                // AFC State — Step 3 결과
+                try {
+                    var s3 = pl.getItem('mop_afc_state');
+                    if (s3) {
+                        var st = JSON.parse(s3);
+                        if (st) { _mopAfcState = st; console.log('[MOP] hydrated AFC state'); }
+                    }
+                } catch(_){}
+                // Portfolio State — Step 4 결과
+                try {
+                    var s4 = pl.getItem('mop_portfolio_state');
+                    if (s4) {
+                        var pst = JSON.parse(s4);
+                        if (pst) { _mopPortfolio = pst; console.log('[MOP] hydrated portfolio:', (pst.projects||[]).length, 'projects'); }
+                    }
+                } catch(_){}
+            } catch(_){}
+            if (!Array.isArray(_mopSubmissions)) _mopSubmissions = [];
+            if (!Array.isArray(_mopReviews)) _mopReviews = [];
+            return _mopSubmissions.length;
+        }
+        window._hydrateLocalSubmissions = _hydrateLocalSubmissions;
+
+        // === 카드 버튼 이벤트 위임 (inline onclick 대안) ===
+        try {
+            document.addEventListener('click', function(ev) {
+                var t = ev.target;
+                while (t && t !== document) {
+                    if (t.dataset && t.dataset.mopAction) {
+                        var action = t.dataset.mopAction;
+                        var id = t.dataset.mopId;
+                        console.log('[MOP] card action:', action, 'id:', id);
+                        try {
+                            if (action === 'view') { window.openMyDetail(id); }
+                            else if (action === 'edit') { window.enterEditMode(id); }
+                            else if (action === 'cancel') { window.cancelMySubmission(id); }
+                            else if (action === 'cancel-modal') { window.cancelMySubmission(id, true); }
+                            else if (action === 'close-modal') { window.closeMyModal(); }
+                        } catch(e) { console.error('[MOP] action handler error:', e); }
+                        ev.preventDefault();
+                        ev.stopPropagation();
+                        return;
+                    }
+                    t = t.parentNode;
+                }
+            }, true);
+        } catch(_){}
+
+
+        // === MY SUBMISSIONS 카운트 전용 업데이트 (탭 미활성 시에도 호출) ===
+        // ★ FIX 2026-05-18: 권한 누수 제거 — 본인 것만 카운팅, 폴백 X
+        function _updateMineCount() {
+            try {
+                try { if (typeof _hydrateLocalSubmissions === 'function') _hydrateLocalSubmissions(); } catch(_){}
+                var allSubs = _mopSubmissions || [];
+                var email = (typeof _myEmail === 'function') ? _myEmail() : '';
+                var name  = (typeof _myName === 'function') ? _myName() : '';
+                var c = 0;
+                if (email || name) {
+                    c = allSubs.filter(function(s){
+                        var d = s.data || {};
+                        var em = (d.requestOwnerEmail || '').toLowerCase();
+                        var nm = (d.requestOwner || '').toLowerCase();
+                        return (email && em && em === email) || (name && nm && nm === name);
+                    }).length;
+                }
+                // ★ user info 없으면 0 (전체 노출 금지)
+                var ce = document.getElementById('mySubCount');
+                if (ce) ce.textContent = c ? '(' + c + ')' : '';
+            } catch(_){}
+        }
+        window._updateMineCount = _updateMineCount;
+
+
         window.switchSubTab = function(tab) {
             try {
                 var newTab = document.getElementById('subTabNew');
@@ -1935,7 +2409,18 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (mineP) mineP.classList.toggle('active', tab === 'mine');
                 var sb = document.querySelector('.sidebar');
                 if (sb) sb.style.display = tab === 'new' ? '' : 'none';
-                if (tab === 'mine') renderMySubmissions();
+                if (tab === 'mine') {
+                    // Gateway에 최신 데이터 요청 (혹시 sync 누락된 경우 대비)
+                    try {
+                        if (window.parent !== window) {
+                            __MOP_SEC.safePost(window.parent, { type: 'mop-request-sync' });
+                        }
+                    } catch(_){}
+                    renderMySubmissions();
+                    // sync 응답 후 재렌더 (안전망)
+                    setTimeout(function(){ if (mineP && mineP.classList.contains('active')) renderMySubmissions(); }, 300);
+                    setTimeout(function(){ if (mineP && mineP.classList.contains('active')) renderMySubmissions(); }, 800);
+                }
             } catch(e) { try { __MOP_SEC.logErr('switchSubTab', e); } catch(_){} }
         };
 
@@ -1944,26 +2429,115 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             var review = _mopReviews.find(function(r){
                 return String(r.submissionId) === String(id) || String(r.id) === String(id);
             });
+            // 디버그: 첫 호출 시 _mopReviews 상태 로깅
+            if (!window.__MOP_STATUS_DEBUG_DONE) {
+                window.__MOP_STATUS_DEBUG_DONE = true;
+                try { console.log('[MOP] getSubStatus debug — _mopReviews count:', (_mopReviews||[]).length, 'sample submissionIds:', (_mopReviews||[]).slice(0,3).map(function(r){return r.submissionId;})); } catch(_){}
+            }
             if (!review) return { step: 1, label: currentLang==='ko'?'검토 대기':'Pending Review', tone: 'active' };
             var rec = (review.recKey || review.recommendation || '').toLowerCase();
-            if (rec.indexOf('not') === 0 || rec === 'no-go' || rec === 'reject' || rec === 'rejected') {
+            var isReviewRejected = (rec.indexOf('not') === 0 || rec === 'no-go' || rec === 'reject' || rec === 'rejected');
+            // === 순차 갱신 우선: AFC가 진행됐으면 그 단계까지 표시 (review 거절보다 후속 단계 우선) ===
+            var _csObj = (_mopAfcState && _mopAfcState.checklistState) || {};
+            // ★ 다중 키 검색 (review.id 우선, submission.id 후순위, 둘 다 미발견 시 모든 키 검색)
+            var afcSt = _csObj[review.id] || _csObj[String(review.id)] || _csObj[id] || _csObj[String(id)];
+            // 추가 안전망: review에 submissionId 필드 있으면 그걸로도 시도
+            if (!afcSt && review.submissionId) {
+                afcSt = _csObj[review.submissionId] || _csObj[String(review.submissionId)];
+            }
+            // 진단 로그 (한 번만)
+            if (!window.__MOP_AFC_LOOKUP_LOGGED) {
+                window.__MOP_AFC_LOOKUP_LOGGED = true;
+                try {
+                    console.log('[MOP] AFC lookup debug:');
+                    console.log('  - submission.id:', id);
+                    console.log('  - review.id:', review.id);
+                    console.log('  - review.submissionId:', review.submissionId);
+                    console.log('  - checklistState keys:', Object.keys(_csObj));
+                    console.log('  - afcSt found:', !!afcSt, afcSt ? '(finalized: ' + afcSt.finalized + ', gate: ' + afcSt.gate + ')' : '');
+                } catch(_){}
+            }
+            if (afcSt) {
+                if (afcSt.finalized) {
+                    var gate = (afcSt.gate || '').toLowerCase();
+                    if (gate === 'no_go' || gate === 'no-go' || gate === 'nogo') {
+                        return { step: 3, label: currentLang==='ko'?'Drop (AFC 거절)':'Dropped (AFC Rejected)', tone: 'dropped' };
+                    }
+                    // ★ Portfolio mopId = review.id (Gateway가 _autoAddToPortfolio 시 review.id로 저장)
+                    // 다중 키 검색: review.id 우선, submission.id fallback
+                    var _projects = (_mopPortfolio && _mopPortfolio.projects) || [];
+                    var proj = _projects.find(function(p){ return String(p.mopId) === String(review.id); })
+                            || _projects.find(function(p){ return String(p.mopId) === String(id); })
+                            || (review.submissionId && _projects.find(function(p){ return String(p.mopId) === String(review.submissionId); }));
+                    if (!window.__MOP_PROJ_LOOKUP_LOGGED) {
+                        window.__MOP_PROJ_LOOKUP_LOGGED = true;
+                        try {
+                            console.log('[MOP] Portfolio lookup debug:');
+                            console.log('  - review.id:', review.id);
+                            console.log('  - submission.id:', id);
+                            console.log('  - _projects mopIds:', _projects.map(function(p){return p.mopId;}));
+                            console.log('  - proj found:', !!proj, proj ? '(category: "' + (proj.category||'') + '")' : '');
+                        } catch(_){}
+                    }
+                    if (proj) {
+                        // ★ 포트폴리오에 추가만 되면 Step 4 진입 (카테고리는 부가 정보)
+                        var pStat = (proj.status || 'todo').replace('_',' ');
+                        var catLabel = proj.category && String(proj.category).trim() !== '' ? String(proj.category) : (currentLang==='ko'?'미분류':'Uncategorized');
+                        return { step: 4, label: (currentLang==='ko'?'포트폴리오: ':'Portfolio: ') + pStat + ' (' + catLabel + ')', tone: 'active', portfolioStatus: proj.status };
+                    }
+                    return { step: 3, label: currentLang==='ko'?'AFC 완료':'AFC Complete', tone: 'done' };
+                }
+                // AFC 시작했지만 finalize 전
+                return { step: 3, label: currentLang==='ko'?'AFC 진행 중':'AFC In Progress', tone: 'active' };
+            }
+            // === AFC 미시작 — 평가 단계에서 멈춤 ===
+            if (isReviewRejected) {
                 return { step: 2, label: currentLang==='ko'?'Drop (검토에서 거절)':'Dropped (Review Rejected)', tone: 'dropped' };
             }
-            var afcSt = _mopAfcState && _mopAfcState.checklistState && _mopAfcState.checklistState[id];
-            if (!afcSt) return { step: 2, label: currentLang==='ko'?'검토 완료':'Review Complete', tone: 'active', score: review.percentage };
-            if (afcSt.finalized) {
-                var gate = (afcSt.gate || '').toLowerCase();
-                if (gate === 'no_go' || gate === 'no-go' || gate === 'nogo') {
-                    return { step: 3, label: currentLang==='ko'?'Drop (AFC 거절)':'Dropped (AFC Rejected)', tone: 'dropped' };
+            return { step: 2, label: currentLang==='ko'?'검토 완료':'Review Complete', tone: 'active', score: review.percentage };
+        }
+
+
+        // 제출 날짜를 "YYYY-MM-DD HH:MM" 형식으로 표시
+        function _formatSubDate(s) {
+            try {
+                var dt = null;
+                if (s.timestamp) dt = new Date(s.timestamp);
+                else if (s.id && !isNaN(parseInt(s.id))) dt = new Date(parseInt(s.id));
+                if (dt && !isNaN(dt.getTime())) {
+                    var y = dt.getFullYear();
+                    var m = String(dt.getMonth() + 1).padStart(2, '0');
+                    var d = String(dt.getDate()).padStart(2, '0');
+                    var hh = String(dt.getHours()).padStart(2, '0');
+                    var mm = String(dt.getMinutes()).padStart(2, '0');
+                    return y + '-' + m + '-' + d + ' ' + hh + ':' + mm;
                 }
-                var proj = _mopPortfolio && _mopPortfolio.projects && _mopPortfolio.projects.find(function(p){ return String(p.mopId) === String(id); });
-                if (proj) {
-                    var pStat = (proj.status || 'todo').replace('_',' ');
-                    return { step: 4, label: (currentLang==='ko'?'포트폴리오: ':'Portfolio: ') + pStat, tone: 'active', portfolioStatus: proj.status };
+                return s.date || '';
+            } catch(_) { return s.date || ''; }
+        }
+
+        function renderPipelineMini(status) {
+            var html = '<span class="pipeline-mini" title="Step ' + status.step + ': ' + status.label + '">';
+            for (var i = 0; i < 4; i++) {
+                var stepNum = i + 1;
+                var dotClass;
+                if (status.tone === 'dropped') {
+                    if (stepNum < status.step) dotClass = 'done';
+                    else if (stepNum === status.step) dotClass = 'dropped';
+                    else dotClass = 'pending';
+                } else {
+                    if (stepNum < status.step) dotClass = 'done';
+                    else if (stepNum === status.step) dotClass = (status.tone === 'done') ? 'done' : 'active';
+                    else dotClass = 'pending';
                 }
-                return { step: 3, label: currentLang==='ko'?'AFC 완료':'AFC Complete', tone: 'done' };
+                html += '<span class="pipeline-mini-dot ' + dotClass + '">' + stepNum + '</span>';
+                if (i < 3) {
+                    var done = (stepNum < status.step) && status.tone !== 'dropped';
+                    html += '<span class="pipeline-mini-bar' + (done ? ' done' : '') + '"></span>';
+                }
             }
-            return { step: 3, label: currentLang==='ko'?'AFC 진행 중':'AFC In Progress', tone: 'active' };
+            html += '</span>';
+            return html;
         }
 
         function renderPipelineHtml(status) {
@@ -2000,73 +2574,201 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }
 
         function _myEmail() {
-            return _userInfo && _userInfo.email ? String(_userInfo.email).toLowerCase() : '';
+            // 1) postMessage로 받은 _userInfo
+            if (_userInfo && _userInfo.email) return String(_userInfo.email).toLowerCase();
+            // 2) Gateway가 HTML에 박아준 정보
+            try { if (typeof _resolveUserInfo === 'function') {
+                var u = _resolveUserInfo();
+                if (u && u.email) { _userInfo = u; return String(u.email).toLowerCase(); }
+            }} catch(_){}
+            return '';
+        }
+        function _myName() {
+            if (_userInfo && _userInfo.name) return String(_userInfo.name).toLowerCase();
+            try { if (typeof _resolveUserInfo === 'function') {
+                var u = _resolveUserInfo();
+                if (u && u.name) { _userInfo = u; return String(u.name).toLowerCase(); }
+            }} catch(_){}
+            return '';
         }
 
         function renderMySubmissions() {
-            var listEl = document.getElementById('mySubList');
-            var emptyEl = document.getElementById('mySubEmpty');
-            var countEl = document.getElementById('mySubCount');
-            if (!listEl) return;
-            var email = _myEmail();
-            var mine;
-            if (!email) { mine = []; }
-            else {
-                mine = (_mopSubmissions || []).filter(function(s) {
-                    var d = s.data || {};
-                    var em = (d.requestOwnerEmail || '').toLowerCase();
-                    return em === email;
-                });
-            }
-            if (countEl) countEl.textContent = mine.length ? '(' + mine.length + ')' : '';
-            if (!mine.length) {
-                listEl.innerHTML = '';
-                emptyEl.style.display = '';
-                return;
-            }
-            emptyEl.style.display = 'none';
-            mine.sort(function(a, b) {
-                var ta = a.timestamp || a.id || '';
-                var tb = b.timestamp || b.id || '';
-                return String(tb).localeCompare(String(ta));
-            });
-            listEl.innerHTML = mine.map(function(s) {
-                var d = s.data || {};
-                var status = getSubStatus(s);
-                var canEdit = status.step === 1 && status.tone !== 'dropped';
-                var modText = '';
-                if (s.lastModified) {
-                    try {
-                        var dt = new Date(s.lastModified);
-                        modText = (currentLang==='ko'?'수정: ':'Modified: ') + dt.toLocaleString();
-                    } catch(_){}
+            try {
+                var listEl = document.getElementById('mySubList');
+                var emptyEl = document.getElementById('mySubEmpty');
+                var countEl = document.getElementById('mySubCount');
+                if (!listEl) return;
+
+                // 부모 저장소에서 hydrate
+                try { _hydrateLocalSubmissions(); } catch(_){}
+
+                var userEmail = _myEmail();
+                var userName = _myName();
+                console.log('[MOP] renderMySubmissions — total:', (_mopSubmissions||[]).length, '| email:', userEmail, '| name:', userName);
+
+                var allSubs = _mopSubmissions || [];
+                var mineList = [];
+
+                // ★ FIX 2026-05-18: MY SUBMISSIONS는 ENDPOINT 그 자체이므로 권한 무관 본인 것만 표시
+                //   기존 치명적 버그: "매칭 부족 → 전체 표시" 폴백 로직이 일반 사용자에게 남의 submission 노출시킴
+                //   - 일반 사용자: 자기 이메일과 일치하는 것만
+                //   - admin/manager: 그래도 "MY"는 본인 의미이므로 본인 것만 (전체 보려면 다른 탭에서)
+                //   - user info 없으면: 아무것도 안 보임 (로그인 안 됐다고 간주)
+                var isAdmin = (_userInfo && (_userInfo.role === 'admin' || _userInfo.role === 'manager'));
+                if (!userEmail && !userName) {
+                    console.warn('[MOP] MY SUBMISSIONS: user info MISSING → showing 0 (security)');
+                    mineList = [];
+                } else {
+                    var emN = (userEmail||'').replace(/\s/g,'').toLowerCase();
+                    var nmN = (userName||'').replace(/\s/g,'').toLowerCase();
+                    mineList = allSubs.filter(function(item) {
+                        if (!item || !item.data) return false;
+                        var em = (item.data.requestOwnerEmail || '').replace(/\s/g,'').toLowerCase();
+                        var nm = (item.data.requestOwner || '').replace(/\s/g,'').toLowerCase();
+                        // 이메일 완전 일치 우선 (안전)
+                        if (emN && em && em === emN) return true;
+                        // 이름 완전 일치 (백업)
+                        if (nmN && nm && nm === nmN) return true;
+                        // ★ 제거: 이메일 prefix만 일치하는 fuzzy 매칭 — 다른 도메인 동명이인이면 오인 가능
+                        return false;
+                    });
+                    console.log('[MOP] MY SUBMISSIONS: ' + (isAdmin?'admin/manager ':'') + 'filtered by email=' + emN + ' name=' + nmN + ' → matched:', mineList.length, '/', allSubs.length);
                 }
-                var pillClass = status.tone || 'active';
-                var btnLabel = canEdit
-                    ? (currentLang==='ko'?'수정':'Edit')
-                    : (currentLang==='ko'?'상세':'View');
-                var btnAction = canEdit ? 'enterEditMode' : 'openMyDetail';
-                return '<div class="my-sub-card">'
-                    + '<div class="my-sub-card-row">'
-                    +   '<div style="flex:1;min-width:0;">'
-                    +     '<div class="my-sub-card-title">' + _esc(d.opportunityTitle || (currentLang==='ko'?'제목 없음':'Untitled')) + '</div>'
-                    +     '<div class="my-sub-card-meta">'
-                    +       _esc(d.requestType || '-') + ' · ' + _esc(d.division || '-')
-                    +       ' · ' + _esc(s.date || '')
-                    +     '</div>'
-                    +     (modText ? '<div class="my-sub-card-meta">' + _esc(modText) + '</div>' : '')
-                    +     '<span class="my-sub-status-pill ' + pillClass + '">' + _esc(status.label) + '</span>'
-                    +   '</div>'
-                    +   '<div class="my-sub-actions">'
-                    +     '<button class="my-sub-btn ' + (canEdit?'primary':'') + '" onclick="' + btnAction + '(' + JSON.stringify(s.id) + ')">' + btnLabel + '</button>'
-                    +   '</div>'
-                    + '</div>'
-                    + renderPipelineHtml(status)
-                    + '</div>';
-            }).join('');
+
+                if (countEl) countEl.textContent = mineList.length ? '(' + mineList.length + ')' : '';
+
+                if (!mineList.length) {
+                    listEl.innerHTML = '';
+                    if (emptyEl) emptyEl.style.display = '';
+                    return;
+                }
+                if (emptyEl) emptyEl.style.display = 'none';
+
+                // 정렬: 최신순
+                mineList.sort(function(a, b) {
+                    var ta = a.timestamp || a.id || '';
+                    var tb = b.timestamp || b.id || '';
+                    return String(tb).localeCompare(String(ta));
+                });
+
+                // 카드 렌더링 — 각 카드에 try-catch
+                var cardsHtml = '';
+                for (var i = 0; i < mineList.length; i++) {
+                    var subItem = mineList[i];
+                    try {
+                        cardsHtml += _renderOneCard(subItem);
+                    } catch (cardErr) {
+                        console.error('[MOP] failed to render card for', (subItem && subItem.id), cardErr);
+                        var titleSafe = '';
+                        try { titleSafe = (subItem.data && subItem.data.opportunityTitle) || 'Untitled'; } catch(_){}
+                        cardsHtml += '<div class="my-sub-card"><div class="my-sub-card-row"><div class="my-sub-card-main"><div class="my-sub-card-title">' + _esc(titleSafe) + '</div><div class="my-sub-card-meta" style="color:#ef4444">render error — see console</div></div></div></div>';
+                    }
+                }
+                listEl.innerHTML = cardsHtml;
+            } catch (outerErr) {
+                console.error('[MOP] renderMySubmissions outer error:', outerErr);
+            }
         }
 
-        window.enterEditMode = function(id) {
+        // 한 카드 렌더링 — 변수 모두 sub_ prefix 사용 (s 충돌 방지)
+        function _renderOneCard(subItem) {
+            var subData = subItem.data || {};
+            var subStatus = getSubStatus(subItem);
+            var canEdit = subStatus.step === 1 && subStatus.tone !== 'dropped';
+            var btnLabel = canEdit ? (currentLang==='ko'?'수정':'Edit') : (currentLang==='ko'?'상세':'View');
+            var btnAction = canEdit ? 'edit' : 'view';
+            var pillClass = subStatus.tone || 'active';
+            var dateStr = (typeof _formatSubDate === 'function') ? _formatSubDate(subItem) : (subItem.date || '');
+            var modText = '';
+            if (subItem.lastModified) {
+                try {
+                    var modDt = new Date(subItem.lastModified);
+                    modText = (currentLang==='ko'?'수정 ':'Mod ') + modDt.toLocaleDateString();
+                } catch(_){}
+            }
+            var subId = String(subItem.id);
+            var html = '<div class="my-sub-card">'
+                + '<div class="my-sub-card-row">'
+                +   '<div class="my-sub-card-main">'
+                +     '<div class="my-sub-card-line1">'
+                +       '<span class="my-sub-card-title">' + _esc(subData.opportunityTitle || (currentLang==='ko'?'제목 없음':'Untitled')) + '</span>'
+                +       '<span class="my-sub-status-pill ' + pillClass + '">' + _esc(subStatus.label) + '</span>'
+                +     '</div>'
+                +     '<div class="my-sub-card-line2">'
+                +       (typeof renderPipelineMini === 'function' ? renderPipelineMini(subStatus) : '')
+                +       '<span>' + _esc(subData.requestType || '-') + '</span>'
+                +       '<span>·</span>'
+                +       '<span>' + _esc(subData.division || '-') + '</span>'
+                +       '<span>·</span>'
+                +       '<span>' + _esc(dateStr) + '</span>'
+                +       (modText ? ' <span>· ' + _esc(modText) + '</span>' : '')
+                +     '</div>'
+                +   '</div>'
+                +   '<div class="my-sub-actions">'
+                +     '<button class="my-sub-btn ' + (canEdit?'primary':'') + '" data-mop-action="' + btnAction + '" data-mop-id="' + _esc(subId) + '">' + btnLabel + '</button>'
+                +     (canEdit ? '<button class="my-sub-btn my-sub-btn-danger" data-mop-action="cancel" data-mop-id="' + _esc(subId) + '" title="' + (currentLang==='ko'?'제출 취소':'Withdraw') + '">' + (currentLang==='ko'?'취소':'Withdraw') + '</button>' : '')
+                +   '</div>'
+                + '</div>'
+                + '</div>';
+            return html;
+        }
+
+
+        // === 본인 제출 취소(철회) ===
+        console.log('[MOP] defining window.cancelMySubmission...');
+        window.cancelMySubmission = function(id, fromModal) {
+            console.log('[MOP] cancelMySubmission CALLED — id:', id, 'fromModal:', fromModal);
+            try {
+                if (!Array.isArray(_mopSubmissions)) {
+                    console.error('[MOP] _mopSubmissions is not array:', _mopSubmissions);
+                    alert('Data not loaded yet. Please refresh.');
+                    return;
+                }
+                var sub = _mopSubmissions.find(function(s){ return String(s.id) === String(id); });
+                if (!sub) {
+                    console.warn('[MOP] cancel: submission not found for id', id, '| total:', _mopSubmissions.length);
+                    alert((currentLang==='ko'?'제출을 찾을 수 없습니다.':'Submission not found.'));
+                    return;
+                }
+                console.log('[MOP] cancel: found sub', sub.id, sub.data && sub.data.opportunityTitle);
+                var status = getSubStatus(sub);
+                console.log('[MOP] cancel: status', status);
+                var ko = currentLang === 'ko';
+                if (status.step !== 1 || status.tone === 'dropped') {
+                    alert(ko ? '검토가 시작되어 취소할 수 없습니다.' : 'Cannot withdraw: review has started.');
+                    return;
+                }
+                var d = sub.data || {};
+                var title = d.opportunityTitle || (ko?'제목 없음':'Untitled');
+                var msg = ko
+                    ? '"' + title + '" 제출을 정말 취소하시겠습니까?\n\n취소된 제출은 복구되지 않습니다.\n(이메일은 발송되지 않습니다)'
+                    : 'Really withdraw "' + title + '"?\n\nThis cannot be undone.\n(No email will be sent)';
+                if (!confirm(msg)) { console.log('[MOP] cancel: user declined'); return; }
+
+                console.log('[MOP] cancel: sending delete request to parent');
+                if (window.parent !== window) {
+                    try {
+                        __MOP_SEC.safePost(window.parent, { type: 'mop-submission-delete', payload: { id: id } });
+                        console.log('[MOP] cancel: delete request sent OK');
+                    } catch(postErr) {
+                        console.error('[MOP] cancel: postMessage error', postErr);
+                    }
+                }
+                _mopSubmissions = _mopSubmissions.filter(function(s){ return String(s.id) !== String(id); });
+                console.log('[MOP] cancel: removed from local cache. remaining:', _mopSubmissions.length);
+                if (fromModal && typeof window.closeMyModal === 'function') window.closeMyModal();
+                if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) {
+                    try { renderMySubmissions(); console.log('[MOP] cancel: re-rendered'); } catch(rerr) { console.error('[MOP] cancel: re-render err', rerr); }
+                }
+                try { _updateMineCount(); } catch(_){}
+                console.log('[MOP] cancelMySubmission DONE');
+            } catch(e) {
+                console.error('[MOP] cancelMySubmission ERROR:', e);
+                try { __MOP_SEC.logErr('cancelMySubmission', e); } catch(_){}
+            }
+        };
+
+                        window.enterEditMode = function(id) {
             try {
                 var sub = _mopSubmissions.find(function(s){ return String(s.id) === String(id); });
                 if (!sub) return;
@@ -2079,11 +2781,28 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 _editingOriginal = { timestamp: sub.timestamp, date: sub.date, id: sub.id };
                 var d = sub.data || {};
                 Object.keys(d).forEach(function(k) {
+                    if (k === 'evidenceFiles') return; // 파일은 별도 처리
                     var el = document.getElementById(k);
                     if (el && d[k] !== undefined) {
                         try { el.value = d[k]; el.dispatchEvent(new Event('input')); el.dispatchEvent(new Event('change')); } catch(_){}
                     }
                 });
+                // 첨부 파일 복원
+                try {
+                    if (Array.isArray(d.evidenceFiles) && typeof evidenceAttachments !== 'undefined') {
+                        evidenceAttachments.length = 0;
+                        d.evidenceFiles.forEach(function(f){
+                            evidenceAttachments.push({
+                                name: f.name || 'file',
+                                dataUrl: f.dataUrl || '',
+                                type: f.type || '',
+                                size: f.size || 0
+                            });
+                        });
+                        if (typeof renderEvidenceFiles === 'function') renderEvidenceFiles();
+                        console.log('[MOP] restored', d.evidenceFiles.length, 'evidence files');
+                    }
+                } catch(e) { console.error('[MOP] restore files err', e); }
                 _setSubmitBtnText(true);
                 _showEditBanner('edit', status);
                 switchSubTab('new');
@@ -2097,6 +2816,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 _editingOriginal = null;
                 var f = document.getElementById('mopForm');
                 if (f) f.reset();
+                // 파일 첨부도 비우기
+                try {
+                    if (typeof evidenceAttachments !== 'undefined') {
+                        evidenceAttachments.length = 0;
+                        if (typeof renderEvidenceFiles === 'function') renderEvidenceFiles();
+                    }
+                } catch(_){}
                 document.querySelectorAll('#mopForm input, #mopForm textarea, #mopForm select').forEach(function(el){ el.disabled = false; });
                 _setSubmitBtnText(false);
                 _hideEditBanner();
@@ -2104,108 +2830,177 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             } catch(e) { try { __MOP_SEC.logErr('cancelEditMode', e); } catch(_){} }
         };
 
-        window.openMyDetail = function(id) {
+        window.openMyDetail = function(submissionId) {
+            console.log('[MOP] openMyDetail:', submissionId);
             try {
-                var sub = _mopSubmissions.find(function(s){ return String(s.id) === String(id); });
-                if (!sub) return;
-                var status = getSubStatus(sub);
-                var d = sub.data || {};
-                var review = _mopReviews.find(function(r){ return String(r.submissionId) === String(id) || String(r.id) === String(id); });
-                var afcSt = _mopAfcState && _mopAfcState.checklistState && _mopAfcState.checklistState[id];
-                var proj = _mopPortfolio && _mopPortfolio.projects && _mopPortfolio.projects.find(function(p){ return String(p.mopId) === String(id); });
+                var subRecord = (_mopSubmissions || []).find(function(item){ return String(item.id) === String(submissionId); });
+                if (!subRecord) { console.warn('[MOP] not found:', submissionId); return; }
+                var subStatus = getSubStatus(subRecord);
+                var subData = subRecord.data || {};
+                var subReview = (_mopReviews || []).find(function(rv){ return String(rv.submissionId) === String(submissionId) || String(rv.id) === String(submissionId); });
+                // ★ AFC checklistState 키는 review.id (제출 id 아님). 두 키 모두 시도.
+                var _afcObj = (_mopAfcState && _mopAfcState.checklistState) || {};
+                var _afcKey = subReview ? subReview.id : submissionId;
+                var subAfc = _afcObj[_afcKey] || _afcObj[String(_afcKey)] || _afcObj[submissionId] || _afcObj[String(submissionId)] || null;
+                // ★ Portfolio mopId = review.id (다중 키 검색)
+                var _portProjs = (_mopPortfolio && _mopPortfolio.projects) || [];
+                var subProj = (subReview && _portProjs.find(function(pr){ return String(pr.mopId) === String(subReview.id); }))
+                           || _portProjs.find(function(pr){ return String(pr.mopId) === String(submissionId); })
+                           || (subReview && subReview.submissionId && _portProjs.find(function(pr){ return String(pr.mopId) === String(subReview.submissionId); }))
+                           || null;
+                var isKo = currentLang === 'ko';
 
-                var fields = currentLang === 'ko' ? {
-                    opportunityTitle: '기회 제목', requestType: '요청 유형', division: '리전',
-                    requestOwner: '담당자', requestOwnerEmail: '이메일',
-                    opportunitySummary: '기회 요약', problemBeingSolved: '해결 문제',
-                    targetCustomer: '대상 고객', strategicRelevance: '전략적 관련성',
-                    growthImpact: '성장 영향', evidence: '근거', competitorBenchmark: '경쟁/벤치마크',
-                    revenuePotential: '매출 잠재력', priorityArgument: '우선순위 근거'
+                var L = isKo ? {
+                    submitter:'입력자', reviewer:'리뷰어', score:'점수', date:'날짜',
+                    submInfo:'제출 정보', reviewResult:'평가 결과 (STEP 2)', afcResult:'AFC 진행 (STEP 3)', portfolio:'포트폴리오 (STEP 4)',
+                    requestType:'요청 유형', region:'리전', owner:'제출자', email:'이메일',
+                    summary:'기회 요약', problem:'해결할 문제', target:'대상 고객', strategic:'전략적 관련성',
+                    growth:'성장 영향', evidence:'근거', competitor:'경쟁/벤치마크', revenue:'매출/성장 잠재력', priority:'우선순위 근거',
+                    submitted:'제출일', modified:'최근 수정', recommendation:'권고', comments:'평가 의견',
+                    finalDecision:'최종 결정', notes:'메모', inProgress:'진행 중', withdraw:'제출 취소',
+                    status:'상태', priority2:'우선순위', scoreList:'항목별 점수'
                 } : {
-                    opportunityTitle: 'Opportunity Title', requestType: 'Request Type', division: 'Region',
-                    requestOwner: 'Owner', requestOwnerEmail: 'Email',
-                    opportunitySummary: 'Summary', problemBeingSolved: 'Problem',
-                    targetCustomer: 'Target Customer', strategicRelevance: 'Strategic Relevance',
-                    growthImpact: 'Growth Impact', evidence: 'Evidence', competitorBenchmark: 'Competitor / Benchmarking',
-                    revenuePotential: 'Revenue Potential', priorityArgument: 'Priority Argument'
+                    submitter:'Submitter', reviewer:'Reviewer', score:'Score', date:'Date',
+                    submInfo:'Submission Info', reviewResult:'Review Result (Step 2)', afcResult:'AFC Progress (Step 3)', portfolio:'Portfolio (Step 4)',
+                    requestType:'Request Type', region:'Region', owner:'Submitter', email:'Email',
+                    summary:'Summary', problem:'Problem', target:'Target Customer', strategic:'Strategic Relevance',
+                    growth:'Growth Impact', evidence:'Evidence', competitor:'Competitor / Benchmark', revenue:'Revenue / Growth', priority:'Priority Argument',
+                    submitted:'Submitted', modified:'Last Modified', recommendation:'Recommendation', comments:'Comments',
+                    finalDecision:'Final Decision', notes:'Notes', inProgress:'In Progress', withdraw:'Withdraw',
+                    status:'Status', priority2:'Priority', scoreList:'Score Breakdown'
                 };
 
-                var html = '';
-                html += '<h2 style="font-size:1.4rem;font-weight:600;color:var(--text-heading);margin-bottom:6px;">' + _esc(d.opportunityTitle || '-') + '</h2>';
-                html += '<span class="my-sub-status-pill ' + status.tone + '" style="margin-bottom:18px;">' + _esc(status.label) + '</span>';
-                html += renderPipelineHtml(status);
+                var html = '<div class="pv-box">';
 
-                // 제출 정보
-                html += '<div class="my-sub-modal-section" style="margin-top:20px;">';
-                html += '<div class="my-sub-modal-label">' + (currentLang==='ko'?'제출 정보':'Submission Info') + '</div>';
-                html += '<div class="my-sub-modal-grid">';
-                ['requestType','division','requestOwner','requestOwnerEmail'].forEach(function(k){
-                    if (d[k]) {
-                        html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + fields[k] + '</div><div class="my-sub-modal-value">' + _esc(d[k]) + '</div></div>';
-                    }
-                });
-                if (s.date) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'제출일':'Submitted') + '</div><div class="my-sub-modal-value">' + _esc(s.date) + '</div></div>';
-                if (s.lastModified) {
-                    var dt = new Date(s.lastModified);
-                    html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'최근 수정':'Last Modified') + '</div><div class="my-sub-modal-value">' + _esc(dt.toLocaleString()) + '</div></div>';
+                // === 헤더 ===
+                html += '<div class="pv-header">';
+                html += '<button class="pv-close" data-mop-action="close-modal">×</button>';
+                html += '<h2>' + _esc(subData.opportunityTitle || '-') + '</h2>';
+                html += '<div class="pv-header-row">';
+                html += '<span class="pv-status-pill ' + subStatus.tone + '">' + _esc(subStatus.label) + '</span>';
+                html += '<div><span class="lbl">' + L.submitter + ':</span><strong>' + _esc(subData.requestOwner || '-') + '</strong></div>';
+                html += '<div><span class="lbl">' + L.date + ':</span><strong>' + _esc(subRecord.date || '-') + '</strong></div>';
+                if (subRecord.lastModified) {
+                    try { var modDt = new Date(subRecord.lastModified); html += '<div><span class="lbl">' + L.modified + ':</span><strong>' + _esc(modDt.toLocaleString()) + '</strong></div>'; } catch(_){}
                 }
+                html += '</div>';
+                html += '</div>';
+
+                // 파이프라인
+                html += '<div class="pv-pipeline-wrap">' + renderPipelineHtml(subStatus) + '</div>';
+
+                // === 제출 정보 ===
+                html += '<div class="pv-section">';
+                html += '<div class="pv-section-title">📋 ' + L.submInfo + '</div>';
+                html += '<div class="pv-grid">';
+                var gridFields = [
+                    [L.requestType, subData.requestType],
+                    [L.region, subData.division],
+                    [L.owner, subData.requestOwner],
+                    [L.email, subData.requestOwnerEmail]
+                ];
+                gridFields.forEach(function(p){
+                    if (p[1]) html += '<div class="pv-cell"><span class="lbl">' + p[0] + '</span><div class="val">' + _esc(p[1]) + '</div></div>';
+                });
                 html += '</div></div>';
 
-                // 본문
-                ['opportunitySummary','problemBeingSolved','targetCustomer','strategicRelevance','growthImpact','evidence','competitorBenchmark','priorityArgument','revenuePotential'].forEach(function(k){
-                    if (d[k]) {
-                        html += '<div class="my-sub-modal-section">';
-                        html += '<div class="my-sub-modal-label">' + fields[k] + '</div>';
-                        html += '<div class="my-sub-modal-value">' + _esc(d[k]) + '</div>';
+                // === 본문 (긴 텍스트) — 컴팩트 ===
+                var longFields = [
+                    [L.summary, subData.opportunitySummary],
+                    [L.problem, subData.problemBeingSolved],
+                    [L.target, subData.targetCustomer],
+                    [L.strategic, subData.strategicRelevance],
+                    [L.growth, subData.growthImpact],
+                    [L.evidence, subData.evidence],
+                    [L.competitor, subData.competitorBenchmark],
+                    [L.revenue, subData.revenuePotential],
+                    [L.priority, subData.priorityArgument]
+                ];
+                var hasLong = longFields.some(function(p){ return !!p[1]; });
+                if (hasLong) {
+                    html += '<div class="pv-section">';
+                    html += '<div class="pv-long">';
+                    longFields.forEach(function(p){
+                        if (p[1]) html += '<div class="pv-long-item"><span class="lbl">' + p[0] + '</span><div class="val">' + _esc(p[1]) + '</div></div>';
+                    });
+                    html += '</div></div>';
+                }
+
+                // === Step 2 평가 결과 (강조) ===
+                if (subReview) {
+                    var pct = subReview.percentage || 0;
+                    var rec = (subReview.recKey || subReview.recommendation || '').toString();
+                    var isRejected = rec.toLowerCase().indexOf('not') === 0 || rec === 'no-go' || rec === 'rejected';
+                    var clsRev = isRejected ? 'dropped' : 'review';
+                    html += '<div class="pv-section pv-section-emph ' + clsRev + '">';
+                    html += '<div class="pv-section-title">📊 ' + L.reviewResult + '</div>';
+                    html += '<div class="pv-grid">';
+                    if (subReview.percentage != null) {
+                        var scoreColor = isRejected ? '#ef4444' : (pct >= 80 ? '#34d399' : pct >= 60 ? '#fbbf24' : '#ef4444');
+                        html += '<div class="pv-cell"><span class="lbl">' + L.score + '</span><div class="val" style="font-weight:700;color:' + scoreColor + '">' + (subReview.score || 0) + ' / ' + (subReview.maxScore || 100) + ' (' + pct + '%)</div></div>';
+                    }
+                    if (rec) html += '<div class="pv-cell"><span class="lbl">' + L.recommendation + '</span><div class="val">' + _esc(rec) + '</div></div>';
+                    if (subReview.reviewer) html += '<div class="pv-cell"><span class="lbl">' + L.reviewer + '</span><div class="val">' + _esc(subReview.reviewer) + '</div></div>';
+                    if (subReview.date) html += '<div class="pv-cell"><span class="lbl">' + L.date + '</span><div class="val">' + _esc(subReview.date) + '</div></div>';
+                    html += '</div>';
+                    // 점수 항목별 (breakdown)
+                    if (subReview.breakdown && typeof subReview.breakdown === 'object') {
+                        html += '<div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">';
+                        html += '<div style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;margin-bottom:6px;">' + L.scoreList + '</div>';
+                        html += '<div class="pv-score-list">';
+                        Object.keys(subReview.breakdown).forEach(function(k){
+                            var item = subReview.breakdown[k];
+                            var label = (item && item.label) || k;
+                            var sv = (item && item.score) != null ? item.score : 0;
+                            var mx = (item && item.max) || 5;
+                            var ratio = mx > 0 ? sv/mx : 0;
+                            var color = ratio >= 0.6 ? '#34d399' : ratio >= 0.4 ? '#fbbf24' : '#ef4444';
+                            html += '<div class="pv-score-row"><div>' + _esc(label) + '</div><div class="pv-score-bar"><div class="pv-score-bar-fill" style="width:' + Math.round(ratio*100) + '%;background:' + color + '"></div></div><div class="pv-score-val">' + sv + '/' + mx + '</div></div>';
+                        });
+                        html += '</div></div>';
+                    }
+                    if (subReview.comments) html += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.06);"><span class="lbl" style="font-size:0.7rem;color:#64748b;font-weight:600;text-transform:uppercase;">' + L.comments + '</span><div style="margin-top:4px;font-size:0.88rem;color:#e2e8f0;line-height:1.5;white-space:pre-wrap;">' + _esc(subReview.comments) + '</div></div>';
+                    html += '</div>';
+                }
+
+                // === Step 3 AFC ===
+                if (subAfc) {
+                    html += '<div class="pv-section pv-section-emph afc">';
+                    html += '<div class="pv-section-title">✅ ' + L.afcResult + '</div>';
+                    if (subAfc.finalized) {
+                        var gateColor = subAfc.gate === 'go' ? '#34d399' : (subAfc.gate === 'conditional' ? '#fbbf24' : '#ef4444');
+                        html += '<div class="pv-grid">';
+                        html += '<div class="pv-cell"><span class="lbl">' + L.finalDecision + '</span><div class="val" style="font-weight:700;color:' + gateColor + ';font-size:1rem;">' + _esc((subAfc.gate||'-').toUpperCase()) + '</div></div>';
                         html += '</div>';
-                    }
-                });
-
-                // 검토 결과
-                if (review) {
-                    html += '<div class="my-sub-modal-section">';
-                    html += '<div class="my-sub-modal-label">' + (currentLang==='ko'?'검토 결과 (Step 2)':'Review Result (Step 2)') + '</div>';
-                    html += '<div class="my-sub-modal-grid">';
-                    if (review.percentage != null) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'점수':'Score') + '</div><div class="my-sub-modal-value">' + _esc(review.score || 0) + ' / ' + _esc(review.maxScore || 100) + ' (' + _esc(review.percentage) + '%)</div></div>';
-                    if (review.recKey || review.recommendation) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'권고':'Recommendation') + '</div><div class="my-sub-modal-value">' + _esc(review.recKey || review.recommendation) + '</div></div>';
-                    if (review.reviewer) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'평가자':'Reviewer') + '</div><div class="my-sub-modal-value">' + _esc(review.reviewer) + '</div></div>';
-                    if (review.date) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'평가일':'Review Date') + '</div><div class="my-sub-modal-value">' + _esc(review.date) + '</div></div>';
-                    html += '</div>';
-                    if (review.comments) html += '<div style="margin-top:12px;"><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'평가 의견':'Comments') + '</div><div class="my-sub-modal-value">' + _esc(review.comments) + '</div></div>';
-                    html += '</div>';
-                }
-
-                // AFC
-                if (afcSt) {
-                    html += '<div class="my-sub-modal-section">';
-                    html += '<div class="my-sub-modal-label">' + (currentLang==='ko'?'AFC 진행 (Step 3)':'AFC Progress (Step 3)') + '</div>';
-                    if (afcSt.finalized) {
-                        html += '<div class="my-sub-modal-value"><strong>' + (currentLang==='ko'?'최종 결정: ':'Final Gate: ') + '</strong>' + _esc(afcSt.gate || '-') + '</div>';
-                        if (afcSt.gateNotes) html += '<div class="my-sub-modal-value" style="margin-top:8px;">' + _esc(afcSt.gateNotes) + '</div>';
+                        if (subAfc.gateNotes) html += '<div style="margin-top:8px;font-size:0.86rem;color:#cbd5e1;white-space:pre-wrap;">' + _esc(subAfc.gateNotes) + '</div>';
                     } else {
-                        html += '<div class="my-sub-modal-value">' + (currentLang==='ko'?'진행 중':'In Progress') + '</div>';
+                        html += '<div style="color:#fbbf24;font-size:0.92rem;">⏳ ' + L.inProgress + '</div>';
                     }
                     html += '</div>';
                 }
 
-                // Portfolio
-                if (proj) {
-                    html += '<div class="my-sub-modal-section">';
-                    html += '<div class="my-sub-modal-label">' + (currentLang==='ko'?'포트폴리오 (Step 4)':'Portfolio (Step 4)') + '</div>';
-                    html += '<div class="my-sub-modal-grid">';
-                    html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'상태':'Status') + '</div><div class="my-sub-modal-value">' + _esc((proj.status || '').replace('_',' ')) + '</div></div>';
-                    if (proj.priority) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'우선순위':'Priority') + '</div><div class="my-sub-modal-value">' + _esc(proj.priority) + '</div></div>';
-                    if (proj.owner) html += '<div><div style="font-size:0.78rem;color:var(--text-secondary);">' + (currentLang==='ko'?'담당자':'Owner') + '</div><div class="my-sub-modal-value">' + _esc(proj.owner) + '</div></div>';
-                    html += '</div>';
-                    html += '</div>';
+                // === Step 4 Portfolio ===
+                if (subProj) {
+                    html += '<div class="pv-section pv-section-emph portfolio">';
+                    html += '<div class="pv-section-title">📁 ' + L.portfolio + '</div>';
+                    html += '<div class="pv-grid">';
+                    html += '<div class="pv-cell"><span class="lbl">' + L.status + '</span><div class="val">' + _esc((subProj.status||'').replace('_',' ')) + '</div></div>';
+                    if (subProj.priority) html += '<div class="pv-cell"><span class="lbl">' + L.priority2 + '</span><div class="val">' + _esc(subProj.priority) + '</div></div>';
+                    if (subProj.owner) html += '<div class="pv-cell"><span class="lbl">' + L.owner + '</span><div class="val">' + _esc(subProj.owner) + '</div></div>';
+                    html += '</div></div>';
                 }
+
+                html += '</div>';
 
                 document.getElementById('mySubModalBody').innerHTML = html;
                 document.getElementById('mySubModal').classList.add('active');
-            } catch(e) { try { __MOP_SEC.logErr('openMyDetail', e); } catch(_){} }
+            } catch(err) {
+                console.error('[MOP] openMyDetail error:', err);
+                try { __MOP_SEC.logErr('openMyDetail', err); } catch(_){}
+            }
         };
 
-        window.closeMyModal = function() {
+                window.closeMyModal = function() {
             var m = document.getElementById('mySubModal');
             if (m) m.classList.remove('active');
         };
@@ -2215,7 +3010,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (!btn) return;
             var ko = currentLang === 'ko';
             if (editing) {
-                btn.textContent = ko ? '수정 저장' : 'Save Changes';
+                btn.textContent = ko ? '수정 저장 (이메일 미발송)' : 'Save Changes (no email)';
             } else {
                 btn.textContent = (i18n[currentLang] && i18n[currentLang]['btn-submit']) || (ko ? '제출' : 'Submit');
             }
@@ -2228,7 +3023,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             banner.className = 'edit-banner' + (mode === 'view' ? ' readonly' : '');
             var ko = currentLang === 'ko';
             if (mode === 'edit') {
-                banner.innerHTML = '✏️ <strong>' + (ko?'수정 모드':'Edit Mode') + '</strong> — ' + (ko?'기존 제출을 수정 중입니다. 저장하면 원본이 업데이트됩니다.':'Editing existing submission. Saving will update the original.') + ' <button onclick="cancelEditMode()" style="margin-left:auto;padding:4px 12px;background:transparent;border:1px solid currentColor;color:inherit;border-radius:6px;cursor:pointer;font-family:inherit;">' + (ko?'취소':'Cancel') + '</button>';
+                banner.innerHTML = '✏️ <strong>' + (ko?'수정 모드':'Edit Mode') + '</strong> — '
+                    + (ko?'기존 제출을 수정 중입니다. 저장 시 원본이 업데이트되며, ':'Editing existing submission. Saving will update the original. ')
+                    + '<strong>' + (ko?'이메일은 발송되지 않습니다':'No email will be sent') + '</strong>'
+                    + (ko?'.':'.')
+                    + ' <button onclick="cancelEditMode()" style="margin-left:auto;padding:2px 8px;background:transparent;border:1px solid currentColor;color:inherit;border-radius:3px;cursor:pointer;font-family:inherit;font-size:0.7rem;font-weight:500;line-height:1.4;height:22px;flex-shrink:0;align-self:center;">' + (ko?'취소':'Cancel') + '</button>';
             }
             var formEl = document.getElementById('mopForm');
             if (formEl) formEl.parentNode.insertBefore(banner, formEl);
@@ -2245,7 +3044,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (!__MOP_SEC.isAllowedEvent(event)) return;
                 var d = event.data || {};
                 if (d.type === 'mop-submissions-sync') {
-                    _mopSubmissions = d.payload || [];
+                    var incoming = d.payload || [];
+                    _mopSubmissions = Array.isArray(incoming) ? incoming.slice() : [];
+                    try { console.log('[MOP] mop-submissions-sync — replaced with', _mopSubmissions.length, 'items'); } catch(_){}
+                    _updateMineCount(); // 항상 카운트 업데이트
                     if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions();
                     var mineCount = _myEmail() ? _mopSubmissions.filter(function(s){
                         var dd = s.data || {}; return (dd.requestOwnerEmail||'').toLowerCase() === _myEmail();
@@ -2253,11 +3055,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     var ce = document.getElementById('mySubCount');
                     if (ce) ce.textContent = mineCount ? '(' + mineCount + ')' : '';
                 }
-                else if (d.type === 'mop-reviews-sync') { _mopReviews = d.payload || []; if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions(); }
+                else if (d.type === 'mop-reviews-sync') { _mopReviews = d.payload || []; _updateMineCount(); if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions(); }
                 else if (d.type === 'mop-afc-state-restore') { _mopAfcState = d.payload || null; if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions(); }
                 else if (d.type === 'mop-portfolio-state-restore') { _mopPortfolio = d.payload || null; if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions(); }
                 else if (d.type === 'mop-user-info' && d.payload) {
                     _userInfo = d.payload;
+                    _updateMineCount(); // user info 갱신 → 카운트 재계산
                     if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions();
                 }
             } catch(e) { try { __MOP_SEC.logErr('SubmissionForm extra msg', e); } catch(_){} }
@@ -2294,19 +3097,72 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         window._setLangImpl = function(lang) {
             if (_origSetLang) _origSetLang(lang);
             try { _refreshSubTabLabels(); } catch(_){}
+            try {
+                var lbl = document.getElementById('autofillBtnLabel');
+                if (lbl) lbl.textContent = lang === 'ko' ? '로그인 정보로 채우기' : 'Auto-fill from login';
+            } catch(_){}
         };
 
-        // === 제출 수정 모드: doSubmit 후크 ===
-        // 원본 doSubmit를 _origDoSubmit로 보존하고, 수정 모드일 때 분기
-        var _origDoSubmit = (typeof doSubmit !== 'undefined') ? doSubmit : null;
+        // === 제출 수정 모드: 핵심 핸들러 ===
+        // IIFE의 submitBtn click 리스너가 doSubmit를 직접 호출하므로 (preventDefault로 form submit 이벤트가 발생 안 함)
+        // capture-phase click 리스너로 IIFE보다 먼저 가로채야 함
 
-        // 위에서 doSubmit는 IIFE 안에 있어 외부 접근 불가 — 대신 form submit 이벤트에 후크
+        function _handleEditSave() {
+            try {
+                if (!_runFormValidate()) return false;
+                var formData = new FormData(document.getElementById('mopForm'));
+                var data = {};
+                formData.forEach(function(v, k){ data[k] = v; });
+                if (typeof evidenceAttachments !== 'undefined' && evidenceAttachments.length) {
+                    data.evidenceFiles = evidenceAttachments.map(function(f){ return { name: f.name, dataUrl: f.dataUrl, type: f.type, size: f.size }; });
+                }
+                var record = {
+                    id: _editingId,
+                    timestamp: (_editingOriginal && _editingOriginal.timestamp) || new Date().toISOString(),
+                    date: (_editingOriginal && _editingOriginal.date) || new Date().toLocaleString(),
+                    data: data,
+                    lastModified: new Date().toISOString()
+                };
+                // Gateway에 업데이트 송신 (이메일은 보내지 않음 — Gateway 핸들러도 mop-submission-update에선 이메일 발송 안 함)
+                if (window.parent !== window) {
+                    __MOP_SEC.safePost(window.parent, { type: 'mop-submission-update', payload: record });
+                }
+                // 로컬 캐시 업데이트
+                var idx = _mopSubmissions.findIndex(function(s){ return String(s.id) === String(_editingId); });
+                if (idx >= 0) _mopSubmissions[idx] = record;
+                // 수정 완료 플래그 — beforeunload 경고 차단
+                window.__MOP_SUBMITTED = true;
+                // UI 정리
+                var ko = currentLang === 'ko';
+                alert(ko ? '수정이 저장되었습니다. (이메일은 발송되지 않습니다)' : 'Changes saved. (No email is sent for edits)');
+                cancelEditMode();
+                switchSubTab('mine');
+                return true;
+            } catch(err) { try { __MOP_SEC.logErr('edit save', err); } catch(_){} return false; }
+        }
+
+        // 1. capture-phase click 리스너 — IIFE보다 먼저 실행 (수정 모드면 IIFE 차단)
+        try {
+            var _sb = document.getElementById('submitBtn');
+            if (_sb) {
+                _sb.addEventListener('click', function(e) {
+                    if (!_editingId) return; // 새 제출은 IIFE에 위임
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    _handleEditSave();
+                }, true /* capture */);
+            }
+        } catch(_){}
+
+        // 2. submit 이벤트 capture 리스너 — Enter 키 등으로 form submit이 직접 발동될 때 대비
         document.getElementById('mopForm').addEventListener('submit', function(e) {
             if (!_editingId) return; // 새 제출은 기존 핸들러가 처리
-            // 수정 모드 경로
             e.preventDefault();
             e.stopPropagation();
             e.stopImmediatePropagation();
+            _handleEditSave();
+            return;
             try {
                 if (!_runFormValidate()) return;
                 var formData = new FormData(document.getElementById('mopForm'));
@@ -2354,15 +3210,56 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             return ok;
         }
 
-        // 페이지 로드 시 hash로 탭 자동 선택 (#mine 등)
+
+        // 새 제출 직후 _mopSubmissions 낙관적 업데이트 (bubble phase, IIFE doSubmit 이후 실행)
+        try {
+            document.getElementById('mopForm').addEventListener('submit', function(e) {
+                if (_editingId) return; // 수정 모드는 별도 처리
+                try {
+                    var fd = new FormData(this);
+                    var data = {};
+                    fd.forEach(function(v, k){ data[k] = v; });
+                    var record = {
+                        id: Date.now(),
+                        timestamp: new Date().toISOString(),
+                        date: new Date().toLocaleString(),
+                        data: data
+                    };
+                    if (!Array.isArray(_mopSubmissions)) _mopSubmissions = [];
+                    // 직전 제출 중복 방지
+                    if (!_mopSubmissions.find(function(s){ return s.id === record.id; })) {
+                        _mopSubmissions.push(record);
+                    }
+                    setTimeout(function(){
+                        if (document.getElementById('mySubPanel') && document.getElementById('mySubPanel').classList.contains('active')) renderMySubmissions();
+                    }, 100);
+                } catch(err) { try { __MOP_SEC.logErr('optimistic submit', err); } catch(_){} }
+            }, false);
+        } catch(_){}
+
+        // 초기 로드 시 자체 + 부모 저장소에서 hydrate + 부모에 강제 sync 요청
+        try {
+            window.addEventListener('DOMContentLoaded', function() {
+                // 즉시 부모에 최신 데이터 요청 (postMessage 누락 안전망)
+                try { if (window.parent !== window) window.parent.postMessage({ type: 'mop-request-sync' }, __MOP_SEC.targetOrigin()); } catch(_){}
+                setTimeout(function(){ try { _hydrateLocalSubmissions(); _updateMineCount(); } catch(_){} }, 0);
+                setTimeout(function(){ try { _hydrateLocalSubmissions(); _updateMineCount(); } catch(_){} }, 100);
+                setTimeout(function(){ try { if (window.parent !== window) window.parent.postMessage({ type: 'mop-request-sync' }, __MOP_SEC.targetOrigin()); } catch(_){} }, 250);
+            });
+            window.addEventListener('load', function() {
+                setTimeout(function(){ try { _hydrateLocalSubmissions(); _updateMineCount(); } catch(_){} }, 0);
+                setTimeout(function(){ try { _hydrateLocalSubmissions(); _updateMineCount(); } catch(_){} }, 200);
+                setTimeout(function(){ try { _hydrateLocalSubmissions(); _updateMineCount(); } catch(_){} }, 500);
+                setTimeout(function(){ try { _hydrateLocalSubmissions(); _updateMineCount(); } catch(_){} }, 1200);
+            });
+        } catch(_){}
+
         try {
             window.addEventListener('load', function() {
                 if (location.hash === '#mine') setTimeout(function(){ switchSubTab('mine'); }, 100);
             });
         } catch(_){}
-        // ============ /내 제출 ============
-
-        })(); // END IIFE
+    })();
     </script>
 </body>
 </html>
