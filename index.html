@@ -1474,6 +1474,33 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             + '</div></td></tr>'
             + '<tr><td style="background:#f8fafc;padding:18px 32px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;">MEDIT MOP System<br><span style="font-size:10px;color:#cbd5e1;">© 2026 MEDIT Corp. All rights reserved.</span></td></tr>'
             + '</table></td></tr></table></body></html>';
+        // ★ FIX 2026-05-19: admin 수신자 결정 — 3 소스 union (dedup)
+        //   1) 현재 _accounts 에서 role=admin && approved=true 인 계정 (가장 권위)
+        //   2) _adminEmails (Settings에 등록된 알림 수신자)
+        //   3) 하드코드 폴백 ('jake@medit.com')
+        //   * 서버측 GAS 도 동일한 dedup union 으로 한번 더 보호하므로 어느 하나라도 비어도 OK
+        var _adminSet = {};
+        try {
+            (_accounts || []).forEach(function(a){
+                if (!a || !a.username) return;
+                if (a.role !== 'admin' || a.approved !== true) return;
+                var em = String(a.username).trim();
+                if (em.indexOf('@') > 0) _adminSet[em.toLowerCase()] = em;
+            });
+        } catch(_){}
+        try {
+            (_adminEmails || []).forEach(function(em){
+                em = String(em || '').trim();
+                if (em.indexOf('@') > 0 && !_adminSet[em.toLowerCase()]) _adminSet[em.toLowerCase()] = em;
+            });
+        } catch(_){}
+        // 비어있으면 하드 폴백
+        if (Object.keys(_adminSet).length === 0) {
+            _adminSet['jake@medit.com'] = 'jake@medit.com';
+        }
+        var _adminToCsv = Object.keys(_adminSet).map(function(k){ return _adminSet[k]; }).join(',');
+        console.log('[MOP signup] admin recipients (client):', _adminToCsv, '| _accounts admins=' + (_accounts||[]).filter(function(a){return a&&a.role==='admin'&&a.approved===true;}).length + ' | _adminEmails=' + (_adminEmails||[]).length);
+
         // Single fetch: sends to user (to) + admin (adminTo/adminSubject/adminHtml)
         // ★ FIX 2026-05-19: gasPostEmail로 변경 — token 자동 주입 + sendBeacon 안정성
         gasPostEmail(url, {
@@ -1482,10 +1509,28 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             subject: '[MOP][Submitter] Sign-up Request Received — Pending Approval',
             htmlBody: _appendMopCta(userHtml),
             textBody: 'Hi ' + acc.name + ', your MOP System account request has been received.',
-            adminTo: getAdminEmailsStr(),
+            adminTo: _adminToCsv,
             adminSubject: '[MOP Admin] New Account Approval Request — ' + acc.name + ' (' + acc.username + ')',
             adminHtml: _appendMopCta(adminHtml),
             adminText: 'New signup: ' + acc.name + ' (' + acc.username + ') — Please approve in MOP Settings.'
+        }, function(r){
+            console.log('[MOP signup] email request OK:', r);
+        }, function(e){
+            console.error('[MOP signup] email request FAILED:', e);
+            // 1회 retry (2초 후)
+            setTimeout(function(){
+                console.log('[MOP signup] retrying email send...');
+                try { gasPostEmail(url, {
+                    type: 'custom-email', to: acc.username,
+                    subject: '[MOP][Submitter] Sign-up Request Received — Pending Approval',
+                    htmlBody: _appendMopCta(userHtml),
+                    textBody: 'Hi ' + acc.name + ', your MOP System account request has been received.',
+                    adminTo: _adminToCsv,
+                    adminSubject: '[MOP Admin] New Account Approval Request — ' + acc.name + ' (' + acc.username + ')',
+                    adminHtml: _appendMopCta(adminHtml),
+                    adminText: 'New signup: ' + acc.name + ' (' + acc.username + ') — Please approve in MOP Settings.'
+                }); } catch(_){}
+            }, 2000);
         });
     }
 
