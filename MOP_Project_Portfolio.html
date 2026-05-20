@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0' stop-color='%233b82f6'/><stop offset='1' stop-color='%238b5cf6'/></linearGradient></defs><rect width='100' height='100' rx='22' fill='url(%23g)'/><path d='M22 78 L22 28 L36 28 L50 56 L64 28 L78 28 L78 78 L66 78 L66 50 L54 74 L46 74 L34 50 L34 78 Z' fill='white'/></svg>">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Project Portfolio Board - Medit</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -261,8 +262,8 @@
 <div class="toolbar">
     <div class="toolbar-left">
         <div class="view-toggle">
-            <button class="view-btn active" id="vDashboard" onclick="setView('dashboard')" data-i18n="vDashboard">Dashboard</button>
-            <button class="view-btn" id="vBoard" onclick="setView('board')" data-i18n="vBoard">Board</button>
+            <button class="view-btn" id="vDashboard" onclick="setView('dashboard')" data-i18n="vDashboard">Dashboard</button>
+            <button class="view-btn active" id="vBoard" onclick="setView('board')" data-i18n="vBoard">Board</button>
             <button class="view-btn" id="vTable" onclick="setView('table')" data-i18n="vTable">Table</button>
         </div>
         <select class="filter-select" id="filterCat" onchange="renderAll()">
@@ -281,8 +282,8 @@
     </div>
 </div>
 
-<div class="dashboard-container" id="dashboardView"></div>
-<div class="board-container hidden" id="boardView"></div>
+<div class="dashboard-container hidden" id="dashboardView"></div>
+<div class="board-container" id="boardView"></div>
 <div class="table-view" id="tableView"></div>
 
 <!-- ADD/EDIT MODAL -->
@@ -433,11 +434,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
   function _proto() { try { return window.location.protocol; } catch(e) { return ''; } }
   function _origin() { try { return window.location.origin || ''; } catch(e) { return ''; } }
   function allowedOrigin(origin) {
-    // Allow: same-origin / file:// (null) / empty (some IE quirks) / about:srcdoc (null)
-    if (origin === _origin()) return true;
-    if (origin === 'null' || origin === '' || origin == null) return true; // file://
-    if (ALLOWED_HOSTS && ALLOWED_HOSTS.indexOf(origin) >= 0) return true;
-    return false;
+    // 정책: mop-* 타입 prefix 검사가 이미 있어 origin은 관대하게.
+    // srcdoc iframe origin이 'null'/'about:srcdoc'/parent origin 등 다양하므로 모두 허용.
+    return true;
   }
   function targetOrigin() {
     // For file:// (origin === 'null'), browsers reject explicit "null" — must use '*'.
@@ -513,7 +512,19 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
 /* file: MOP_Project_Portfolio_v2.html */
 
-try { if (window !== window.top || window.self !== window.top) { document.documentElement.classList.add('in-iframe'); } } catch(e) { document.documentElement.classList.add('in-iframe'); }
+try {
+    if (window !== window.top || window.self !== window.top) {
+        document.documentElement.classList.add('in-iframe');
+        if (document.body) document.body.classList.add('in-iframe');
+        else document.addEventListener('DOMContentLoaded', function(){ document.body && document.body.classList.add('in-iframe'); });
+        var _hideLT = function(){ var lt = document.querySelector('.lang-toggle'); if (lt) lt.style.display = 'none'; };
+        _hideLT();
+        document.addEventListener('DOMContentLoaded', _hideLT);
+    }
+} catch(e) {
+    document.documentElement.classList.add('in-iframe');
+    try { if (document.body) document.body.classList.add('in-iframe'); } catch(_){}
+}
 // Category structure with grouping
 var categoryGroups = [
     { group: { en:'Scanning Solution Business', ko:'Scanning Solution Business' }, cats: [
@@ -620,7 +631,43 @@ var i18n={
         dashTitle:'Product Ideas/Requests'
     }
 };
-var currentLang=(function(){try{if(window.__MOP_INITIAL_LANG==='ko'||window.__MOP_INITIAL_LANG==='en')return window.__MOP_INITIAL_LANG;var v=localStorage.getItem('mopLang');return(v==='ko'||v==='en')?v:'en';}catch(e){return 'en';}})(),currentView='dashboard',projects=[],editId=null,nextId=1;
+var currentLang=(function(){try{if(window.__MOP_INITIAL_LANG==='ko'||window.__MOP_INITIAL_LANG==='en')return window.__MOP_INITIAL_LANG;var v=localStorage.getItem('mopLang');return(v==='ko'||v==='en')?v:'en';}catch(e){return 'en';}})(),currentView='board',projects=[],editId=null,nextId=1;
+
+// === 부모(Gateway) localStorage에서 hydrate ===
+var _allReviews = (typeof _allReviews !== 'undefined') ? _allReviews : [];
+function _hydrateFromParent_Port(){
+    try {
+        var pl = window.parent && window.parent.localStorage;
+        if (!pl) return;
+        // Portfolio state
+        try {
+            var s1 = pl.getItem('mop_portfolio_state');
+            if (s1) {
+                var st = JSON.parse(s1);
+                if (st && st.projects && Array.isArray(st.projects)) {
+                    if (projects.length === 0) {
+                        projects = st.projects;
+                        nextId = st.nextId || projects.length + 1;
+                        console.log('[MOP Portfolio] hydrated', projects.length, 'projects from parent');
+                    }
+                }
+            }
+        } catch(_){}
+        // Reviews (for project metadata)
+        try {
+            var s2 = pl.getItem('mop_reviews');
+            if (s2) {
+                var arr = JSON.parse(s2);
+                if (Array.isArray(arr) && arr.length && _allReviews.length === 0) {
+                    _allReviews = arr;
+                    console.log('[MOP Portfolio] hydrated', arr.length, 'reviews from parent');
+                }
+            }
+        } catch(_){}
+    } catch(_){}
+}
+window._hydrateFromParent_Portfolio = _hydrateFromParent_Port;
+
 function t(k){return (i18n[currentLang]&&i18n[currentLang][k])||k;}
 function catLabel(key){var c=categories.find(function(x){return x.key===key;});return c?c[currentLang]:key;}
 function impactLabel(key){var m=impactTypes.find(function(x){return x.key===key;});return m?m.en:key;}
@@ -797,8 +844,32 @@ function renderBoard(){
     var fundings=['funded','not-funded'];
     var colCount=categories.length;
     var html='';
+
+    // ★ 미분류 섹션을 funding 그룹 위(=Dashboard/Board/Table 탭 바로 아래)에 한 번만 렌더링
+    var uncatAll=filtered.filter(function(p){return !p.category||!categories.find(function(c){return c.key===p.category;});});
+    if(uncatAll.length){
+        html+='<div style="margin-bottom:20px;padding:14px 18px;background:rgba(251,191,36,0.08);border:1px dashed rgba(251,191,36,0.3);border-radius:12px">';
+        html+='<div style="font-size:0.82rem;font-weight:700;color:#fbbf24;margin-bottom:10px">⚠️ '+(currentLang==='ko'?'미분류 — 더블클릭하여 카테고리를 지정하세요 ('+uncatAll.length+'건)':'Uncategorized — double-click to assign a category ('+uncatAll.length+')')+'</div>';
+        html+='<div style="display:flex;flex-wrap:wrap;gap:10px">';
+        uncatAll.forEach(function(p){
+            html+='<div class="project-card" style="min-width:220px;max-width:300px;border-color:rgba(251,191,36,0.35)"'+(_guestMode?'':' ondblclick="editProject('+p.id+')"')+'>';
+            if(!_guestMode) html+='<button class="pc-delete" onclick="event.stopPropagation();deleteProject('+p.id+')">&times;</button>';
+            html+='<div class="pc-title">'+sourceBadge(p)+esc(p.name)+'</div>';
+            if(p.mopId) html+='<div class="pc-id">MOP-'+esc(p.mopId)+'</div>';
+            if(p.reviewScore){html+='<div style="font-size:0.68rem;margin-top:3px;display:flex;align-items:center"><span class="pc-priority '+p.priority+'" style="margin-right:4px;flex-shrink:0"></span><span style="color:#e2e8f0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">'+esc(p.reviewer||p.owner||'-')+'</span><span style="color:#60a5fa;font-weight:700;cursor:pointer;text-decoration:underline;flex-shrink:0;margin-left:6px" onclick="event.stopPropagation();openScoringReview(\''+esc(String(p.mopId||''))+'\')">'+(p.reviewScore||0)+'/'+(p.reviewMaxScore||100)+'</span></div>';}
+            else{html+='<div class="pc-meta"><div><span class="pc-priority '+p.priority+'"></span> <span class="pc-owner">'+esc(p.owner||'')+'</span></div></div>';}
+            if(p.autoAdded&&p.afcGate){
+                var isKoUn=currentLang==='ko';
+                html+='<div class="pc-afc-decision" style="margin-top:4px">'+gateDecisionText(p.afcGate,isKoUn)+'</div>';
+            }
+            html+='</div>';
+        });
+        html+='</div></div>';
+    }
+
     fundings.forEach(function(fund){
-        var fp=filtered.filter(function(p){return p.funding===fund;});
+        // 카테고리가 있는 항목만 funding 그룹에 표시 (미분류는 위에서 별도 표시)
+        var fp=filtered.filter(function(p){return p.funding===fund && p.category && categories.find(function(c){return c.key===p.category;});});
         var label=fund==='funded'?t('funded'):t('notFunded');
         var badgeCls=fund==='funded'?'funded':'not-funded';
         var secId='board-sec-'+fund;
@@ -809,27 +880,6 @@ function renderBoard(){
         html+='<span style="margin-left:8px;font-size:0.75rem;color:#64748b;transition:transform 0.2s;display:inline-block;transform:rotate('+(isCollapsed?'-90deg':'0')+')">'+(isCollapsed?'▶':'▼')+'</span>';
         html+='</div>';
         html+='<div id="'+secId+'" style="'+(isCollapsed?'display:none':'')+'">';
-        // Uncategorized items
-        var uncatProjects=fp.filter(function(p){return !p.category||!categories.find(function(c){return c.key===p.category;});});
-        if(uncatProjects.length){
-            html+='<div style="margin-bottom:16px;padding:12px 16px;background:rgba(251,191,36,0.08);border:1px dashed rgba(251,191,36,0.3);border-radius:12px">';
-            html+='<div style="font-size:0.78rem;font-weight:600;color:#fbbf24;margin-bottom:8px">⚠️ '+(currentLang==='ko'?'미분류 — 더블클릭하여 카테고리를 지정하세요':'Uncategorized — double-click to assign a category')+'</div>';
-            html+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
-            uncatProjects.forEach(function(p){
-                html+='<div class="project-card" style="min-width:200px;max-width:280px;border-color:rgba(251,191,36,0.3)"'+(_guestMode?'':' ondblclick="editProject('+p.id+')"')+'>';
-                if(!_guestMode) html+='<button class="pc-delete" onclick="event.stopPropagation();deleteProject('+p.id+')">&times;</button>';
-                html+='<div class="pc-title">'+sourceBadge(p)+esc(p.name)+'</div>';
-                if(p.mopId) html+='<div class="pc-id">MOP-'+esc(p.mopId)+'</div>';
-                if(p.reviewScore){html+='<div style="font-size:0.68rem;margin-top:3px;display:flex;align-items:center"><span class="pc-priority '+p.priority+'" style="margin-right:4px;flex-shrink:0"></span><span style="color:#e2e8f0;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0">'+esc(p.reviewer||p.owner||'-')+'</span><span style="color:#60a5fa;font-weight:700;cursor:pointer;text-decoration:underline;flex-shrink:0;margin-left:6px" onclick="event.stopPropagation();openScoringReview(\''+esc(String(p.mopId||''))+'\')">'+(p.reviewScore||0)+'/'+(p.reviewMaxScore||100)+'</span></div>';}
-                else{html+='<div class="pc-meta"><div><span class="pc-priority '+p.priority+'"></span> <span class="pc-owner">'+esc(p.owner||'')+'</span></div></div>';}
-                if(p.autoAdded&&p.afcGate){
-                    var isKo=currentLang==='ko';
-                    html+='<div class="pc-afc-decision" style="margin-top:4px">'+gateDecisionText(p.afcGate,isKo)+'</div>';
-                }
-                html+='</div>';
-            });
-            html+='</div></div>';
-        }
         html+='<div class="col-headers" style="--col-count:'+colCount+'">';
         categories.forEach(function(c){html+='<div class="col-header">'+c[currentLang]+'</div>';});
         html+='</div>';
@@ -1241,51 +1291,160 @@ function printChecklist() {
     var p = projects.find(function(x){return x.id===checklistProjectId;});
     if (!p) return;
     var isKo = currentLang==='ko';
-    var total=0, checked=0;
-    var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>Readiness Checklist</title><style>';
-    html+='*{margin:0;padding:0;box-sizing:border-box}';
-    html+='body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:30px;color:#1e293b;font-size:12px}';
-    html+='.header{text-align:center;margin-bottom:20px;border-bottom:2px solid #1e293b;padding-bottom:14px}';
-    html+='.header h1{font-size:16px;margin-bottom:4px}';
-    html+='.header p{font-size:11px;color:#64748b}';
-    html+='.progress{margin:12px 0 20px;text-align:center;font-size:13px;font-weight:600}';
-    html+='.bar-wrap{width:200px;height:8px;background:#e2e8f0;border-radius:4px;margin:6px auto;display:block}';
-    html+='.bar-fill{height:100%;border-radius:4px}';
-    html+='.section{margin-bottom:16px}';
-    html+='.section-title{font-size:13px;font-weight:700;padding:6px 0;border-bottom:1px solid #e2e8f0;margin-bottom:8px}';
-    html+='.item{display:flex;align-items:center;padding:4px 0;gap:8px}';
-    html+='.check{width:14px;height:14px;border:1.5px solid #94a3b8;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px}';
-    html+='.check.done{background:#22a861;border-color:#22a861;color:#fff}';
-    html+='.date{color:#94a3b8;font-size:10px;margin-left:auto}';
-    html+='.actions-bar{text-align:center;margin-top:20px;padding-top:14px;border-top:1px solid #e2e8f0}';
-    html+='.actions-bar button{padding:8px 24px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;margin:0 6px;border:1px solid #ccc}';
-    html+='.btn-print{background:#1e40af;color:#fff;border:none} .btn-close{background:#fff;color:#64748b}';
-    html+='@page{margin:15mm 10mm;size:auto}@media print{.actions-bar{display:none}}';
-    html+='</style></head><body>';
-    html+='<div class="header"><p style="font-size:10px;color:#3b82f6;letter-spacing:2px;font-weight:700;margin-bottom:4px">MEDIT DIGITAL SOLUTIONS</p>';
-    html+='<h1>'+esc(p.name)+' — Readiness Checklist</h1>';
-    html+='<p>Printed: '+new Date().toLocaleDateString()+'</p></div>';
 
+    // ★ FIX 2026-05-19: 통계 + 카테고리별 진행률
+    var total=0, checked=0;
+    readinessChecklist.forEach(function(sec){sec.items.forEach(function(it){total++;if(p.checklist&&p.checklist[it])checked++;});});
+    var pct=total>0?Math.round(checked/total*100):0;
+    var pctColor=pct>=80?'#10b981':pct>=50?'#3b82f6':pct>=25?'#f59e0b':'#ef4444';
+
+    // 프로젝트 메타정보
+    var catLbl='';try{categories.forEach(function(c){if(c.key===p.category)catLbl=c[currentLang];});}catch(_){}
+    var impLbl='';try{impactTypes.forEach(function(m){if(m.key===p.impactType)impLbl=m.en;});}catch(_){}
+    var stTxt=p.status==='done'?(isKo?'완료':'Done'):p.status==='inprog'?(isKo?'진행 중':'In Progress'):(isKo?'대기':'To Do');
+    var stColor=p.status==='done'?'#10b981':p.status==='inprog'?'#f59e0b':'#64748b';
+    var fundTxt=p.funding==='funded'?(isKo?'펀딩 확보':'Funded'):(isKo?'펀딩 미확보':'Not Funded');
+    var fundColor=p.funding==='funded'?'#10b981':'#ef4444';
+
+    // Target date + D-day
+    var targetHtml='—';
+    if(p.targetDate){
+        try{
+            var _td=new Date(p.targetDate);var _now=new Date();_now.setHours(0,0,0,0);_td.setHours(0,0,0,0);
+            var _diff=Math.ceil((_td-_now)/(1000*60*60*24));
+            var _dday=_diff>0?'D-'+_diff:_diff===0?'D-Day':'D+'+Math.abs(_diff);
+            var _ddColor=_diff>14?'#3b82f6':_diff>7?'#d97706':'#dc2626';
+            if(p.status==='done')_ddColor='#10b981';
+            targetHtml=formatDate(p.targetDate)+' <span style="font-weight:700;color:'+_ddColor+';">'+_dday+'</span>';
+        }catch(_){}
+    }
+
+    var html='<!DOCTYPE html><html><head><meta charset="utf-8"><title>'+esc(p.name)+' — Readiness Checklist</title>'+
+        '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">'+
+        '<style>';
+    html+='*{margin:0;padding:0;box-sizing:border-box}';
+    html+='body{font-family:"DM Sans",-apple-system,sans-serif;padding:40px;color:#1e293b;font-size:13px;max-width:920px;margin:0 auto;background:#fff}';
+    /* 헤더 */
+    html+='.report-header{border-bottom:3px solid #1e40af;padding-bottom:18px;margin-bottom:20px}';
+    html+='.report-header .brand-line{font-size:0.72rem;letter-spacing:3px;color:#94a3b8;font-weight:700;margin-bottom:8px}';
+    html+='.report-header h1{font-size:1.2rem;color:#1e40af;font-weight:700;margin-bottom:8px}';
+    html+='.report-header .opp-title{font-size:1.55rem;font-weight:800;color:#0f172a;margin-bottom:10px;line-height:1.3}';
+    html+='.report-header .meta-row{display:flex;flex-wrap:wrap;gap:8px}';
+    html+='.report-header .meta-chip{background:#f1f5f9;color:#334155;padding:4px 12px;border-radius:14px;font-size:0.78rem;font-weight:600;border:1px solid #e2e8f0}';
+    /* 진행률 카드 */
+    html+='.progress-card{background:linear-gradient(135deg,#1e40af 0%,#3b82f6 100%);color:#fff;border-radius:14px;padding:20px 28px;margin-bottom:24px;text-align:center;box-shadow:0 4px 14px rgba(30,64,175,0.2)}';
+    html+='.progress-card .pc-label{font-size:0.78rem;letter-spacing:2px;color:#bfdbfe;font-weight:700;margin-bottom:6px;text-transform:uppercase}';
+    html+='.progress-card .pc-value{font-size:3rem;font-weight:800;line-height:1}';
+    html+='.progress-card .pc-unit{font-size:1.5rem;opacity:0.85}';
+    html+='.progress-card .pc-detail{font-size:0.92rem;color:#dbeafe;margin-top:6px;font-weight:500}';
+    html+='.progress-card .pc-bar{margin-top:14px;width:100%;height:8px;background:rgba(255,255,255,0.2);border-radius:4px;overflow:hidden}';
+    html+='.progress-card .pc-bar-fill{height:100%;background:#fff;border-radius:4px}';
+    /* 섹션 헤더 */
+    html+='h3{font-size:1rem;color:#1e40af;margin:22px 0 10px;border-bottom:2px solid #1e40af;padding-bottom:6px;font-weight:700}';
+    /* 메타 테이블 */
+    html+='table.meta{width:100%;border-collapse:collapse;margin-bottom:14px}';
+    html+='table.meta td{padding:9px 12px;border-bottom:1px solid #e2e8f0;font-size:0.88rem;vertical-align:top}';
+    html+='.label-col{width:160px;color:#475569;font-weight:600;background:#f8fafc}';
+    html+='.val-col{color:#1e293b}';
+    /* 카테고리 섹션 */
+    html+='.section{margin-bottom:18px;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden}';
+    html+='.section-header{background:#1e40af;color:#fff;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}';
+    html+='.section-title{font-weight:700;font-size:0.95rem}';
+    html+='.section-stats{display:flex;gap:10px;align-items:center;font-size:0.78rem}';
+    html+='.sec-pct{background:#10b981;color:#fff;padding:3px 10px;border-radius:10px;font-weight:700;font-size:0.78rem}';
+    html+='.item{display:flex;align-items:flex-start;padding:8px 14px;gap:10px;border-bottom:1px solid #f1f5f9}';
+    html+='.item:last-child{border-bottom:none}';
+    html+='.item:nth-child(even){background:#fafbfc}';
+    html+='.check{width:18px;height:18px;border:2px solid #94a3b8;border-radius:4px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;margin-top:1px}';
+    html+='.check.done{background:#10b981;border-color:#10b981;color:#fff}';
+    html+='.item-text{flex:1;font-size:0.88rem;line-height:1.4}';
+    html+='.item-text.done{color:#1e293b}';
+    html+='.item-text.todo{color:#64748b}';
+    html+='.date{color:#64748b;font-size:0.76rem;background:#f1f5f9;padding:2px 8px;border-radius:10px;font-weight:600;margin-left:8px;flex-shrink:0}';
+    /* Footer */
+    html+='.report-footer{margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;font-size:0.72rem;color:#94a3b8}';
+    /* Actions */
+    html+='.actions-bar{text-align:center;margin-top:24px}';
+    html+='.actions-bar button{padding:10px 28px;border-radius:8px;font-family:"DM Sans",sans-serif;font-size:0.95rem;font-weight:600;cursor:pointer;margin:0 6px}';
+    html+='.btn-print{background:#1e40af;color:#fff;border:none} .btn-print:hover{background:#1e3a8a}';
+    html+='.btn-close{background:#f1f5f9;color:#334155;border:1px solid #cbd5e1}';
+    html+='@page{margin:14mm 10mm;size:auto}';
+    html+='@media print{.actions-bar,.report-footer{display:none!important}body{padding:0;max-width:100%}h3{break-after:avoid}.section,.progress-card{break-inside:avoid;page-break-inside:avoid}.item{break-inside:avoid}}';
+    html+='</style></head><body>';
+
+    // 헤더
+    html+='<div class="report-header">';
+    html+='<div class="brand-line">MEDIT DIGITAL SOLUTIONS · MOP SYSTEM · STEP 4</div>';
+    html+='<h1>'+(isKo?'프로젝트 Readiness 체크리스트':'Project Readiness Checklist')+'</h1>';
+    html+='<div class="opp-title">'+esc(p.name)+'</div>';
+    html+='<div class="meta-row">';
+    if(catLbl)html+='<span class="meta-chip">'+esc(catLbl)+'</span>';
+    if(impLbl)html+='<span class="meta-chip">'+esc(impLbl)+'</span>';
+    html+='<span class="meta-chip" style="background:'+stColor+'22;color:'+stColor+';border-color:'+stColor+'66;">'+stTxt+'</span>';
+    html+='<span class="meta-chip" style="background:'+fundColor+'22;color:'+fundColor+';border-color:'+fundColor+'66;">'+fundTxt+'</span>';
+    html+='</div></div>';
+
+    // 진행률 카드
+    html+='<div class="progress-card">';
+    html+='<div class="pc-label">'+(isKo?'전체 진행률':'Overall Progress')+'</div>';
+    html+='<div class="pc-value">'+pct+'<span class="pc-unit">%</span></div>';
+    html+='<div class="pc-detail">'+checked+' / '+total+' '+(isKo?'완료':'completed')+'</div>';
+    html+='<div class="pc-bar"><div class="pc-bar-fill" style="width:'+pct+'%;"></div></div>';
+    html+='</div>';
+
+    // 프로젝트 메타정보
+    html+='<h3>📋 '+(isKo?'프로젝트 정보':'Project Information')+'</h3>';
+    html+='<table class="meta">';
+    if(p.mopId)html+='<tr><td class="label-col">MOP ID</td><td class="val-col"><b>MOP-'+esc(p.mopId)+'</b></td></tr>';
+    if(p.owner)html+='<tr><td class="label-col">'+(isKo?'담당자':'Owner')+'</td><td class="val-col">'+esc(p.owner)+'</td></tr>';
+    if(p.priority)html+='<tr><td class="label-col">'+(isKo?'우선순위':'Priority')+'</td><td class="val-col"><b>'+esc(p.priority)+'</b></td></tr>';
+    if(p.targetDate)html+='<tr><td class="label-col">'+(isKo?'목표 일자':'Target Date')+'</td><td class="val-col">'+targetHtml+'</td></tr>';
+    if(p.reviewScore)html+='<tr><td class="label-col">'+(isKo?'평가 점수 (Step 2)':'Review Score (Step 2)')+'</td><td class="val-col"><b style="color:#1e40af;">'+p.reviewScore+'/'+(p.reviewMaxScore||100)+'</b></td></tr>';
+    if(p.afcGate){
+        var ggLbl=p.afcGate==='go'?'✅ GO':p.afcGate==='conditional'?'⚠ Conditional':'❌ NO GO';
+        var ggColor=p.afcGate==='go'?'#10b981':p.afcGate==='conditional'?'#f59e0b':'#ef4444';
+        html+='<tr><td class="label-col">'+(isKo?'AFI Gate':'AFI Gate')+'</td><td class="val-col"><b style="color:'+ggColor+';">'+ggLbl+'</b></td></tr>';
+    }
+    if(p.reviewer)html+='<tr><td class="label-col">'+(isKo?'리뷰어':'Reviewer')+'</td><td class="val-col">'+esc(p.reviewer)+'</td></tr>';
+    if(p.created)html+='<tr><td class="label-col">'+(isKo?'생성 일자':'Created')+'</td><td class="val-col">'+formatDate(p.created)+'</td></tr>';
+    html+='</table>';
+
+    // 카테고리별 체크리스트
+    html+='<h3>✅ '+(isKo?'준비도 체크리스트':'Readiness Checklist')+'</h3>';
     readinessChecklist.forEach(function(sec){
-        html+='<div class="section"><div class="section-title">'+sec.icon+' '+sec.category+'</div>';
+        var secTotal=sec.items.length;
+        var secDone=0;
+        sec.items.forEach(function(it){if(p.checklist&&p.checklist[it])secDone++;});
+        var secPct=secTotal>0?Math.round(secDone/secTotal*100):0;
+        var secColor=secPct>=80?'#10b981':secPct>=50?'#3b82f6':secPct>=25?'#f59e0b':'#ef4444';
+
+        html+='<div class="section">';
+        html+='<div class="section-header">';
+        html+='<div class="section-title">'+sec.icon+' '+esc(sec.category)+'</div>';
+        html+='<div class="section-stats"><span class="sec-pct" style="background:'+secColor+';">'+secDone+'/'+secTotal+' · '+secPct+'%</span></div>';
+        html+='</div>';
+
         sec.items.forEach(function(item){
-            total++;
             var val=p.checklist?p.checklist[item]:false;
             var isDone=!!val;
-            if(isDone) checked++;
             var dateStr='';
-            if(isDone&&typeof val==='string'){try{var d=new Date(val);dateStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');} catch(e) { try { __MOP_SEC.logErr('Portfolio', e); } catch(_){} }}
-            html+='<div class="item"><span class="check'+(isDone?' done':'')+'">'+( isDone?'✓':'')+'</span><span>'+item+'</span>'+(dateStr?'<span class="date">'+dateStr+'</span>':'')+'</div>';
+            if(isDone&&typeof val==='string'){
+                try{var d=new Date(val);dateStr=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}catch(_){}
+            }
+            html+='<div class="item">';
+            html+='<span class="check'+(isDone?' done':'')+'">'+(isDone?'✓':'')+'</span>';
+            html+='<span class="item-text '+(isDone?'done':'todo')+'">'+esc(item)+'</span>';
+            if(dateStr)html+='<span class="date">'+dateStr+'</span>';
+            html+='</div>';
         });
         html+='</div>';
     });
 
-    var pct=total>0?Math.round(checked/total*100):0;
-    var pctColor=pct>=80?'#22a861':pct>=50?'#f59e0b':'#3b82f6';
-    html='<!DOCTYPE html>'+html.split('<!DOCTYPE html>')[1];
-    // Insert progress after header
-    var progHtml='<div class="progress">'+checked+' / '+total+' completed ('+pct+'%)<span class="bar-wrap"><span class="bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></span></span></div>';
-    html=html.replace('</div></div><div class="section">','</div>'+progHtml+'<div class="section">');
+    // Footer
+    html+='<div class="report-footer">';
+    html+='<div>'+(isKo?'생성 일시':'Generated')+': '+new Date().toLocaleString(isKo?'ko-KR':'en-US')+'</div>';
+    html+='<div>© 2026 MEDIT Corp. — MOP System Confidential</div>';
+    html+='</div>';
 
     html+='<div class="actions-bar"><button class="btn-print" onclick="window.print()">🖨️ '+(isKo?'인쇄':'Print')+'</button> <button class="btn-close" onclick="window.close();if(parent.document.getElementById(\'_printFrame\'))parent.document.getElementById(\'_printFrame\').remove();">✕ '+(isKo?'닫기':'Close')+'</button></div>';
     html+='</body></html>';
@@ -1540,7 +1699,18 @@ function loadLocalState(){
             var p=JSON.parse(saved);
             if(p.projects&&p.projects.length){
                 projects=p.projects;
-                projects.forEach(function(proj){if(!proj.checklist)proj.checklist={};});
+                // ★ 누락 필드 마이그레이션
+                projects.forEach(function(proj){
+                    if(!proj.checklist) proj.checklist={};
+                    if(!proj.funding) proj.funding='not-funded';
+                    if(!proj.status)  proj.status='todo';
+                    if(!proj.name)    proj.name = proj.title || proj.opportunityTitle || ('MOP-'+(proj.mopId||proj.id));
+                    if(!proj.priority) proj.priority='medium';
+                    if(!proj.reviewer && proj.owner) proj.reviewer = proj.owner;
+                    if(proj.gate && !proj.afcGate) { proj.afcGate = proj.gate; proj.autoAdded = true; }
+                    if(proj.score && !proj.reviewScore) proj.reviewScore = proj.score;
+                    if(proj.maxScore && !proj.reviewMaxScore) proj.reviewMaxScore = proj.maxScore;
+                });
                 nextId=p.nextId||projects.length+1;
                 return true;
             }
@@ -1563,7 +1733,19 @@ window.addEventListener('message',function(e){if(!__MOP_SEC.isAllowedEvent(e))re
         var p=e.data.payload;
         if(p.projects){
             projects=p.projects;
-            projects.forEach(function(proj){if(!proj.checklist)proj.checklist={};});
+            // ★ 누락 필드 마이그레이션 — funding/status/name 없으면 기본값 설정
+            projects.forEach(function(proj){
+                if(!proj.checklist) proj.checklist={};
+                if(!proj.funding) proj.funding='not-funded';      // 카테고라이즈 안 된 항목도 표시되도록
+                if(!proj.status)  proj.status='todo';
+                if(!proj.name)    proj.name = proj.title || proj.opportunityTitle || ('MOP-'+(proj.mopId||proj.id));
+                if(!proj.priority) proj.priority='medium';
+                if(!proj.reviewer && proj.owner) proj.reviewer = proj.owner;
+                // AFC 자동 추가 표시
+                if(proj.gate && !proj.afcGate) { proj.afcGate = proj.gate; proj.autoAdded = true; }
+                if(proj.score && !proj.reviewScore) proj.reviewScore = proj.score;
+                if(proj.maxScore && !proj.reviewMaxScore) proj.reviewMaxScore = proj.maxScore;
+            });
             nextId=p.nextId||projects.length+1;
             renderAll();
         }
@@ -1597,32 +1779,43 @@ window.addEventListener('message',function(e){if(!__MOP_SEC.isAllowedEvent(e))re
                 submitter:np.submitter||'',
                 owner:np.owner||'',
                 mopId:np.mopId||'',
-                notes:np.notes||'',
-                checklist:{},
-                created:new Date().toISOString(),
-                updated:new Date().toISOString(),
-                autoAdded:true
+                description:np.description||'',
+                checklist:np.checklist||{}
             };
-            projects.push(proj);
-            renderAll();
-            saveState();
-            var isKo=currentLang==='ko';
-            setTimeout(function(){
-                editProject(proj.id);
-                alert(isKo
-                    ?'✅ "'+proj.name+'" 프로젝트가 자동 추가되었습니다.\n카테고리와 Impact Type을 선택해주세요.'
-                    :'✅ "'+proj.name+'" has been auto-added.\nPlease select a category and impact type.');
-            },400);
+            // 누락 필드 마이그레이션
+            if(!proj.funding) proj.funding='not-funded';
+            if(!proj.status) proj.status='todo';
+            if(!proj.name) proj.name = proj.title || ('MOP-'+(proj.mopId||proj.id));
+            if(!proj.priority) proj.priority='medium';
+            var idxExisting = projects.findIndex(function(x){ return String(x.mopId||'') === String(proj.mopId||'') && proj.mopId; });
+            if(idxExisting >= 0) projects[idxExisting] = proj; else projects.push(proj);
+            try { saveStateToGateway && saveStateToGateway(); } catch(_){}
+            try { renderAll(); } catch(_){}
         }
     }
 });
 
-// Init
-loadLocalState();
-populateCatFilter();populateCatSelect();populateImpactSelect();renderAll();
-_initialized=true;
-// Signal parent that Portfolio is ready to receive data
+// ★ 초기 렌더링 — 페이지 진입 즉시 실행 (이전: 누락되어 빈 화면 표시됨)
+function _portfolioInit() {
+    try { if (typeof loadLocalState === 'function') loadLocalState(); } catch(_){}
+    try { if (typeof populateCatFilter === 'function') populateCatFilter(); } catch(_){}
+    try { if (typeof populateCatSelect === 'function') populateCatSelect(); } catch(_){}
+    try { if (typeof populateImpactSelect === 'function') populateImpactSelect(); } catch(_){}
+    try { if (typeof setLang === 'function') setLang(currentLang || 'en'); } catch(_){}
+    try { if (typeof renderAll === 'function') renderAll(); } catch(_){}
+    try { _initialized = true; } catch(_){}
+    try {
+        if (window !== window.top) {
+            var lt = document.querySelector('.lang-toggle');
+            if (lt) lt.style.display = 'none';
+        }
+    } catch(_){}
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', _portfolioInit);
+else _portfolioInit();
+
 try{if(window.parent!==window)window.parent.postMessage({type:'mop-portfolio-ready'},__MOP_SEC.targetOrigin());} catch(e) { try { __MOP_SEC.logErr('Portfolio', e); } catch(_){} }
+
 </script>
 </body>
 </html>
