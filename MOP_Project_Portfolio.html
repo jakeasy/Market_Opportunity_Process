@@ -1028,15 +1028,59 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
 
     // ★ 브라우저 뒤로가기 / 마우스 사이드 버튼 처리
-    window.addEventListener('popstate', function(e) {
+    // ★ FIX 2026-05-19: iframe srcdoc 가 자체 history entry를 만들어 popstate가 안 잡힐 때가 있음.
+    //   3중 방어: popstate + hashchange + iframe blank 감지
+    function _closeToolIfActive() {
         try {
             var iframeView = document.getElementById('iframe-view');
-            // iframe 화면이 활성화된 상태에서 뒤로가기 → Gateway 홈으로
             if (iframeView && iframeView.classList.contains('active')) {
                 closeTool();
             }
         } catch(_){}
+    }
+    window.addEventListener('popstate', function(e) { _closeToolIfActive(); });
+
+    // ★ FIX 2026-05-19: popstate가 fire되지 않는 경우 대비 — hashchange로 추가 감지
+    window.addEventListener('hashchange', function() {
+        try {
+            var iframeView = document.getElementById('iframe-view');
+            if (iframeView && iframeView.classList.contains('active')) {
+                // iframe-view가 active인데 hash가 빠지면 → 뒤로가기로 판단
+                if (!location.hash || location.hash === '#') {
+                    closeTool();
+                }
+            }
+        } catch(_){}
     });
+
+    // ★ FIX 2026-05-19: iframe이 about:blank로 back-navigation되어 흰 화면이 되는 경우 감지
+    //   iframe load 이벤트가 srcdoc 로드 이후 다시 발생하고 location이 비어있으면 → 닫기
+    (function attachIframeBlankWatcher(){
+        var iframe = document.getElementById('tool-iframe');
+        if (!iframe) return;
+        var _iframeLoadedOnce = false;
+        iframe.addEventListener('load', function() {
+            try {
+                // 첫 로드(srcdoc 진입)는 skip
+                if (!_iframeLoadedOnce) { _iframeLoadedOnce = true; return; }
+                // 이후 load — about:blank 또는 빈 문서면 뒤로가기 결과로 추정
+                var doc = null, isBlank = false;
+                try { doc = iframe.contentDocument; } catch(_) {}
+                try {
+                    var loc = iframe.contentWindow && iframe.contentWindow.location && iframe.contentWindow.location.href;
+                    if (!loc || loc === 'about:blank' || loc.indexOf('about:') === 0) isBlank = true;
+                } catch(_){}
+                if (!isBlank && doc) {
+                    // 본문 내용이 비어있는지도 확인
+                    if (!doc.body || doc.body.children.length === 0) isBlank = true;
+                }
+                if (isBlank) {
+                    console.log('[MOP Gateway] iframe blank detected → closeTool');
+                    _closeToolIfActive();
+                }
+            } catch(_){}
+        });
+    })();
 
     function syncDataToScoring() {
         var iframe = document.getElementById('tool-iframe');
