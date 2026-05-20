@@ -996,7 +996,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 // 모든 도구에 Submission/리뷰/AFC/포트폴리오 데이터를 보내 "내 Submission" 기능 활성화
                 try {
                     if (mopSubmissions && mopSubmissions.length) iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: mopSubmissions }, __MOP_SEC.targetOrigin());
-                    if (mopReviews && mopReviews.length) iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, __MOP_SEC.targetOrigin());
+                    if (mopReviews && mopReviews.length) iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: (typeof _enrichReviewsWithSubmissionData==='function'?_enrichReviewsWithSubmissionData(mopReviews):mopReviews) }, __MOP_SEC.targetOrigin());
                     if (mopAfcState) iframe.contentWindow.postMessage({ type: 'mop-afc-state-restore', payload: mopAfcState }, __MOP_SEC.targetOrigin());
                     if (mopPortfolioState) iframe.contentWindow.postMessage({ type: 'mop-portfolio-state-restore', payload: mopPortfolioState }, __MOP_SEC.targetOrigin());
                 } catch(_){}
@@ -1082,6 +1082,31 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         });
     })();
 
+    // ★ FIX 2026-05-19: review.submissionData 자동 보강 — Step 2에서 데이터 누락 시 submissions에서 lookup
+    //   AFC/Portfolio 에서 Submitter "–", Submission Details 누락 문제 근본 해결
+    function _enrichReviewsWithSubmissionData(reviewArr) {
+        if (!reviewArr || !reviewArr.length) return reviewArr;
+        return reviewArr.map(function(r) {
+            try {
+                if (r && r.submissionData && typeof r.submissionData === 'object' && Object.keys(r.submissionData).length > 0) return r;
+                var sid = r && (r.submissionId || r.id);
+                if (sid == null) return r;
+                var sub = (mopSubmissions || []).find(function(s){ return String(s.id) === String(sid); });
+                if (sub && sub.data && Object.keys(sub.data).length > 0) {
+                    var copy = {};
+                    for (var k in r) if (Object.prototype.hasOwnProperty.call(r, k)) copy[k] = r[k];
+                    copy.submissionData = sub.data;
+                    // submitter도 비어있으면 sub.data에서 가져와 backfill
+                    if (!copy.submitter && (sub.data.requestOwner || sub.data.submitter)) {
+                        copy.submitter = sub.data.requestOwner || sub.data.submitter;
+                    }
+                    return copy;
+                }
+            } catch(_){}
+            return r;
+        });
+    }
+
     function syncDataToScoring() {
         var iframe = document.getElementById('tool-iframe');
         try {
@@ -1089,7 +1114,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: mopSubmissions }, __MOP_SEC.targetOrigin());
             }
             if (mopReviews.length > 0) {
-                iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, __MOP_SEC.targetOrigin());
+                iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: _enrichReviewsWithSubmissionData(mopReviews) }, __MOP_SEC.targetOrigin());
             }
             if (_currentUser) {
                 iframe.contentWindow.postMessage({ type: 'mop-user-info', payload: { name: _currentUser.name || '', email: _currentUser.username || '', region: _currentUser.region || '' } }, __MOP_SEC.targetOrigin());
@@ -1109,7 +1134,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             try {
                 if (iframe && iframe.contentWindow) {
                     if (mopReviews.length > 0) {
-                        iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: mopReviews }, __MOP_SEC.targetOrigin());
+                        // ★ FIX 2026-05-19: submissionData 자동 보강
+                        iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: _enrichReviewsWithSubmissionData(mopReviews) }, __MOP_SEC.targetOrigin());
                     }
                     if (mopAfcState) {
                         iframe.contentWindow.postMessage({ type: 'mop-afc-state-restore', payload: mopAfcState }, __MOP_SEC.targetOrigin());
@@ -3532,7 +3558,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var ifr1 = document.getElementById('tool-iframe');
                 if (ifr1 && ifr1.contentWindow) {
                     if (mopSubmissions && mopSubmissions.length) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-submissions-sync', payload: mopSubmissions });
-                    if (mopReviews && mopReviews.length) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-reviews-sync', payload: mopReviews });
+                    if (mopReviews && mopReviews.length) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-reviews-sync', payload: (typeof _enrichReviewsWithSubmissionData==='function'?_enrichReviewsWithSubmissionData(mopReviews):mopReviews) });
                     if (mopAfcState) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-afc-state-restore', payload: mopAfcState });
                     if (mopPortfolioState) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-portfolio-state-restore', payload: mopPortfolioState });
                     if (_currentUser) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-user-info', payload: { name: _currentUser.name || '', email: _currentUser.username || '', region: _currentUser.region || '', dept: _currentUser.dept || '', role: _currentUser.role || '' } });
