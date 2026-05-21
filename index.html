@@ -2522,6 +2522,34 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         try { applySettingsI18n(); } catch(_){}
     }
 
+    // ★ FIX 2026-05-21: Settings 모달 전체 i18n 적용 (data-i18n / data-i18n-ph / data-i18n-title)
+    window.applySettingsI18n = function() {
+        try {
+            var t = i18n[currentLang] || i18n.en;
+            if (!t) return;
+            var root = document.getElementById('settingsOverlay');
+            if (!root) return;
+            // 1) textContent
+            var nodes = root.querySelectorAll('[data-i18n]');
+            for (var i = 0; i < nodes.length; i++) {
+                var key = nodes[i].getAttribute('data-i18n');
+                if (key && t[key] != null) nodes[i].textContent = t[key];
+            }
+            // 2) placeholder
+            var phNodes = root.querySelectorAll('[data-i18n-ph]');
+            for (var j = 0; j < phNodes.length; j++) {
+                var pkey = phNodes[j].getAttribute('data-i18n-ph');
+                if (pkey && t[pkey] != null) phNodes[j].setAttribute('placeholder', t[pkey]);
+            }
+            // 3) title (tooltip)
+            var titleNodes = root.querySelectorAll('[data-i18n-title]');
+            for (var k = 0; k < titleNodes.length; k++) {
+                var tkey = titleNodes[k].getAttribute('data-i18n-title');
+                if (tkey && t[tkey] != null) titleNodes[k].setAttribute('title', t[tkey]);
+            }
+        } catch (e) { try { console.error('[applySettingsI18n]', e); } catch(_){} }
+    };
+
     // ★ FIX 2026-05-21: Dashboard 통계 렌더링 (다국어 지원)
     window.renderDashboardStats = function() {
         try {
@@ -3694,196 +3722,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             card1Role: 'Regional Marketing Manager',
             card2Role: 'Regional Marketing Director',
             card3Role: 'PM & MKT Director & MELC',
-            card4Role: 'Department Group Leader',
-
-            // ★ Footer
-            footerContact: '📧 Questions or feedback?',
-            footerCopyright: 'Copyright © 2026 MEDIT Corp. All rights reserved.',
-
-            // ★ Home Dashboard
-            homeDashTitle: 'My Dashboard',
-            homeDashSubtitle: 'At-a-glance status overview',
-            homeKpiActive: 'Active Projects',
-            homeKpiActiveDesc: 'In Step 2 / 3',
-            homeKpiPassRate: 'AFC Pass Rate',
-            homeKpiPassRateDesc: 'Finalized AFC decisions',
-            homeKpiAvgDays: 'Avg Review Days',
-            homeKpiAvgDaysDesc: 'Submission → Decision',
-            homeKpiTodo: 'My To-Do',
-            homeKpiTodoDesc: 'Pending actions',
-            homeStageTitle: '📋 Pipeline Distribution',
-            homeStagePending: 'Pending',
-            homeStageStep2: 'Step 2 (Scoring)',
-            homeStageStep3: 'Step 3 (AFC)',
-            homeStageGo: '✅ GO',
-            homeStageCond: '⚠ Conditional',
-            homeStageNogo: '❌ NO GO',
-            homeTodoTitle: '📌 My To-Do',
-            homeTodoEmpty: '🎉 All caught up — no pending actions',
-            homeTodoApproveAccount: 'Approve account',
-            homeTodoReviewSubmission: 'Review submission',
-            homeTodoFinalizeAfc: 'Finalize AFC',
-            homeTodoEditOwn: 'Edit my submission',
-            homeRecentTitle: '🕐 Recent Submissions',
-            homeRecentEmpty: 'No submissions yet',
-            homeViewAll: 'View all →'
-
-            // ★ Settings — Modal title + Tabs
-            setTitle: 'MOP Settings',
-            setTabDashboard: '📊 Dashboard',
-            setTabGeneral: '⚙️ General',
-            setTabAccounts: '👥 Accounts',
-            setTabEmails: '📧 Email Log',
-            setClose: 'Close',
-            setSave: 'Save',
-            setFullscreenTitle: 'Toggle Fullscreen',
-            setRefreshTitle: 'Refresh',
-
-            // General Tab
-            setAdminEmailLabel: '📧 Admin Notification Emails',
-            setAdminEmailPh: 'Enter email to add',
-            setAdminEmailAdd: '+ Add',
-            setAdminEmailHelp: 'MOP Submissions and AFC Results are sent to the above addresses.',
-            setAdminEmailEmpty: 'No emails registered',
-            setAdminEmailRemove: 'Remove',
-            setAdminEmailInvalid: 'Please enter a valid email address (e.g. name@medit.com).',
-            setAdminEmailDup: 'Email already registered.',
-            setToolPwLabel: '🔐 Tool Passwords',
-            setPwForm: 'Submission Form',
-            setPwScoring: 'Scoring Tool',
-            setPwAfc: 'AFC Checklist',
-            setPwPortfolio: 'Portfolio Board',
-            setPwOn: 'ON',
-            setPwOff: 'OFF',
-            setAppsScriptUrl: '☁ Google Apps Script URL',
-            setAppsScriptUrlHelp: 'GAS Web App deployment URL. Used for cloud sync, emails, and attachments.',
-            setSaveSettings: '💾 Save Settings',
-            setDangerZone: '⚠ Danger Zone',
-            setResetAll: '🗑️ Reset All Data',
-            setResetPasswords: '🔑 Reset Passwords',
-            setResetAllDesc: 'Reset all Submission/Review data',
-            setResetPwDesc: 'Reset all Account passwords to 1111 (excluding Admin)',
-            setResetAllConfirm: 'Delete ALL submissions, reviews, AFC state, and portfolios? This cannot be undone.',
-            setResetPwConfirm: 'Reset all user passwords to "1111"? Users will be forced to change on next login.',
-            setAdvancedSettings: 'Advanced Settings',
-            setAdvancedSettingsClose: 'Close Advanced Settings',
-            setDangerWarning: '⚠️ Danger Operations — Use with caution',
-
-            // Account Tab
-            setAccTotal: 'Total',
-            setAccPending: 'Pending',
-            setAccAdmin: 'Admin',
-            setAccManager: 'Manager',
-            setAccGeneral: 'General',
-            setAccSearchPh: '🔍 Search name / email / dept...',
-            setAccSortLabel: 'Sort',
-            setAccSortPending: 'Sort: Pending First',
-            setAccSortRecent: 'Sort: Recently Joined',
-            setAccSortName: 'Sort: Name',
-            setAccSortLogin: 'Sort: Most Logins',
-            setAccFilterAll: 'All',
-            setAccFilterPending: '⏳ Pending',
-            setAccFilterAdmin: 'Admin',
-            setAccFilterManager: 'Manager',
-            setAccFilterGeneral: 'General',
-            setAccListLabel: '👥 Account List',
-            setAccShowing: 'Showing',
-            setAccOf: 'of',
-            setAccPeople: '',
-            setAccNoResult: 'No accounts found',
-            setAccApprove: 'Approve',
-            setAccReject: 'Reject',
-            setAccReapprove: 'Re-approve',
-            setAccEdit: 'Edit',
-            setAccResetPw: 'Reset PW',
-            setAccDelete: 'Delete',
-            setAccDeleteConfirm: 'Delete this account?',
-            setAccAlreadyApproved: 'Already approved.',
-            setAccAlreadyRejected: 'Already rejected.',
-            setAccApproveSent: 'approved — email sent',
-            setAccRejectSent: 'rejected',
-            setAccRejectConfirm: 'Reject this signup request?\nThe account will not be able to log in and will be marked as unapproved.',
-            setAccJoined: 'Joined',
-            setAccLast: 'Last',
-            setAccLogins: 'Logins',
-            setAccReviews: 'Reviews',
-            setAccPendingApproval: 'Pending Approval',
-            setAccRejected: 'Rejected',
-
-            // Email Log Tab
-            emRemainingQuota: 'Remaining Quota',
-            emPerDay: '/ day',
-            emTotalRecent: 'Total (Recent)',
-            emSent: 'Sent',
-            emFailed: 'Failed',
-            emRefresh: '↻ Refresh',
-            emSendTest: '📧 Send Test Email',
-            emSearchPh: '🔍 Search recipient/subject...',
-            emFilterAll: 'All',
-            emFilterSent: '✓ Sent',
-            emFilterFailed: '✗ Failed',
-            emFilterSkipped: '⊘ Skipped',
-            emNotLoaded: 'Not loaded yet',
-            emLastFetch: 'Last fetched',
-            emTotalRows: 'rows',
-            emColTime: 'Time',
-            emColTarget: 'Target',
-            emColRecipient: 'Recipient',
-            emColSubject: 'Subject',
-            emColStatus: 'Status',
-            emEmpty: '📭 No logs',
-            emLoading: '⏳ Loading...',
-            emOldGasTitle: '⚠ GAS Redeploy Required',
-            emOldGasDesc: 'To use the email log feature, paste the latest GAS code and Deploy as new version.',
-            emNetworkError: '❌ Network error — verify GAS URL',
-            emTimeout: '⏱ No response (30s) — check GAS URL',
-            emTestSending: '📧 Sending test email...',
-            emTestOk: '✅ Email request sent — check inbox & log',
-            emTestFailed: '❌ Send failed — see diagnostic',
-
-            // Dashboard Tab
-            dbTodayActivity: '📅 Today\'s Activity',
-            dbActiveUsers: 'Active Today',
-            dbTotalUsers: '/ Total',
-            dbPeople: '',
-            dbNewSubs: 'New Submissions',
-            dbCompletedReviews: 'Completed Reviews',
-            dbNewSignups: 'New Signups',
-            dbPendingCount: 'pending',
-            dbCount: '',
-            dbRefresh: '↻ Refresh',
-            dbLastUpdate: 'Last update',
-            dbPipeline: '📋 Submission Pipeline',
-            dbPipelinePending: '🆕 Pending',
-            dbPipelineStep2: '📊 Step 2',
-            dbPipelineStep3: '✅ Step 3',
-            dbPipelineDecided: '🏁 Decided',
-            dbPipelineTotal: 'Total',
-            dbUsersSection: '👥 Users',
-            dbUserAdmin: '🔴 Admin',
-            dbUserManager: '🔵 Manager',
-            dbUserGeneral: '🟢 General',
-            dbUserPending: '⏳ Pending Approval',
-            dbUser7d: '📈 Active in 7 days',
-            dbRegionsSection: '📍 Submissions by Region',
-            dbReviewersSection: '🏆 Top Reviewers (All-time)',
-            dbNoSubmissions: 'No submissions',
-            dbNoReviews: 'No reviews',
-            dbWeekChart: '📈 Last 7 Days (Submissions / Reviews)',
-            dbWeekLegendSub: 'Submissions',
-            dbWeekLegendRev: 'Reviews',
-            dbEmailHealth: '📧 Email Health',
-            dbEmailQuota: 'Remaining',
-            dbEmailSent: 'Sent Today',
-            dbEmailFailed: 'Failed Today',
-            dbEmailNote: 'See Email Log tab for details',
-            dbRecentFeed: '⏱ Recent Activity (Top 10)',
-            dbActSubmission: '📝 New Submission',
-            dbActReview: '📊 Review Done',
-            dbActDecision: 'Decision',
-            dbActSignup: '👤 New Signup',
-            dbWaitingLabel: '[pending]',
-            dbNoActivity: 'No activity'
+            card4Role: 'Department Group Leader'
         },
         ko: {
             // Login
@@ -3933,196 +3772,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             card1Role: 'Regional Marketing Manager',
             card2Role: 'Regional Marketing Director',
             card3Role: 'PM & MKT Director & MELC',
-            card4Role: 'Department Group Leader',
-
-            // ★ Footer
-            footerContact: '📧 문의사항이 있으신가요?',
-            footerCopyright: 'Copyright © 2026 MEDIT Corp. All rights reserved.',
-
-            // ★ Home Dashboard
-            homeDashTitle: '내 대시보드',
-            homeDashSubtitle: '한 화면에서 현황 파악',
-            homeKpiActive: '진행 중 프로젝트',
-            homeKpiActiveDesc: 'Step 2 / 3 진행 중',
-            homeKpiPassRate: 'AFC 통과율',
-            homeKpiPassRateDesc: '확정된 AFC 결정',
-            homeKpiAvgDays: '평균 심의 일수',
-            homeKpiAvgDaysDesc: '제출 → 결정',
-            homeKpiTodo: '내 To-Do',
-            homeKpiTodoDesc: '대기 중 작업',
-            homeStageTitle: '📋 파이프라인 분포',
-            homeStagePending: '대기',
-            homeStageStep2: 'Step 2 (평가)',
-            homeStageStep3: 'Step 3 (AFC)',
-            homeStageGo: '✅ GO',
-            homeStageCond: '⚠ Conditional',
-            homeStageNogo: '❌ NO GO',
-            homeTodoTitle: '📌 내 To-Do',
-            homeTodoEmpty: '🎉 처리할 작업이 없습니다',
-            homeTodoApproveAccount: '계정 승인',
-            homeTodoReviewSubmission: '제출 리뷰',
-            homeTodoFinalizeAfc: 'AFC 확정',
-            homeTodoEditOwn: '내 제출 편집',
-            homeRecentTitle: '🕐 최근 제출',
-            homeRecentEmpty: '제출 내역 없음',
-            homeViewAll: '전체 보기 →'
-
-            // ★ Settings — Modal title + Tabs
-            setTitle: 'MOP 설정',
-            setTabDashboard: '📊 통계',
-            setTabGeneral: '⚙️ 일반',
-            setTabAccounts: '👥 Account 관리',
-            setTabEmails: '📧 메일 로그',
-            setClose: '닫기',
-            setSave: '저장',
-            setFullscreenTitle: '전체화면 토글',
-            setRefreshTitle: '새로고침',
-
-            // General Tab
-            setAdminEmailLabel: '📧 관리자 알림 이메일',
-            setAdminEmailPh: '추가할 이메일 입력',
-            setAdminEmailAdd: '+ 추가',
-            setAdminEmailHelp: 'MOP Submission 및 AFC Result 알림이 위 주소로 발송됩니다.',
-            setAdminEmailEmpty: '등록된 이메일 없음',
-            setAdminEmailRemove: '삭제',
-            setAdminEmailInvalid: '유효한 이메일 주소를 입력하세요. (예: name@medit.com)',
-            setAdminEmailDup: '이미 등록된 이메일입니다.',
-            setToolPwLabel: '🔐 도구별 비밀번호',
-            setPwForm: 'Submission Form',
-            setPwScoring: 'Scoring Tool',
-            setPwAfc: 'AFC Checklist',
-            setPwPortfolio: 'Portfolio Board',
-            setPwOn: 'ON',
-            setPwOff: 'OFF',
-            setAppsScriptUrl: '☁ Google Apps Script URL',
-            setAppsScriptUrlHelp: 'GAS Web App 배포 URL. 클라우드 동기화, 이메일, 첨부파일에 사용됩니다.',
-            setSaveSettings: '💾 설정 저장',
-            setDangerZone: '⚠ 위험 기능',
-            setResetAll: '🗑️ 전체 데이터 초기화',
-            setResetPasswords: '🔑 비밀번호 초기화',
-            setResetAllDesc: '모든 Submission/Review 데이터 초기화',
-            setResetPwDesc: '모든 Account Password를 1111로 초기화 (Admin 제외)',
-            setResetAllConfirm: '모든 제출, 리뷰, AFC 상태, 포트폴리오를 삭제하시겠습니까? 되돌릴 수 없습니다.',
-            setResetPwConfirm: '모든 사용자의 비밀번호를 "1111"로 초기화하시겠습니까? 다음 로그인 시 변경이 강제됩니다.',
-            setAdvancedSettings: '고급 설정',
-            setAdvancedSettingsClose: '고급 설정 닫기',
-            setDangerWarning: '⚠️ 위험 작업 — 신중히 사용',
-
-            // Account Tab
-            setAccTotal: '전체',
-            setAccPending: '승인대기',
-            setAccAdmin: '관리자',
-            setAccManager: '일반관리자',
-            setAccGeneral: '일반',
-            setAccSearchPh: '🔍 이름 / 이메일 / 부서 검색...',
-            setAccSortLabel: '정렬',
-            setAccSortPending: '정렬: 승인대기 우선',
-            setAccSortRecent: '정렬: 최근 가입순',
-            setAccSortName: '정렬: 이름순',
-            setAccSortLogin: '정렬: 로그인 많은순',
-            setAccFilterAll: '전체',
-            setAccFilterPending: '⏳ 승인대기',
-            setAccFilterAdmin: '관리자',
-            setAccFilterManager: '일반관리자',
-            setAccFilterGeneral: '일반',
-            setAccListLabel: '👥 Account 목록',
-            setAccShowing: '명 표시',
-            setAccOf: '(전체',
-            setAccPeople: '명 중)',
-            setAccNoResult: '계정이 없습니다',
-            setAccApprove: '승인',
-            setAccReject: '미승인',
-            setAccReapprove: '재승인',
-            setAccEdit: '편집',
-            setAccResetPw: '비번초기화',
-            setAccDelete: '삭제',
-            setAccDeleteConfirm: '이 Account을 삭제하시겠습니까?',
-            setAccAlreadyApproved: '은(는) 이미 승인된 계정입니다.',
-            setAccAlreadyRejected: '은(는) 이미 거절된 계정입니다.',
-            setAccApproveSent: '승인됨 — 안내 메일 발송',
-            setAccRejectSent: '거절됨',
-            setAccRejectConfirm: '의 가입 Request을 거절하시겠습니까?\n해당 Account은 로그인할 수 없으며, 미승인 상태로 표시됩니다.',
-            setAccJoined: '가입',
-            setAccLast: '최근',
-            setAccLogins: '로그인',
-            setAccReviews: '리뷰',
-            setAccPendingApproval: 'Pending Approval',
-            setAccRejected: 'Rejected',
-
-            // Email Log Tab
-            emRemainingQuota: '남은 발송 한도',
-            emPerDay: '/ day',
-            emTotalRecent: '전체 (최근)',
-            emSent: '발송 성공',
-            emFailed: '실패',
-            emRefresh: '↻ 새로고침',
-            emSendTest: '📧 테스트 메일 발송',
-            emSearchPh: '🔍 수신자/제목 검색...',
-            emFilterAll: '전체',
-            emFilterSent: '✓ 성공',
-            emFilterFailed: '✗ 실패',
-            emFilterSkipped: '⊘ 스킵',
-            emNotLoaded: '아직 로드되지 않음',
-            emLastFetch: '마지막 조회',
-            emTotalRows: '건',
-            emColTime: '시각',
-            emColTarget: '대상',
-            emColRecipient: '수신자',
-            emColSubject: '제목',
-            emColStatus: '상태',
-            emEmpty: '📭 로그 없음',
-            emLoading: '⏳ 로딩 중...',
-            emOldGasTitle: '⚠ GAS 재배포 필요',
-            emOldGasDesc: '메일 로그 기능을 사용하려면 최신 GAS 코드를 Apps Script 편집기에 붙여넣고 새 버전으로 배포해야 합니다.',
-            emNetworkError: '❌ 네트워크 오류 — GAS URL 확인 필요',
-            emTimeout: '⏱ 응답 없음 (30초 초과) — GAS URL이 올바른지 확인하세요',
-            emTestSending: '📧 테스트 메일 발송 중...',
-            emTestOk: '✅ 메일 발송 요청 완료 — 메일함 + 로그 확인',
-            emTestFailed: '❌ 발송 실패 — 진단 정보 확인',
-
-            // Dashboard Tab
-            dbTodayActivity: '📅 오늘 활동',
-            dbActiveUsers: '로그인 사용자',
-            dbTotalUsers: '/ 전체',
-            dbPeople: '명',
-            dbNewSubs: '신규 제출',
-            dbCompletedReviews: '완료된 리뷰',
-            dbNewSignups: '신규 가입',
-            dbPendingCount: '대기',
-            dbCount: '건',
-            dbRefresh: '↻ 새로고침',
-            dbLastUpdate: '마지막 업데이트',
-            dbPipeline: '📋 제출 파이프라인',
-            dbPipelinePending: '🆕 Pending',
-            dbPipelineStep2: '📊 Step 2',
-            dbPipelineStep3: '✅ Step 3',
-            dbPipelineDecided: '🏁 결정 완료',
-            dbPipelineTotal: '총',
-            dbUsersSection: '👥 사용자 현황',
-            dbUserAdmin: '🔴 관리자',
-            dbUserManager: '🔵 일반관리자',
-            dbUserGeneral: '🟢 일반',
-            dbUserPending: '⏳ 승인 대기',
-            dbUser7d: '📈 최근 7일 활동',
-            dbRegionsSection: '📍 Region 별 제출',
-            dbReviewersSection: '🏆 Top 리뷰어 (전체 기간)',
-            dbNoSubmissions: '제출 없음',
-            dbNoReviews: '리뷰 없음',
-            dbWeekChart: '📈 최근 7일 활동 (제출 / 리뷰)',
-            dbWeekLegendSub: '제출',
-            dbWeekLegendRev: '리뷰',
-            dbEmailHealth: '📧 메일 헬스',
-            dbEmailQuota: '남은 한도',
-            dbEmailSent: '오늘 발송',
-            dbEmailFailed: '오늘 실패',
-            dbEmailNote: '메일 로그 탭에서 상세 확인',
-            dbRecentFeed: '⏱ 최근 활동 (Top 10)',
-            dbActSubmission: '📝 신규 제출',
-            dbActReview: '📊 리뷰 완료',
-            dbActDecision: '결정',
-            dbActSignup: '👤 신규 가입',
-            dbWaitingLabel: '[대기중]',
-            dbNoActivity: '활동 없음'
+            card4Role: 'Department Group Leader'
         }
     };
 
@@ -4130,45 +3780,6 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         try { var v = localStorage.getItem('mopLang'); return (v === 'ko' || v === 'en') ? v : 'en'; }
         catch(e) { return 'en'; }
     })();
-    // ★ FIX 2026-05-21: Settings 다국어 일괄 적용
-    //   data-i18n="key" → textContent 변경
-    //   data-i18n-ph="key" → placeholder 변경
-    //   data-i18n-title="key" → title 변경
-    function applySettingsI18n() {
-        try {
-            var t = i18n[currentLang] || i18n.en;
-            document.querySelectorAll('[data-i18n]').forEach(function(el) {
-                var key = el.getAttribute('data-i18n');
-                if (key && t[key] != null) el.textContent = t[key];
-            });
-            document.querySelectorAll('[data-i18n-ph]').forEach(function(el) {
-                var key = el.getAttribute('data-i18n-ph');
-                if (key && t[key] != null) el.setAttribute('placeholder', t[key]);
-            });
-            document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
-                var key = el.getAttribute('data-i18n-title');
-                if (key && t[key] != null) el.setAttribute('title', t[key]);
-            });
-            // Account 통계 카드 / 필터 탭 / 리스트 — 동적 렌더링이라 별도 호출
-            try { if (typeof renderAccStats === 'function') renderAccStats(); } catch(_){}
-            try { if (typeof renderAccRoleTabs === 'function') renderAccRoleTabs(); } catch(_){}
-            try { if (typeof renderAccList === 'function') renderAccList(); } catch(_){}
-            // ★ FIX 2026-05-21: Admin email list (General tab) 도 다국어 재렌더
-            try { if (typeof renderAdminEmailList === 'function') renderAdminEmailList(); } catch(_){}
-            // Dashboard 동적 렌더 — 열려있을 때만
-            try {
-                var dashTabActive = document.getElementById('settingsTabDashboard') && document.getElementById('settingsTabDashboard').style.display !== 'none';
-                if (dashTabActive && typeof renderDashboardStats === 'function') renderDashboardStats();
-            } catch(_){}
-            // Email 로그 동적 렌더 — 열려있을 때만
-            try {
-                var emailTabActive = document.getElementById('settingsTabEmails') && document.getElementById('settingsTabEmails').style.display !== 'none';
-                if (emailTabActive && typeof renderEmailLog === 'function') renderEmailLog();
-            } catch(_){}
-        } catch(e) { console.error('[applySettingsI18n]', e); }
-    }
-    window.applySettingsI18n = applySettingsI18n;
-
     function setLang(lang) {
         try { localStorage.setItem('mopLang', lang); } catch(e) {}
         currentLang = lang;
@@ -4215,10 +3826,6 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         setTxt('card4Link', t.card4Link||'');
         setTxt('card1Role', t.card1Role);   setTxt('card2Role', t.card2Role);
         setTxt('card3Role', t.card3Role);   setTxt('card4Role', t.card4Role);
-        // ★ FIX 2026-05-21: Settings 모달 다국어 일괄 적용
-        try { applySettingsI18n(); } catch(_){}
-        // ★ FIX 2026-05-21: Home Dashboard 다국어 재렌더
-        try { if (typeof renderHomeDashboard === 'function' && _currentUser) renderHomeDashboard(); } catch(_){}
         // Forward language change to iframe if open
         try {
             var iframe = document.getElementById('tool-iframe');
@@ -4293,7 +3900,6 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     setTimeout(function(){ try { if (typeof saveSubmissions === 'function' && mopSubmissions.length) { saveSubmissions(); console.log('[MOP] boot: re-saved submissions in quota-safe form'); } } catch(_){} }, 200);
 
     // === Quota-safe persistence (첨부파일 base64는 메모리에만, localStorage엔 메타만) ===
-    // ★ FIX 2026-05-19: driveUrl/viewUrl/fileId는 보존 — 영구 Drive URL이라 시트 저장 가능
     function _stripDataUrls(arr) {
         if (!Array.isArray(arr)) return arr;
         return arr.map(function(s){
@@ -4302,16 +3908,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (copy && copy.data && Array.isArray(copy.data.evidenceFiles)) {
                     copy.data.evidenceFiles = copy.data.evidenceFiles.map(function(f){
                         if (!f) return f;
-                        // dataUrl만 제거, Drive URL 관련 필드(driveUrl, viewUrl, directUrl, fileId)는 유지
-                        return {
-                            name: f.name || '',
-                            type: f.type || '',
-                            size: f.size || 0,
-                            fileId: f.fileId || undefined,
-                            driveUrl: f.driveUrl || undefined,
-                            viewUrl: f.viewUrl || undefined,
-                            directUrl: f.directUrl || undefined
-                        };
+                        return { name: f.name || '', type: f.type || '', size: f.size || 0 }; // dataUrl 제거
                     });
                 }
                 return copy;
@@ -4489,10 +4086,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         console.log('  - admin(adminTo):', getAdminEmailsStr(), ' [valid:', !!(getAdminEmailsStr() && getAdminEmailsStr().indexOf('@')>0), ']');
         console.log('  - title:', title);
         if (!submitterEmail || submitterEmail.indexOf('@') < 0) console.error('[MOP] ⚠️ submitter email MISSING — only admin will receive');
-        // ★ FIX 2026-05-19: gasPostEmail로 변경 — token + sendBeacon 안정성
-        gasPostEmail(url, payload,
-            function(){ console.log('✓ MOP score-complete email sent'); },
-            function(err){ console.error('✗ MOP score-complete email error:', err); });
+        fetch(url, {
+            method: 'POST', mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+        }).then(function(){ console.log('✓ MOP score-complete email sent'); })
+          .catch(function(err){ console.error('✗ MOP score-complete email error:', err); });
     }
 
     function saveReviews() {
@@ -4506,91 +4105,36 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     // GAS (Google Apps Script) 통신 — CORS 우회 (sendBeacon + JSONP)
     // ================================================================
     var _appsScriptUrl = 'https://script.google.com/macros/s/AKfycbwLhrwK7EaD_SSt73689f7hdoKh-Ta_6mMAyMusn5MdHaZcjnA83Wx6xGBq-Rpfu5_Zzw/exec';
-    // ★★★ API SECRET TOKEN — 2026-05-18
-    // GAS의 MOP_API_TOKEN과 반드시 동일해야 함.
-    // 모든 write 요청에 자동 포함됨 (gasPost, gasPostEmail, deleteAcc 등)
-    var MOP_API_TOKEN = 'medit-mop-2026-04ab7c8d5e3f9201';
     function getAppsScriptUrl() { return _appsScriptUrl; }
 
-    // ★★★ FIX 2026-05-21: 이메일 전송은 fetch ONLY + 다중 재시도
-    //   기존 버그: sendBeacon 우선 사용했으나 GAS doPost에 안 닿는 케이스 빈번.
-    //          sendBeacon은 "queued" 만 반환 — 실제 도달 보장 X.
-    //          token 검증 실패 시 GAS가 unauthorized 반환하지만 클라이언트는 모름.
-    //   해결: 무조건 fetch + 3회 재시도 + 명시적 진단 + 토스트 알림
+    // gasPost: navigator.sendBeacon 우선 (CORS 콘솔 에러 없음)
+    // ★ 이메일 전용: 항상 fetch 사용 (sendBeacon이 GAS doPost에 안 닿는 케이스 회피)
     function gasPostEmail(url, data, onSuccess, onError) {
         try {
-            // ★ AUTH: 토큰 자동 주입
-            if (data && typeof data === 'object' && !data.token) data.token = MOP_API_TOKEN;
             var jsonStr = JSON.stringify(data);
-            var sizeKb = (jsonStr.length/1024).toFixed(1);
-            console.log('[MOP gasPostEmail] ▶ payload size:', sizeKb, 'KB');
-            console.log('[MOP gasPostEmail] ▶ keys:', Object.keys(data));
-            console.log('[MOP gasPostEmail] ▶ to:', data.to || '(none)', '| adminTo:', data.adminTo || '(none)');
-            console.log('[MOP gasPostEmail] ▶ adminSubject present:', !!data.adminSubject, '| adminHtml present:', !!data.adminHtml);
-            console.log('[MOP gasPostEmail] ▶ token present:', !!data.token);
-            console.log('[MOP gasPostEmail] ▶ URL:', (url||'').slice(0, 80) + '...');
-
-            // 사전 검증
-            if (!url || url.indexOf('script.google.com') < 0) {
-                console.error('[MOP gasPostEmail] ✗ INVALID URL');
-                if (onError) onError('invalid url');
-                return;
-            }
-            if (!data.token) {
-                console.error('[MOP gasPostEmail] ✗ NO TOKEN — request would be rejected by GAS');
-                if (onError) onError('no token');
-                return;
-            }
-
-            var MAX_ATTEMPTS = 3;
-            var _delivered = false;  // 중복 발송 방지 플래그
-            function _fetchAttempt(attempt) {
-                if (_delivered) return;
-                console.log('[MOP gasPostEmail] 📤 fetch attempt ' + attempt + '/' + MAX_ATTEMPTS);
-                fetch(url, {
-                    method: 'POST',
-                    mode: 'no-cors',     // no-cors: 응답 못 봄. 그래도 GAS는 받음
-                    keepalive: true,     // page unload 시에도 전송 보장
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                    body: jsonStr
-                }).then(function(){
-                    if (_delivered) return;
-                    _delivered = true;
-                    console.log('[MOP gasPostEmail] ✓ fetch OK (attempt ' + attempt + ') — to:', data.to || '', '/ adminTo:', data.adminTo || '');
-                    if (onSuccess) onSuccess({ success: true, attempt: attempt });
-                }).catch(function(err){
-                    if (_delivered) return;
-                    console.error('[MOP gasPostEmail] ✗ fetch FAILED (attempt ' + attempt + '):', err);
-                    if (attempt < MAX_ATTEMPTS) {
-                        var delay = attempt * 2000; // 2s, 4s
-                        console.log('[MOP gasPostEmail] ⏳ retry in ' + (delay/1000) + 's...');
-                        setTimeout(function(){ _fetchAttempt(attempt + 1); }, delay);
-                    } else {
-                        // 최종 실패 — sendBeacon으로 마지막 시도 (page unload 안 가더라도)
-                        try {
-                            if (navigator.sendBeacon && jsonStr.length < 60*1024) {
-                                var blob = new Blob([jsonStr], { type: 'text/plain;charset=utf-8' });
-                                var queued = navigator.sendBeacon(url, blob);
-                                console.log('[MOP gasPostEmail] 🛟 sendBeacon LAST RESORT queued:', queued);
-                                if (queued) { _delivered = true; if (onSuccess) onSuccess({ success: true, fallback: 'sendBeacon' }); return; }
-                            }
-                        } catch(_){}
-                        console.error('[MOP gasPostEmail] ✗ ALL ATTEMPTS FAILED');
-                        if (onError) onError(String(err));
-                    }
-                });
-            }
-            _fetchAttempt(1);
+            console.log('[MOP gasPostEmail] payload size:', (jsonStr.length/1024).toFixed(1), 'KB');
+            console.log('[MOP gasPostEmail] keys:', Object.keys(data));
+            console.log('[MOP gasPostEmail] to:', data.to, '| adminTo:', data.adminTo);
+            console.log('[MOP gasPostEmail] adminSubject present:', !!data.adminSubject, '| adminHtml present:', !!data.adminHtml);
+            fetch(url, {
+                method: 'POST', mode: 'no-cors',
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: jsonStr
+            }).then(function(){
+                console.log('[MOP gasPostEmail] ✓ fetch sent');
+                if (onSuccess) onSuccess({ success: true, note: 'fetch direct' });
+            }).catch(function(err){
+                console.error('[MOP gasPostEmail] fetch error:', err);
+                if (onError) onError(String(err));
+            });
         } catch(e) {
-            console.error('[MOP gasPostEmail] ✗ exception:', e);
+            console.error('[MOP gasPostEmail] exception:', e);
             if (onError) onError(String(e));
         }
     }
 
     function gasPost(url, data, onSuccess, onError) {
         try {
-            // ★ AUTH: 토큰 자동 주입
-            if (data && typeof data === 'object' && !data.token) data.token = MOP_API_TOKEN;
             var jsonStr = JSON.stringify(data);
             var sizeKb = (jsonStr.length / 1024).toFixed(1);
             console.log('[MOP gasPost] payload size:', sizeKb, 'KB');
@@ -4699,37 +4243,27 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (Object.keys(t).length === 0) return arr;
         return (arr || []).filter(function(item){ return !(item && item.id != null && t[String(item.id)]); });
     }
-    // ★★★ FIX 2026-05-19: Settings는 명시적 변경 시에만 push (stale 덮어쓰기 차단)
-    //   기존 버그: 모든 cloudSaveNow가 settings를 push → 다른 브라우저의 stale localStorage가
-    //   서버를 덮어써서 Step 1 OFF 등이 자꾸 ON으로 부활하는 문제 발생
-    //   해결: saveSettings에서만 _settingsDirty 플래그 set → cloudSaveNow는 dirty일 때만 push
-    var _settingsDirty = false;
     function cloudSaveNow() {
         var url = getAppsScriptUrl(); if (!url) return;
-        // ★ Settings: dirty일 때만 snapshot 만들어서 push (그 외엔 null → 서버 settings 불변)
+        // ★ FIX 2026-05-15: settings도 함께 동기화 (Chrome ↔ Edge 등 브라우저 간 동기화)
         var _settingsSnapshot = null;
-        if (_settingsDirty) {
-            try {
-                _settingsSnapshot = {
-                    _settingsTs: Date.now(), // ★ FIX 2026-05-19: stale 차단용 타임스탬프
-                    adminEmails: (_adminEmails || []).slice(),
-                    pw: {
-                        form:      localStorage.getItem('mop_pw_form')      || '1111',
-                        scoring:   localStorage.getItem('mop_pw_scoring')   || '1111',
-                        afc:       localStorage.getItem('mop_pw_afc')       || '1111',
-                        portfolio: localStorage.getItem('mop_pw_portfolio') || '1111'
-                    },
-                    pwOn: {
-                        form:      (localStorage.getItem('mop_pw_on_form')      || 'true') === 'true',
-                        scoring:   (localStorage.getItem('mop_pw_on_scoring')   || 'true') === 'true',
-                        afc:       (localStorage.getItem('mop_pw_on_afc')       || 'true') === 'true',
-                        portfolio: (localStorage.getItem('mop_pw_on_portfolio') || 'true') === 'true'
-                    }
-                };
-                console.log('[MOP] cloudSaveNow: settings DIRTY → push 포함', _settingsSnapshot.pwOn);
-                _settingsDirty = false; // 한 번 push 했으므로 flag 해제
-            } catch(_){}
-        }
+        try {
+            _settingsSnapshot = {
+                adminEmails: (_adminEmails || []).slice(),
+                pw: {
+                    form:      localStorage.getItem('mop_pw_form')      || '1111',
+                    scoring:   localStorage.getItem('mop_pw_scoring')   || '1111',
+                    afc:       localStorage.getItem('mop_pw_afc')       || '1111',
+                    portfolio: localStorage.getItem('mop_pw_portfolio') || '1111'
+                },
+                pwOn: {
+                    form:      (localStorage.getItem('mop_pw_on_form')      || 'true') === 'true',
+                    scoring:   (localStorage.getItem('mop_pw_on_scoring')   || 'true') === 'true',
+                    afc:       (localStorage.getItem('mop_pw_on_afc')       || 'true') === 'true',
+                    portfolio: (localStorage.getItem('mop_pw_on_portfolio') || 'true') === 'true'
+                }
+            };
+        } catch(_){}
         // ★ FIX 2026-05-18: tombstone된 항목은 push 단계에서도 제거 (방어, 서버측 필터링도 있음)
         var _accForPush = _stripTombstoned('accounts', _accounts || []);
         var _subForPush = _stripTombstoned('submissions', _stripDataUrls(mopSubmissions));
@@ -4751,48 +4285,6 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         );
             }
     // ★★★ 진단/수동 동기화 함수 — F12 콘솔에서 직접 호출 가능
-    // ★ FIX 2026-05-21: 이메일 발송 진단 도구 — admin 콘솔에서 직접 테스트 가능
-    //   사용법: F12 콘솔에 mopTestEmail('your@email.com') 입력
-    window.mopTestEmail = function(testEmail) {
-        var url = getAppsScriptUrl();
-        var to = testEmail || (_currentUser && _currentUser.username) || prompt('Test email recipient:');
-        if (!to) { console.error('[mopTestEmail] no recipient'); return; }
-        if (!url) { console.error('[mopTestEmail] no GAS URL'); return; }
-
-        console.log('=== MOP Test Email ===');
-        console.log('Sending to:', to);
-        console.log('Admin recipients (from accounts):', (_accounts||[]).filter(function(a){return a&&a.role==='admin'&&a.approved===true;}).map(function(a){return a.username;}));
-        console.log('Token:', MOP_API_TOKEN);
-        console.log('URL:', url);
-        console.log('Sending...');
-
-        var html = '<html><body style="font-family:DM Sans,sans-serif;padding:20px;">'
-            + '<h2 style="color:#3b82f6;">📧 MOP Email Test</h2>'
-            + '<p>This is a test email from MOP System.</p>'
-            + '<p><b>Test time:</b> ' + new Date().toLocaleString() + '</p>'
-            + '<p><b>Sender browser:</b> ' + navigator.userAgent.substring(0, 80) + '</p>'
-            + '<p style="color:#64748b;font-size:0.85em;">If you received this, email delivery is working. ✓</p>'
-            + '</body></html>';
-
-        gasPostEmail(url, {
-            type: 'custom-email',
-            to: to,
-            subject: '[MOP Test] Email Delivery Test — ' + new Date().toLocaleString(),
-            htmlBody: html,
-            textBody: 'MOP Email Test. If you received this, delivery is working.',
-            adminTo: '',  // 테스트 시 admin은 안 보냄
-            adminSubject: '',
-            adminHtml: ''
-        }, function(r){
-            console.log('✅ Test email FETCH OK:', r);
-            console.log('Note: fetch success only confirms request reached GAS. Check your inbox in 1-2 minutes.');
-            try { _toast('📧 Test email sent — check inbox in 1-2 min', '#10b981'); } catch(_){}
-        }, function(e){
-            console.error('❌ Test email FAILED:', e);
-            try { _toast('❌ Test email failed: ' + e, '#ef4444'); } catch(_){}
-        });
-    };
-
     window.mopSyncTest = function() {
         console.log('=== MOP 동기화 테스트 시작 ===');
         var url = getAppsScriptUrl();
@@ -4925,26 +4417,6 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 try { localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails)); } catch(_){}
                             }
                             console.log('[MOP] cloudLoad: settings applied — pwOn=', _s.pwOn);
-                            // ★ FIX 2026-05-19: Settings 모달이 열려있으면 UI 즉시 재렌더
-                            //    cloudLoad가 localStorage 갱신 후 modal UI를 안 바꾸면 옛 값 보임 → 사용자가
-                            //    무의식 Save 시 OLD 값이 서버 덮어쓰는 사고 발생. UI 동기화 필수.
-                            try {
-                                var _sov = document.getElementById('settingsOverlay');
-                                if (_sov && _sov.classList.contains('active')) {
-                                    // 비밀번호 input.value
-                                    var _ePF = document.getElementById('settingsPwForm');     if (_ePF)     _ePF.value     = localStorage.getItem('mop_pw_form')      || '1111';
-                                    var _ePS = document.getElementById('settingsPwScoring');  if (_ePS)     _ePS.value     = localStorage.getItem('mop_pw_scoring')   || '1111';
-                                    var _ePA = document.getElementById('settingsPwAfc');      if (_ePA)     _ePA.value     = localStorage.getItem('mop_pw_afc')       || '1111';
-                                    var _ePP = document.getElementById('settingsPwPortfolio'); if (_ePP)    _ePP.value     = localStorage.getItem('mop_pw_portfolio') || '1111';
-                                    // 체크박스 + 라벨
-                                    if (typeof window._applyPwOn === 'function') {
-                                        ['Form','Scoring','Afc','Portfolio'].forEach(function(k){ try { window._applyPwOn(k); } catch(_){} });
-                                    }
-                                    // 관리자 이메일
-                                    if (typeof renderAdminEmailList === 'function') renderAdminEmailList();
-                                    console.log('[MOP] cloudLoad → Settings 모달 UI 동기화 완료');
-                                }
-                            } catch(_e2){ console.warn('[MOP] settings UI sync error:', _e2); }
                         } catch(_e){ console.warn('[MOP] settings apply error:', _e); }
                     }
                     if (d.accounts && Array.isArray(d.accounts)) {
@@ -4977,31 +4449,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         });
 
                         // 2단계: upsert (서버 값으로 덮어쓰기/추가)
-                        // ★ FIX 2026-05-19: 로컬에 더 최신 편집(_modAt)이 있으면 편집 필드는 로컬 유지
-                        //   시나리오: admin이 막 편집한 직후 cloudLoad 응답이 옛 데이터로 들어와 reverted 되던 race
                         var _accIdx = {};
                         _accounts.forEach(function(la){ if (la && la.id != null) _accIdx[la.id] = la; });
                         d.accounts.forEach(function(ca){
-                            if (!ca || ca.id == null) return;
-                            var la = _accIdx[ca.id];
-                            if (la) {
-                                var localMod = (typeof la._modAt === 'number') ? la._modAt : 0;
-                                var srvMod   = (typeof ca._modAt === 'number') ? ca._modAt : 0;
-                                if (localMod > srvMod) {
-                                    // 로컬이 newer — 편집 필드만 로컬 유지, 나머지는 서버 값으로 갱신
-                                    var merged = {};
-                                    for (var k in ca) if (ca.hasOwnProperty(k)) merged[k] = ca[k];
-                                    merged.role   = la.role;
-                                    merged.region = la.region;
-                                    merged.name   = la.name;
-                                    merged.dept   = la.dept;
-                                    merged._modAt = la._modAt;
-                                    _accIdx[ca.id] = merged;
-                                    console.log('[cloudLoad] local edit protected for:', (ca.username||ca.id), '(localMod=' + localMod + ' > srvMod=' + srvMod + ')');
-                                    return;
-                                }
-                            }
-                            _accIdx[ca.id] = ca; // 평소대로 서버 값 채택
+                            if (ca && ca.id != null) _accIdx[ca.id] = ca; // 서버 값이 로컬을 덮음
                         });
                         _accounts = Object.keys(_accIdx).map(function(k){ return _accIdx[k]; });
                         // ★ _accEditNextId 재계산 → 다른 브라우저 가입 id와 충돌 방지
@@ -5112,7 +4563,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var ifr1 = document.getElementById('tool-iframe');
                 if (ifr1 && ifr1.contentWindow) {
                     if (mopSubmissions && mopSubmissions.length) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-submissions-sync', payload: mopSubmissions });
-                    if (mopReviews && mopReviews.length) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-reviews-sync', payload: (typeof _enrichReviewsWithSubmissionData==='function'?_enrichReviewsWithSubmissionData(mopReviews):mopReviews) });
+                    if (mopReviews && mopReviews.length) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-reviews-sync', payload: mopReviews });
                     if (mopAfcState) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-afc-state-restore', payload: mopAfcState });
                     if (mopPortfolioState) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-portfolio-state-restore', payload: mopPortfolioState });
                     if (_currentUser) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-user-info', payload: { name: _currentUser.name || '', email: _currentUser.username || '', region: _currentUser.region || '', dept: _currentUser.dept || '', role: _currentUser.role || '' } });
@@ -5472,17 +4923,16 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                             htmlBody: _appendMopCta(submitterHtml),
                             textBody: 'AFC Complete: ' + _title + ' — ' + _gateLabel
                         };
-                        // ★ FIX 2026-05-21: gasPost → gasPostEmail (fetch+retry 안정성)
-                        gasPostEmail(getAppsScriptUrl(), subPayload,
+                        gasPost(getAppsScriptUrl(), subPayload,
                             function(){ console.log('✓ AFC submitter email sent →', _submitterEmail); },
                             function(err){ console.error('✗ AFC submitter email error:', err); });
                     } catch(_){}
                 } else {
                     console.warn('[MOP] AFC submitter email skipped — no submitter email');
                 }
-                // Reviewer + 관리자 메일
-                // ★ FIX 2026-05-21: 위에서 만든 reviewerHtml/adminHtml (rich version) 그대로 사용.
-                //   기존 버그: 여기서 var로 1줄 stub HTML을 재선언해서 위의 rich HTML이 폐기되고 stub만 발송됨.
+                // Reviewer + 관리자 메일 (기존)
+                var reviewerHtml = '<!DOCTYPE html><html><body style="font-family:Arial;padding:24px;"><h2 style="color:' + _gateColor + ';">' + _gateEmoji + ' AFC ' + _gateLabel + '</h2><p>Hi ' + _reviewer + ',</p><p>' + _gateMsg + '</p><p>Project: <strong>' + _title + '</strong><br>Pass Rate: ' + _pct + '<br>Date: ' + _date + '</p></body></html>';
+                var adminHtml = '<!DOCTYPE html><html><body style="font-family:Arial;padding:24px;"><h2>[ADMIN] AFC ' + _gateLabel + '</h2><p>Title: <strong>' + _title + '</strong></p><p>Reviewer: ' + _reviewer + '<br>Result: ' + _gateEmoji + ' ' + _gateLabel + '<br>Pass Rate: ' + _pct + '</p></body></html>';
                 var afcPayload = {
                     type: 'custom-email',
                     to: ep.reviewerEmail,
@@ -5494,8 +4944,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     adminHtml: _appendMopCta(adminHtml),
                     adminText: 'AFC ' + _gateLabel + ' by ' + _reviewer + ': ' + _title
                 };
-                // ★ FIX 2026-05-21: gasPost → gasPostEmail (fetch+retry 안정성)
-                gasPostEmail(getAppsScriptUrl(), afcPayload,
+                gasPost(getAppsScriptUrl(), afcPayload,
                     function(){ console.log('✓ AFC reviewer+admin email sent'); },
                     function(err){ console.error('✗ AFC reviewer+admin email error:', err); });
             }
@@ -5561,7 +5010,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     title: rev.title || sd.opportunityTitle || ('MOP-' + rid),
                     owner: rev.reviewer || sd.requestOwner || '',
                     region: sd.division || '',
-                    score: rev.score || 0,
+                                      score: rev.score || 0,
                     maxScore: rev.maxScore || 0,
                     percentage: rev.percentage || 0,
                     gate: st.gate,
@@ -5592,4 +5041,3 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     </script>
 </body>
 </html>
-    
