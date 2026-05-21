@@ -4896,8 +4896,75 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     _tombstoneCache = _tomb; // ★ 캐시에 저장하여 cloudSaveNow 시 사용
                     var _isTomb = function(type, id) { return id != null && _tomb[type] && _tomb[type][String(id)]; };
 
+                    // ★ FIX 2026-05-22: Drive URL 보호 헬퍼 — 서버 데이터에 viewUrl 없고 로컬에 있으면 로컬 유지
+                    function _mergeEvidenceFilesProtected(serverList, localList) {
+                        try {
+                            if (!Array.isArray(serverList)) return serverList;
+                            var localById = {};
+                            (localList || []).forEach(function(s){ if (s && s.id != null) localById[String(s.id)] = s; });
+                            return serverList.map(function(srv){
+                                if (!srv || srv.id == null) return srv;
+                                var loc = localById[String(srv.id)];
+                                if (!loc || !loc.data || !Array.isArray(loc.data.evidenceFiles)) return srv;
+                                if (!srv.data) srv.data = {};
+                                if (!Array.isArray(srv.data.evidenceFiles) || !srv.data.evidenceFiles.length) {
+                                    // 서버에 없으면 로컬 그대로 사용
+                                    srv.data.evidenceFiles = loc.data.evidenceFiles;
+                                    return srv;
+                                }
+                                // 양쪽 모두 있으면 — 이름 매칭으로 Drive URL 보충
+                                srv.data.evidenceFiles = srv.data.evidenceFiles.map(function(sf, idx){
+                                    if (!sf) return sf;
+                                    if (sf.viewUrl || sf.driveUrl || sf.fileId) return sf; // 서버에 이미 있음
+                                    var lf = loc.data.evidenceFiles[idx];
+                                    if (lf && (lf.viewUrl || lf.driveUrl || lf.fileId) && (lf.name === sf.name)) {
+                                        // 로컬에 Drive URL 있고 이름 일치 → 보충
+                                        return { name: sf.name, type: sf.type || lf.type, size: sf.size || lf.size, fileId: lf.fileId, driveUrl: lf.driveUrl, viewUrl: lf.viewUrl, directUrl: lf.directUrl };
+                                    }
+                                    // 이름이 안 맞으면 로컬 전체에서 같은 이름 찾기
+                                    var byName = (loc.data.evidenceFiles || []).find(function(x){ return x && x.name === sf.name && (x.viewUrl || x.driveUrl || x.fileId); });
+                                    if (byName) return { name: sf.name, type: sf.type || byName.type, size: sf.size || byName.size, fileId: byName.fileId, driveUrl: byName.driveUrl, viewUrl: byName.viewUrl, directUrl: byName.directUrl };
+                                    return sf;
+                                });
+                                return srv;
+                            });
+                        } catch(_){ return serverList; }
+                    }
+                    // reviews 도 동일 패턴 적용 — submissionData.evidenceFiles
+                    function _mergeReviewEvidence(serverList, localList) {
+                        try {
+                            if (!Array.isArray(serverList)) return serverList;
+                            var localById = {};
+                            (localList || []).forEach(function(r){ if (r && r.id != null) localById[String(r.id)] = r; });
+                            return serverList.map(function(srv){
+                                if (!srv || srv.id == null) return srv;
+                                var loc = localById[String(srv.id)];
+                                if (!loc || !loc.submissionData || !Array.isArray(loc.submissionData.evidenceFiles)) return srv;
+                                if (!srv.submissionData) srv.submissionData = {};
+                                if (!Array.isArray(srv.submissionData.evidenceFiles) || !srv.submissionData.evidenceFiles.length) {
+                                    srv.submissionData.evidenceFiles = loc.submissionData.evidenceFiles;
+                                    return srv;
+                                }
+                                srv.submissionData.evidenceFiles = srv.submissionData.evidenceFiles.map(function(sf, idx){
+                                    if (!sf) return sf;
+                                    if (sf.viewUrl || sf.driveUrl || sf.fileId) return sf;
+                                    var lf = loc.submissionData.evidenceFiles[idx];
+                                    if (lf && (lf.viewUrl || lf.driveUrl || lf.fileId) && (lf.name === sf.name)) {
+                                        return { name: sf.name, type: sf.type || lf.type, size: sf.size || lf.size, fileId: lf.fileId, driveUrl: lf.driveUrl, viewUrl: lf.viewUrl, directUrl: lf.directUrl };
+                                    }
+                                    var byName = (loc.submissionData.evidenceFiles || []).find(function(x){ return x && x.name === sf.name && (x.viewUrl || x.driveUrl || x.fileId); });
+                                    if (byName) return { name: sf.name, type: sf.type || byName.type, size: sf.size || byName.size, fileId: byName.fileId, driveUrl: byName.driveUrl, viewUrl: byName.viewUrl, directUrl: byName.directUrl };
+                                    return sf;
+                                });
+                                return srv;
+                            });
+                        } catch(_){ return serverList; }
+                    }
                     if (d.submissions && d.submissions.length) {
-                        mopSubmissions = d.submissions.filter(function(s){ return !_isTomb('submissions', s && s.id); });
+                        var _newSubs = d.submissions.filter(function(s){ return !_isTomb('submissions', s && s.id); });
+                        // ★ Drive URL 보호 머지 — re-upload 직후 race condition 방지
+                        _newSubs = _mergeEvidenceFilesProtected(_newSubs, mopSubmissions);
+                        mopSubmissions = _newSubs;
                         try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(_){}
                     } else if (_tomb.submissions && Object.keys(_tomb.submissions).length) {
                         // 서버에 submissions 없어도 tombstone 있으면 로컬에서 제거
@@ -4912,7 +4979,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         } catch(_){}
                     }
                     if (d.reviews && d.reviews.length) {
-                        mopReviews = d.reviews.filter(function(r){ return !_isTomb('reviews', r && r.id); });
+                        var _newRevs = d.reviews.filter(function(r){ return !_isTomb('reviews', r && r.id); });
+                        // ★ Drive URL 보호 머지 (review.submissionData.evidenceFiles)
+                        _newRevs = _mergeReviewEvidence(_newRevs, mopReviews);
+                        mopReviews = _newRevs;
                         try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){}
 
                         // ★ FIX 2026-05-18: 고아 리뷰 자동 정리
@@ -5605,7 +5675,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 }
                                 try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(_){}
                                 try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){}
-                                cloudSaveDebounced();
+                                // ★ FIX 2026-05-22: race condition 방지 — cloudSaveDebounced(2초) 대신 즉시 push
+                                //   + cloudLoad 가 새 Drive URL 을 덮어쓰지 못하게 보호 마커 + 보호 머지
+                                try { window._mopReuploadProtectUntil = Date.now() + 30000; } catch(_){}
+                                try { cloudSaveNow(); } catch(_){
+                                    try { cloudSaveDebounced(); } catch(__){}
+                                }
                             } catch(updErr) { try { __MOP_SEC.logErr('Gateway reupload update', updErr); } catch(_){} }
                             // 모든 iframe에 갱신 통지 + submissions/reviews 재전송
                             try {
