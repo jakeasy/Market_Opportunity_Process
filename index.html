@@ -699,6 +699,7 @@
             <div style="display:flex;gap:4px;margin-bottom:20px;background:#0f1525;border-radius:10px;padding:4px;">
                 <button onclick="switchSettingsTab('general')" id="tabGeneral" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:#3b82f6;color:#fff;">⚙️ 일반</button>
                 <button onclick="switchSettingsTab('accounts')" id="tabAccounts" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">👥 Account 관리</button>
+                <button onclick="switchSettingsTab('emails')" id="tabEmails" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">📧 메일 로그</button>
             </div>
             <!-- General Tab -->
             <div id="settingsTabGeneral">
@@ -806,6 +807,50 @@
                 <!-- ★ FIX 2026-05-19: 계정 수에 무관하게 고정 높이로 모달 크기 안정화 -->
                 <div id="accListContainer" style="height:480px;overflow-y:auto;display:flex;flex-direction:column;"></div>
             </div><!-- /settingsTabAccounts -->
+
+            <!-- ★ FIX 2026-05-21: Email Logs Tab -->
+            <div id="settingsTabEmails" style="display:none;text-align:left;">
+                <!-- 상단 통계 카드 -->
+                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+                    <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">남은 발송 한도</div>
+                        <div id="emQuotaVal" style="font-size:1.5rem;font-weight:800;color:#10b981;">—</div>
+                        <div style="font-size:0.65rem;color:#64748b;margin-top:2px;">/ day</div>
+                    </div>
+                    <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">전체 (최근)</div>
+                        <div id="emTotalCnt" style="font-size:1.5rem;font-weight:800;color:#60a5fa;">—</div>
+                    </div>
+                    <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">발송 성공</div>
+                        <div id="emSentCnt" style="font-size:1.5rem;font-weight:800;color:#22c55e;">—</div>
+                    </div>
+                    <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;text-align:center;">
+                        <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">실패</div>
+                        <div id="emFailedCnt" style="font-size:1.5rem;font-weight:800;color:#ef4444;">—</div>
+                    </div>
+                </div>
+
+                <!-- 액션 바 -->
+                <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
+                    <button onclick="loadEmailLog()" style="padding:7px 14px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;">↻ 새로고침</button>
+                    <button onclick="sendTestEmail()" style="padding:7px 14px;background:#10b981;color:#fff;border:none;border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;">📧 테스트 메일 발송</button>
+                    <input type="text" id="emFilterInput" placeholder="🔍 수신자/제목 검색..." oninput="renderEmailLog()" style="flex:1;min-width:160px;padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#2d3a4f'">
+                    <select id="emStatusFilter" onchange="renderEmailLog()" style="padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;">
+                        <option value="all">전체</option>
+                        <option value="sent">✓ 성공</option>
+                        <option value="failed">✗ 실패</option>
+                        <option value="skipped">⊘ 스킵</option>
+                    </select>
+                </div>
+                <div style="font-size:0.7rem;color:#64748b;margin-bottom:6px;" id="emFetchedAt">아직 로드되지 않음</div>
+
+                <!-- 로그 테이블 -->
+                <div id="emLogContainer" style="height:420px;overflow-y:auto;background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:10px;">
+                    <div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">⏳ 새로고침 버튼을 눌러 로그를 불러오세요</div>
+                </div>
+            </div><!-- /settingsTabEmails -->
+
             <!-- Accounts tab bottom close button -->
             <div id="settingsAccBtns" style="display:none;" class="pw-btns">
                 <button class="pw-btn pw-btn-cancel" onclick="closeSettings()">닫기</button>
@@ -1987,10 +2032,18 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     function switchSettingsTab(tab) {
         document.getElementById('settingsTabGeneral').style.display = tab === 'general' ? '' : 'none';
         document.getElementById('settingsTabAccounts').style.display = tab === 'accounts' ? '' : 'none';
+        // ★ FIX 2026-05-21: 메일 로그 탭
+        var emailsTab = document.getElementById('settingsTabEmails');
+        if (emailsTab) emailsTab.style.display = tab === 'emails' ? '' : 'none';
         document.getElementById('tabGeneral').style.background = tab === 'general' ? '#3b82f6' : 'transparent';
         document.getElementById('tabGeneral').style.color = tab === 'general' ? '#fff' : '#64748b';
         document.getElementById('tabAccounts').style.background = tab === 'accounts' ? '#3b82f6' : 'transparent';
         document.getElementById('tabAccounts').style.color = tab === 'accounts' ? '#fff' : '#64748b';
+        var emailsBtn = document.getElementById('tabEmails');
+        if (emailsBtn) {
+            emailsBtn.style.background = tab === 'emails' ? '#3b82f6' : 'transparent';
+            emailsBtn.style.color = tab === 'emails' ? '#fff' : '#64748b';
+        }
         var accBtns = document.getElementById('settingsAccBtns');
         if (accBtns) accBtns.style.display = tab === 'accounts' ? 'flex' : 'none';
         if (tab === 'accounts') {
@@ -2001,7 +2054,132 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             //    (cloudLoad 완료 후 자동으로 renderAccList가 다시 호출됨)
             try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
         }
+        if (tab === 'emails') {
+            // 메일 로그 자동 로드
+            try { loadEmailLog(); } catch(_){}
+        }
     }
+
+    // ★ FIX 2026-05-21: 메일 로그 관리
+    var _emailLogCache = [];
+    var _emailQuotaCache = null;
+    window.loadEmailLog = function() {
+        var url = getAppsScriptUrl();
+        if (!url) { console.error('[loadEmailLog] no GAS URL'); return; }
+        var container = document.getElementById('emLogContainer');
+        if (container) container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">⏳ 로딩 중...</div>';
+        var cb = '__mop_email_log_cb_' + Date.now();
+        window[cb] = function(j) {
+            try { delete window[cb]; } catch(_){}
+            if (j && j.success) {
+                _emailLogCache = j.logs || [];
+                _emailQuotaCache = j.quota;
+                var ts = j.fetched_at ? new Date(j.fetched_at).toLocaleString() : new Date().toLocaleString();
+                var fetchedEl = document.getElementById('emFetchedAt');
+                if (fetchedEl) fetchedEl.textContent = '마지막 조회: ' + ts + ' · 총 ' + _emailLogCache.length + '건';
+                renderEmailLog();
+            } else {
+                if (container) container.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px 0;">❌ 로그 로드 실패: ' + (j && j.error || 'unknown') + '</div>';
+            }
+        };
+        var s = document.createElement('script');
+        s.src = url + (url.indexOf('?')>=0?'&':'?') + 'action=email-status&limit=100&token=' + encodeURIComponent(MOP_API_TOKEN) + '&callback=' + cb;
+        s.onerror = function(){
+            try { delete window[cb]; } catch(_){}
+            if (container) container.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px 0;">❌ 네트워크 오류</div>';
+        };
+        document.head.appendChild(s);
+        setTimeout(function(){ try { s.parentNode && s.parentNode.removeChild(s); } catch(_){} }, 30000);
+    };
+
+    window.renderEmailLog = function() {
+        var container = document.getElementById('emLogContainer');
+        if (!container) return;
+        var logs = _emailLogCache || [];
+        // 통계 카드 업데이트
+        var sent = logs.filter(function(l){return l.status==='sent';}).length;
+        var failed = logs.filter(function(l){return l.status==='failed';}).length;
+        var quotaEl = document.getElementById('emQuotaVal');
+        if (quotaEl) {
+            if (_emailQuotaCache != null && _emailQuotaCache >= 0) {
+                quotaEl.textContent = _emailQuotaCache.toLocaleString();
+                quotaEl.style.color = _emailQuotaCache < 50 ? '#ef4444' : _emailQuotaCache < 200 ? '#f59e0b' : '#10b981';
+            } else {
+                quotaEl.textContent = '—';
+            }
+        }
+        var totalEl = document.getElementById('emTotalCnt'); if (totalEl) totalEl.textContent = logs.length;
+        var sentEl = document.getElementById('emSentCnt'); if (sentEl) sentEl.textContent = sent;
+        var failedEl = document.getElementById('emFailedCnt'); if (failedEl) failedEl.textContent = failed;
+
+        // 필터
+        var filter = (document.getElementById('emFilterInput') || {}).value || '';
+        var status = (document.getElementById('emStatusFilter') || {}).value || 'all';
+        var filtered = logs.filter(function(l){
+            if (status !== 'all' && l.status !== status) return false;
+            if (filter) {
+                var q = filter.toLowerCase();
+                if ((l.recipient||'').toLowerCase().indexOf(q) < 0 && (l.subject||'').toLowerCase().indexOf(q) < 0) return false;
+            }
+            return true;
+        });
+
+        if (!filtered.length) {
+            container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">📭 로그 없음</div>';
+            return;
+        }
+
+        function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        function fmtTs(s) {
+            try {
+                var d = new Date(s);
+                return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+
+                    String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+            } catch(_) { return s; }
+        }
+        function statusBadge(s) {
+            if (s === 'sent') return '<span style="background:#064e3b;color:#6ee7b7;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;">✓ SENT</span>';
+            if (s === 'failed') return '<span style="background:#7f1d1d;color:#fca5a5;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;">✗ FAILED</span>';
+            if (s === 'skipped') return '<span style="background:#374151;color:#9ca3af;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;">⊘ SKIP</span>';
+            return '<span style="background:#374151;color:#9ca3af;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700;">'+esc(s)+'</span>';
+        }
+        function typeBadge(t) {
+            if (t === 'user') return '<span style="background:#1e3a8a;color:#bfdbfe;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;">USER</span>';
+            if (t === 'admin') return '<span style="background:#7c2d12;color:#fed7aa;padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:600;">ADMIN</span>';
+            return '<span style="color:#94a3b8;">'+esc(t||'')+'</span>';
+        }
+
+        var html = '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;">';
+        html += '<thead><tr style="border-bottom:1px solid #2d3a4f;color:#94a3b8;text-transform:uppercase;font-size:0.65rem;letter-spacing:1px;">'+
+            '<th style="text-align:left;padding:8px 6px;width:155px;">시각</th>'+
+            '<th style="text-align:left;padding:8px 6px;width:60px;">대상</th>'+
+            '<th style="text-align:left;padding:8px 6px;">수신자</th>'+
+            '<th style="text-align:left;padding:8px 6px;">제목</th>'+
+            '<th style="text-align:left;padding:8px 6px;width:75px;">상태</th>'+
+            '</tr></thead><tbody>';
+        filtered.forEach(function(l, i) {
+            var rowBg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
+            html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.04);background:'+rowBg+';">';
+            html += '<td style="padding:8px 6px;color:#cbd5e1;white-space:nowrap;font-family:JetBrains Mono,monospace;font-size:0.72rem;">'+esc(fmtTs(l.ts))+'</td>';
+            html += '<td style="padding:8px 6px;">'+typeBadge(l.type)+'</td>';
+            html += '<td style="padding:8px 6px;color:#e2e8f0;word-break:break-all;">'+esc(l.recipient)+'</td>';
+            html += '<td style="padding:8px 6px;color:#94a3b8;">'+esc((l.subject||'').slice(0, 80))+'</td>';
+            html += '<td style="padding:8px 6px;">'+statusBadge(l.status)+(l.error?'<div style="font-size:0.65rem;color:#fca5a5;margin-top:3px;max-width:120px;word-break:break-word;">'+esc(l.error.slice(0,80))+'</div>':'')+'</td>';
+            html += '</tr>';
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+    };
+
+    window.sendTestEmail = function() {
+        var email = (_currentUser && _currentUser.username) || prompt('테스트 메일 수신자:');
+        if (!email) return;
+        try { _toast('📧 테스트 메일 발송 중...', '#3b82f6'); } catch(_){}
+        if (typeof mopTestEmail === 'function') {
+            mopTestEmail(email);
+            setTimeout(function(){ try { loadEmailLog(); } catch(_){} }, 3000);
+        }
+    };
 
     /* ── Account CRUD ── */
     // ★ UX 개선 2026-05-18: 필터/검색/정렬 상태
