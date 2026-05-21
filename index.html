@@ -3110,15 +3110,24 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     // ★ FIX 2026-05-21: 메일 로그 관리
     var _emailLogCache = [];
     var _emailQuotaCache = null;
+    // ★ FIX 2026-05-22: 동시 호출 방지 — 이전 요청 진행 중이면 새 호출 무시
+    var _emailLogLoadingUntil = 0;
     window.loadEmailLog = function() {
         var url = getAppsScriptUrl();
         if (!url) { console.error('[loadEmailLog] no GAS URL'); return; }
+        // 동시 호출 가드 — 진행 중이면 무시 (1초 cooldown)
+        if (_emailLogLoadingUntil > Date.now()) {
+            console.log('[loadEmailLog] already loading, skipping duplicate call');
+            return;
+        }
+        _emailLogLoadingUntil = Date.now() + 10000;
         var container = document.getElementById('emLogContainer');
-        if (container) container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">⏳ 로딩 중...</div>';
+        if (container) container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">⏳ 로딩 중... (최대 10초)</div>';
         var cb = '__mop_email_log_cb_' + Date.now();
         var responded = false;
         window[cb] = function(j) {
             responded = true;
+            _emailLogLoadingUntil = 0;
             try { delete window[cb]; } catch(_){}
             console.log('[loadEmailLog] response:', j);
             // ★ FIX 2026-05-21: GAS 신/구 버전 구분 — email-status 응답은 quota+logs 필드 보유
@@ -3165,18 +3174,33 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         var s = document.createElement('script');
         s.src = url + (url.indexOf('?')>=0?'&':'?') + 'action=email-status&limit=100&token=' + encodeURIComponent(MOP_API_TOKEN) + '&callback=' + cb;
         s.onerror = function(){
+            _emailLogLoadingUntil = 0;
             try { delete window[cb]; } catch(_){}
             if (container) container.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px 0;">❌ 네트워크 오류 — GAS URL 확인 필요</div>';
         };
         document.head.appendChild(s);
-        // 타임아웃 안전망 (30초)
+        // ★ FIX 2026-05-22: 10초로 단축 (30초는 너무 길어 무한로딩으로 체감) + 안내 강화
         setTimeout(function(){
             try { s.parentNode && s.parentNode.removeChild(s); } catch(_){}
+            try { delete window[cb]; } catch(_){}
+            _emailLogLoadingUntil = 0;
             if (!responded) {
-                console.warn('[loadEmailLog] timeout — no response in 30s');
-                if (container) container.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px 0;">⏱ 응답 없음 (30초 초과) — GAS URL이 올바른지 확인하세요</div>';
+                console.warn('[loadEmailLog] timeout — no response in 10s');
+                if (container) container.innerHTML = '<div style="text-align:left;color:#f59e0b;padding:24px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;">'+
+                    '<div style="font-weight:700;color:#fbbf24;font-size:0.95rem;margin-bottom:10px;">⏱ 응답 없음 (10초 초과)</div>'+
+                    '<div style="font-size:0.82rem;line-height:1.7;color:#cbd5e1;">'+
+                    '가능한 원인:<br>'+
+                    '• GAS Web App URL 이 잘못되었거나 미배포<br>'+
+                    '• <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">action=email-status</code> 엔드포인트가 미배포 (옛 GAS)<br>'+
+                    '• 토큰 불일치 (현재: <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">'+(MOP_API_TOKEN||'(없음)').slice(0,20)+'...</code>)<br>'+
+                    '• 네트워크 / 권한 문제<br><br>'+
+                    '<b>다음 시도:</b><br>'+
+                    '1. <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">D:\\Claude_Jake\\MOP_AppsScript_v3_FIXED.gs</code> 코드를 Apps Script 편집기에 붙여넣고<br>'+
+                    '2. <b>배포(Deploy) → 새 버전 → 배포</b><br>'+
+                    '3. <b>↻ Refresh</b> 클릭하여 다시 시도'+
+                    '</div></div>';
             }
-        }, 30000);
+        }, 10000);
     };
 
     window.renderEmailLog = function() {
