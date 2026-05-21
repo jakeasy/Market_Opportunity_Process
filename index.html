@@ -592,6 +592,36 @@
                 <div class="flow-step"><span class="step-num">3</span> Commercialize</div><span class="flow-arrow">→</span>
                 <div class="flow-step"><span class="step-num">4</span> Portfolio</div>
             </div>
+
+            <!-- ★ FIX 2026-05-21: Home Dashboard — 임원/PM용 한 화면 현황 파악 -->
+            <div id="homeDashboard" style="background:linear-gradient(180deg,rgba(15,21,37,0.4),rgba(15,21,37,0.2));border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:22px 26px;margin-bottom:30px;backdrop-filter:blur(8px);">
+                <!-- 헤더 + 토글 -->
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
+                    <div>
+                        <div id="homeDashTitle" style="font-size:1.05rem;font-weight:700;color:#e2e8f0;display:flex;align-items:center;gap:8px;">
+                            <span style="font-size:1.2rem;">📊</span>
+                            <span id="homeDashTitleText">My Dashboard</span>
+                        </div>
+                        <div id="homeDashSubtitle" style="font-size:0.75rem;color:#64748b;margin-top:2px;">At-a-glance status overview</div>
+                    </div>
+                    <div style="display:flex;gap:6px;">
+                        <button onclick="renderHomeDashboard()" title="Refresh" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;">↻</button>
+                        <button onclick="toggleHomeDashboard()" id="homeDashToggleBtn" title="Collapse" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;">▼</button>
+                    </div>
+                </div>
+                <div id="homeDashContent">
+                    <!-- KPI 4-card row -->
+                    <div id="homeKpiCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;"></div>
+                    <!-- 단계별 분포 + AFC Gate 분포 -->
+                    <div id="homeStageDist" style="margin-bottom:18px;"></div>
+                    <!-- To-do + 최근 제출 (2-col) -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                        <div id="homeTodoBox" style="background:rgba(15,21,37,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;"></div>
+                        <div id="homeRecentBox" style="background:rgba(15,21,37,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="cards">
                 <div class="card" id="card1" onclick="handleCardClick('form')">
                     <div class="card-top"><div class="card-step">Step 1</div><div class="card-role" id="card1Role"></div></div>
@@ -2028,7 +2058,291 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         roleEl.className = 'user-badge-role ' + _currentUser.role;
         // Settings: admin only
         document.getElementById('settingsBtn').style.display = _currentUser.role === 'admin' ? '' : 'none';
+        // ★ FIX 2026-05-21: 로그인 직후 Home Dashboard 렌더
+        try { renderHomeDashboard(); } catch(e) { console.error('[renderHomeDashboard]', e); }
+        // cloudLoad 완료 후 자동 갱신 (다른 브라우저 변경 반영)
+        setTimeout(function(){ try { renderHomeDashboard(); } catch(_){} }, 2500);
     }
+
+    // ★ FIX 2026-05-21: Home Dashboard 토글
+    window.toggleHomeDashboard = function() {
+        var content = document.getElementById('homeDashContent');
+        var btn = document.getElementById('homeDashToggleBtn');
+        if (!content || !btn) return;
+        if (content.style.display === 'none') {
+            content.style.display = '';
+            btn.textContent = '▼';
+            try { localStorage.setItem('mop_homeDash_collapsed', '0'); } catch(_){}
+        } else {
+            content.style.display = 'none';
+            btn.textContent = '▲';
+            try { localStorage.setItem('mop_homeDash_collapsed', '1'); } catch(_){}
+        }
+    };
+
+    // ★ FIX 2026-05-21: Home Dashboard 메인 렌더링 — 역할별 적응형
+    window.renderHomeDashboard = function() {
+        try {
+            if (!_currentUser) return;
+            var t = i18n[currentLang] || i18n.en;
+            var isKo = currentLang === 'ko';
+            function _h(k, fb) { return (t[k] != null) ? t[k] : (fb || k); }
+            function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+            function todayStr() {
+                var d = new Date();
+                return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+            }
+            function diffDays(d1, d2) {
+                try {
+                    var t1 = new Date(d1).getTime();
+                    var t2 = new Date(d2).getTime();
+                    if (isNaN(t1) || isNaN(t2)) return null;
+                    return Math.abs(Math.round((t2 - t1) / (1000*60*60*24)));
+                } catch(_) { return null; }
+            }
+
+            // Title 갱신
+            var titleEl = document.getElementById('homeDashTitleText');
+            if (titleEl) titleEl.textContent = _h('homeDashTitle','My Dashboard');
+            var subEl = document.getElementById('homeDashSubtitle');
+            if (subEl) subEl.textContent = _h('homeDashSubtitle','At-a-glance status overview');
+
+            // 토글 상태 복원
+            try {
+                var collapsed = localStorage.getItem('mop_homeDash_collapsed') === '1';
+                var content = document.getElementById('homeDashContent');
+                var btn = document.getElementById('homeDashToggleBtn');
+                if (content) content.style.display = collapsed ? 'none' : '';
+                if (btn) btn.textContent = collapsed ? '▲' : '▼';
+            } catch(_){}
+
+            var subs = mopSubmissions || [];
+            var revs = mopReviews || [];
+            var accs = _accounts || [];
+            var afcState = mopAfcState || { checklistState: {} };
+            var afcChecklists = afcState.checklistState || {};
+            var role = String((_currentUser && _currentUser.role) || '').toLowerCase();
+            var myEmail = String((_currentUser && _currentUser.username) || '').toLowerCase();
+            var myRegion = String((_currentUser && _currentUser.region) || '').toLowerCase();
+
+            // === 1. KPI 카드 ===
+            // Active Projects: review가 있고 final decision이 없는 것
+            var activeCount = 0;
+            subs.forEach(function(s){
+                if (!s) return;
+                var hasReview = revs.find(function(r){ return r && String(r.submissionId) === String(s.id); });
+                if (!hasReview) return;
+                if (hasReview.decision === 'go' || hasReview.decision === 'hold' || hasReview.decision === 'nogo') return;
+                activeCount++;
+            });
+
+            // AFC Pass Rate: finalized AFC 중 GO 비율
+            var afcFinalized = 0, afcGo = 0;
+            Object.keys(afcChecklists).forEach(function(rid){
+                var st = afcChecklists[rid];
+                if (st && st.finalized) {
+                    afcFinalized++;
+                    if (st.gate === 'go') afcGo++;
+                }
+            });
+            var passRate = afcFinalized > 0 ? Math.round(afcGo / afcFinalized * 100) : null;
+
+            // 평균 심의 일수: submission.timestamp ~ review.date 평균
+            var totalDays = 0, daysCount = 0;
+            revs.forEach(function(r){
+                if (!r || !r.submissionId) return;
+                var sub = subs.find(function(s){ return String(s.id) === String(r.submissionId); });
+                if (!sub) return;
+                var d = diffDays(sub.timestamp || sub.date, r.date);
+                if (d != null && d <= 365) { totalDays += d; daysCount++; }
+            });
+            var avgDays = daysCount > 0 ? Math.round(totalDays / daysCount * 10) / 10 : null;
+
+            // === 2. My To-Do (역할별) ===
+            var todos = [];
+            if (role === 'admin') {
+                // 승인 대기 계정
+                accs.forEach(function(a){
+                    if (a && a.approved === false) {
+                        todos.push({
+                            type: 'approve',
+                            label: _h('homeTodoApproveAccount','Approve account'),
+                            detail: (a.name||'?') + ' (' + (a.username||'') + ')',
+                            color: '#fbbf24',
+                            action: function(){ openSettings(); switchSettingsTab('accounts'); }
+                        });
+                    }
+                });
+            }
+            if (role === 'admin' || role === 'manager') {
+                // 내 region (manager) 또는 전체 (admin) 의 미리뷰 제출
+                subs.forEach(function(s){
+                    if (!s || !s.data) return;
+                    var hasReview = revs.find(function(r){ return r && String(r.submissionId) === String(s.id); });
+                    if (hasReview) return;
+                    if (role === 'manager') {
+                        var subReg = String(s.data.division || '').toLowerCase();
+                        if (subReg !== myRegion) return;
+                    }
+                    todos.push({
+                        type: 'review',
+                        label: _h('homeTodoReviewSubmission','Review submission'),
+                        detail: s.data.opportunityTitle || '(Untitled)',
+                        color: '#60a5fa',
+                        action: function(){ if (typeof openToolWithSync === 'function') openToolWithSync('scoring','MOP Scoring Tool','Step 2','#3b82f6'); }
+                    });
+                });
+                // AFC 진행 중 (sendToStep3=true, finalized=false)
+                revs.forEach(function(r){
+                    if (!r || !r.sendToStep3) return;
+                    var rid = r.id;
+                    var st = afcChecklists[rid] || afcChecklists[String(rid)];
+                    if (st && st.finalized) return;
+                    todos.push({
+                        type: 'afc',
+                        label: _h('homeTodoFinalizeAfc','Finalize AFC'),
+                        detail: r.title || '(Untitled)',
+                        color: '#10b981',
+                        action: function(){ if (typeof openAFC === 'function') openAFC(); }
+                    });
+                });
+            }
+            if (role === 'general' || role === 'manager' || role === 'admin') {
+                // 내가 제출한 것 중 거절된 것
+                subs.forEach(function(s){
+                    if (!s || !s.data) return;
+                    if ((s.data.requestOwnerEmail||'').toLowerCase() !== myEmail) return;
+                    var rev = revs.find(function(r){ return r && String(r.submissionId) === String(s.id); });
+                    if (rev && (rev.decision === 'nogo' || rev.decision === 'hold')) {
+                        todos.push({
+                            type: 'edit',
+                            label: _h('homeTodoEditOwn','Edit my submission'),
+                            detail: s.data.opportunityTitle + ' — ' + (isKo?'재제출 권장':'recommended to revise'),
+                            color: '#f59e0b',
+                            action: function(){ if (typeof openToolWithSync === 'function') openToolWithSync('form','MOP Submission Form','Step 1','#3b82f6'); }
+                        });
+                    }
+                });
+            }
+
+            // === 3. KPI 카드 렌더링 ===
+            function _kpi(label, value, desc, color, accentBg) {
+                return '<div style="background:'+accentBg+';border:1px solid '+color+'22;border-radius:12px;padding:14px 16px;">'+
+                    '<div style="font-size:0.68rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:4px;">'+esc(label)+'</div>'+
+                    '<div style="font-size:1.8rem;font-weight:800;color:'+color+';line-height:1.1;">'+value+'</div>'+
+                    '<div style="font-size:0.7rem;color:#64748b;margin-top:3px;">'+esc(desc)+'</div>'+
+                    '</div>';
+            }
+            var kpiHtml =
+                _kpi(_h('homeKpiActive','Active Projects'), activeCount, _h('homeKpiActiveDesc','In Step 2/3'), '#60a5fa', 'rgba(96,165,250,0.06)') +
+                _kpi(_h('homeKpiPassRate','AFC Pass Rate'), passRate == null ? '—' : passRate + '%', _h('homeKpiPassRateDesc','Finalized decisions') + (afcFinalized?' ('+afcFinalized+')':''), '#10b981', 'rgba(16,185,129,0.06)') +
+                _kpi(_h('homeKpiAvgDays','Avg Review Days'), avgDays == null ? '—' : avgDays + (isKo?'일':' d'), _h('homeKpiAvgDaysDesc','Submission → Decision'), '#a855f7', 'rgba(168,85,247,0.06)') +
+                _kpi(_h('homeKpiTodo','My To-Do'), todos.length, _h('homeKpiTodoDesc','Pending actions'), todos.length > 0 ? '#f59e0b' : '#34d399', todos.length > 0 ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)');
+            document.getElementById('homeKpiCards').innerHTML = kpiHtml;
+
+            // === 4. Stage Distribution ===
+            var stagePending = 0, stageStep2 = 0, stageStep3 = 0, stageGo = 0, stageCond = 0, stageNogo = 0;
+            subs.forEach(function(s){
+                if (!s) return;
+                var rev = revs.find(function(r){ return r && String(r.submissionId) === String(s.id); });
+                if (!rev) { stagePending++; return; }
+                // AFC 결정 우선
+                var rid = rev.id;
+                var st = afcChecklists[rid] || afcChecklists[String(rid)];
+                if (st && st.finalized) {
+                    if (st.gate === 'go') stageGo++;
+                    else if (st.gate === 'conditional') stageCond++;
+                    else if (st.gate === 'nogo') stageNogo++;
+                    return;
+                }
+                if (rev.sendToStep3) { stageStep3++; return; }
+                stageStep2++;
+            });
+            var stageTotal = subs.length;
+            function _stage(label, value, color) {
+                var pct = stageTotal > 0 ? Math.round(value/stageTotal*100) : 0;
+                return '<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;padding:8px 6px;background:'+color+'11;border:1px solid '+color+'33;border-radius:8px;">'+
+                    '<div style="font-size:0.65rem;color:#94a3b8;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;text-align:center;" title="'+esc(label)+'">'+esc(label)+'</div>'+
+                    '<div style="font-size:1.35rem;font-weight:800;color:'+color+';line-height:1.1;margin-top:4px;">'+value+'</div>'+
+                    '<div style="font-size:0.62rem;color:#64748b;">'+pct+'%</div>'+
+                    '</div>';
+            }
+            var stageHtml = '<div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;">'+_h('homeStageTitle','Pipeline Distribution')+'</div>'+
+                '<div style="display:flex;gap:8px;align-items:stretch;">'+
+                    _stage(_h('homeStagePending','Pending'), stagePending, '#94a3b8') +
+                    _stage(_h('homeStageStep2','Step 2'), stageStep2, '#3b82f6') +
+                    _stage(_h('homeStageStep3','Step 3'), stageStep3, '#a855f7') +
+                    _stage(_h('homeStageGo','✅ GO'), stageGo, '#10b981') +
+                    _stage(_h('homeStageCond','⚠ Cond'), stageCond, '#f59e0b') +
+                    _stage(_h('homeStageNogo','❌ NO GO'), stageNogo, '#ef4444') +
+                '</div>';
+            document.getElementById('homeStageDist').innerHTML = stageHtml;
+
+            // === 5. My To-Do Box ===
+            var todoBox = document.getElementById('homeTodoBox');
+            var todoHtml = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'+
+                '<div style="font-size:0.78rem;color:#e2e8f0;font-weight:700;">'+_h('homeTodoTitle','📌 My To-Do')+'</div>'+
+                '<div style="font-size:0.7rem;color:#94a3b8;background:rgba(255,255,255,0.05);padding:1px 8px;border-radius:10px;">'+todos.length+'</div>'+
+                '</div>';
+            if (todos.length === 0) {
+                todoHtml += '<div style="text-align:center;color:#34d399;padding:18px 0;font-size:0.82rem;">'+_h('homeTodoEmpty','🎉 All caught up')+'</div>';
+            } else {
+                todoHtml += '<div style="display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;">';
+                todos.slice(0, 8).forEach(function(td, i) {
+                    var key = '_homeTodo_' + i;
+                    window[key] = td.action;
+                    todoHtml += '<div onclick="(window[\''+key+'\']||function(){})()" style="cursor:pointer;display:flex;align-items:center;gap:8px;padding:7px 10px;background:'+td.color+'11;border:1px solid '+td.color+'22;border-left:3px solid '+td.color+';border-radius:6px;transition:all 0.15s;" onmouseover="this.style.background=\''+td.color+'22\'" onmouseout="this.style.background=\''+td.color+'11\'">'+
+                        '<div style="font-size:0.72rem;color:'+td.color+';font-weight:600;min-width:96px;">'+esc(td.label)+'</div>'+
+                        '<div style="flex:1;font-size:0.75rem;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(td.detail)+'</div>'+
+                        '</div>';
+                });
+                if (todos.length > 8) {
+                    todoHtml += '<div style="text-align:center;color:#64748b;font-size:0.7rem;padding:4px 0;">+ '+(todos.length-8)+(isKo?' 더 있음':' more')+'</div>';
+                }
+                todoHtml += '</div>';
+            }
+            todoBox.innerHTML = todoHtml;
+
+            // === 6. Recent Submissions (5건) ===
+            var recentBox = document.getElementById('homeRecentBox');
+            var sorted = subs.slice().sort(function(a,b){
+                var ta = new Date(a && (a.timestamp||a.date) || 0).getTime();
+                var tb = new Date(b && (b.timestamp||b.date) || 0).getTime();
+                return tb - ta;
+            }).slice(0, 5);
+            var recentHtml = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'+
+                '<div style="font-size:0.78rem;color:#e2e8f0;font-weight:700;">'+_h('homeRecentTitle','🕐 Recent Submissions')+'</div>'+
+                '<div style="font-size:0.7rem;color:#94a3b8;background:rgba(255,255,255,0.05);padding:1px 8px;border-radius:10px;">'+subs.length+'</div>'+
+                '</div>';
+            if (sorted.length === 0) {
+                recentHtml += '<div style="text-align:center;color:#64748b;padding:18px 0;font-size:0.82rem;">'+_h('homeRecentEmpty','No submissions yet')+'</div>';
+            } else {
+                recentHtml += '<div style="display:flex;flex-direction:column;gap:6px;">';
+                sorted.forEach(function(s) {
+                    if (!s || !s.data) return;
+                    var rev = revs.find(function(r){ return r && String(r.submissionId) === String(s.id); });
+                    var status = !rev ? {label:_h('homeStagePending','Pending'), color:'#94a3b8'} :
+                                 (rev.decision === 'go' ? {label:'✅ GO', color:'#10b981'} :
+                                  rev.decision === 'nogo' ? {label:'❌ NOGO', color:'#ef4444'} :
+                                  rev.decision === 'hold' ? {label:'⏸ HOLD', color:'#f59e0b'} :
+                                  rev.sendToStep3 ? {label:'Step 3', color:'#a855f7'} :
+                                  {label:'Step 2', color:'#3b82f6'});
+                    var date = '';
+                    try { var d = new Date(s.timestamp||s.date); date = (d.getMonth()+1)+'/'+d.getDate(); } catch(_){}
+                    recentHtml += '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.04);border-radius:6px;">'+
+                        '<div style="font-size:0.7rem;color:#64748b;font-family:JetBrains Mono,monospace;min-width:36px;">'+esc(date)+'</div>'+
+                        '<div style="flex:1;font-size:0.75rem;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+esc(s.data.opportunityTitle||'')+'">'+esc(s.data.opportunityTitle||'-')+'</div>'+
+                        '<div style="font-size:0.65rem;color:#94a3b8;white-space:nowrap;">'+esc(s.data.division||'')+'</div>'+
+                        '<div style="font-size:0.65rem;color:'+status.color+';font-weight:700;background:'+status.color+'22;padding:1px 8px;border-radius:10px;white-space:nowrap;">'+esc(status.label)+'</div>'+
+                        '</div>';
+                });
+                recentHtml += '</div>';
+            }
+            recentBox.innerHTML = recentHtml;
+        } catch(e) {
+            console.error('[renderHomeDashboard] error:', e);
+        }
+    };
 
     function updateAllCardAccess() {
         var keys = ['form', 'scoring', 'afc', 'portfolio'];
@@ -3386,6 +3700,34 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             footerContact: '📧 Questions or feedback?',
             footerCopyright: 'Copyright © 2026 MEDIT Corp. All rights reserved.',
 
+            // ★ Home Dashboard
+            homeDashTitle: 'My Dashboard',
+            homeDashSubtitle: 'At-a-glance status overview',
+            homeKpiActive: 'Active Projects',
+            homeKpiActiveDesc: 'In Step 2 / 3',
+            homeKpiPassRate: 'AFC Pass Rate',
+            homeKpiPassRateDesc: 'Finalized AFC decisions',
+            homeKpiAvgDays: 'Avg Review Days',
+            homeKpiAvgDaysDesc: 'Submission → Decision',
+            homeKpiTodo: 'My To-Do',
+            homeKpiTodoDesc: 'Pending actions',
+            homeStageTitle: '📋 Pipeline Distribution',
+            homeStagePending: 'Pending',
+            homeStageStep2: 'Step 2 (Scoring)',
+            homeStageStep3: 'Step 3 (AFC)',
+            homeStageGo: '✅ GO',
+            homeStageCond: '⚠ Conditional',
+            homeStageNogo: '❌ NO GO',
+            homeTodoTitle: '📌 My To-Do',
+            homeTodoEmpty: '🎉 All caught up — no pending actions',
+            homeTodoApproveAccount: 'Approve account',
+            homeTodoReviewSubmission: 'Review submission',
+            homeTodoFinalizeAfc: 'Finalize AFC',
+            homeTodoEditOwn: 'Edit my submission',
+            homeRecentTitle: '🕐 Recent Submissions',
+            homeRecentEmpty: 'No submissions yet',
+            homeViewAll: 'View all →'
+
             // ★ Settings — Modal title + Tabs
             setTitle: 'MOP Settings',
             setTabDashboard: '📊 Dashboard',
@@ -3596,6 +3938,34 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             // ★ Footer
             footerContact: '📧 문의사항이 있으신가요?',
             footerCopyright: 'Copyright © 2026 MEDIT Corp. All rights reserved.',
+
+            // ★ Home Dashboard
+            homeDashTitle: '내 대시보드',
+            homeDashSubtitle: '한 화면에서 현황 파악',
+            homeKpiActive: '진행 중 프로젝트',
+            homeKpiActiveDesc: 'Step 2 / 3 진행 중',
+            homeKpiPassRate: 'AFC 통과율',
+            homeKpiPassRateDesc: '확정된 AFC 결정',
+            homeKpiAvgDays: '평균 심의 일수',
+            homeKpiAvgDaysDesc: '제출 → 결정',
+            homeKpiTodo: '내 To-Do',
+            homeKpiTodoDesc: '대기 중 작업',
+            homeStageTitle: '📋 파이프라인 분포',
+            homeStagePending: '대기',
+            homeStageStep2: 'Step 2 (평가)',
+            homeStageStep3: 'Step 3 (AFC)',
+            homeStageGo: '✅ GO',
+            homeStageCond: '⚠ Conditional',
+            homeStageNogo: '❌ NO GO',
+            homeTodoTitle: '📌 내 To-Do',
+            homeTodoEmpty: '🎉 처리할 작업이 없습니다',
+            homeTodoApproveAccount: '계정 승인',
+            homeTodoReviewSubmission: '제출 리뷰',
+            homeTodoFinalizeAfc: 'AFC 확정',
+            homeTodoEditOwn: '내 제출 편집',
+            homeRecentTitle: '🕐 최근 제출',
+            homeRecentEmpty: '제출 내역 없음',
+            homeViewAll: '전체 보기 →'
 
             // ★ Settings — Modal title + Tabs
             setTitle: 'MOP 설정',
@@ -3847,6 +4217,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         setTxt('card3Role', t.card3Role);   setTxt('card4Role', t.card4Role);
         // ★ FIX 2026-05-21: Settings 모달 다국어 일괄 적용
         try { applySettingsI18n(); } catch(_){}
+        // ★ FIX 2026-05-21: Home Dashboard 다국어 재렌더
+        try { if (typeof renderHomeDashboard === 'function' && _currentUser) renderHomeDashboard(); } catch(_){}
         // Forward language change to iframe if open
         try {
             var iframe = document.getElementById('tool-iframe');
