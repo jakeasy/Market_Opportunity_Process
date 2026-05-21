@@ -3247,6 +3247,28 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     '<div class="preview-detail-label">' + f[0] + '</div>' +
                     '<div class="preview-detail-value">' + f[1] + '</div></div>';
             });
+            // ★ FIX 2026-05-19: 첨부파일 표시 — driveUrl/dataUrl 우선 + 메타만 있는 경우 안내
+            if (d.evidenceFiles && d.evidenceFiles.length) {
+                var _filesInner = d.evidenceFiles.map(function(f){
+                    if(!f) return '';
+                    var nm = (f.name||'file');
+                    var sz = f.size ? ' (' + (f.size>1048576?(f.size/1048576).toFixed(1)+'MB':(f.size/1024).toFixed(1)+'KB') + ')' : '';
+                    // 1순위: Drive 영구 URL
+                    if(f.viewUrl || f.driveUrl){
+                        return '<a href="' + (f.viewUrl||f.driveUrl) + '" target="_blank" rel="noopener" style="color:#60a5fa;text-decoration:none;display:inline-block;margin:2px 0">📎 ' + nm + sz + '</a>';
+                    }
+                    // 2순위: dataUrl (메모리 잔존)
+                    if(f.dataUrl){
+                        var safeName = nm.replace(/'/g,"\\'");
+                        return '<a href="#" onclick="event.preventDefault();var w=window.open();w.document.write(\'<html><head><title>' + safeName + '</title></head><body style=\\\'margin:0\\\'>' + ((f.type||'').indexOf('image/')===0 ? '<img src=\\\''+f.dataUrl+'\\\' style=\\\'max-width:95vw;max-height:95vh\\\'>' : '<iframe src=\\\''+f.dataUrl+'\\\' style=\\\'width:100%;height:100vh;border:none\\\'></iframe>') + '</body></html>\');" style="color:#60a5fa;text-decoration:none;display:inline-block;margin:2px 0">📄 ' + nm + sz + '</a>';
+                    }
+                    // 3순위: 메타만 — 영구 저장 안된 옛 파일 (제출자가 Step 1에서 재첨부 필요)
+                    return '<div style="color:#94a3b8;display:flex;align-items:center;gap:6px;margin:2px 0">📎 ' + nm + sz + ' <span style="color:#f59e0b;font-size:0.75rem;background:rgba(245,158,11,0.1);padding:2px 8px;border-radius:10px;">⚠ ' + (isKo?'영구 저장 안됨 — 제출자가 Step 1에서 재첨부 필요':'Not persisted — submitter must re-attach in Step 1') + '</span></div>';
+                }).filter(Boolean).join('');
+                detailHtml += '<div class="preview-detail-field full-width">' +
+                    '<div class="preview-detail-label">' + (isKo?'📎 첨부파일':'📎 Attached Files') + '</div>' +
+                    '<div class="preview-detail-value">' + _filesInner + '</div></div>';
+            }
             document.getElementById('previewDetailBody').innerHTML = detailHtml;
             document.getElementById('previewDetailSection').style.display = detailHtml ? '' : 'none';
 
