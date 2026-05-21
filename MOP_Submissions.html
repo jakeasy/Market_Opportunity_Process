@@ -3343,14 +3343,58 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             }
             if (e.data && e.data.type === 'mop-submissions-sync') {
                 const list = e.data.payload || [];
+                // ★ FIX 2026-05-22: 기존 항목도 Object.assign 으로 갱신 (Drive URL 등 evidenceFiles 변경 반영)
                 list.forEach(sub => {
-                    if (!submissions.find(s => s.id === sub.id)) {
+                    var existing = submissions.find(s => String(s.id) === String(sub.id));
+                    if (existing) {
+                        Object.assign(existing, sub);
+                    } else {
                         submissions.push(sub);
                     }
                 });
                 if (!document.getElementById('submissionsPage').classList.contains('hidden')) {
                     renderSubmissionsList();
                 }
+                // ★ FIX 2026-05-22: HQ list 도 submissionData 를 참조하므로 함께 갱신
+                try { if (!document.getElementById('hqListPage').classList.contains('hidden')) renderHqList(); } catch(_){}
+            }
+            // ★ FIX 2026-05-22: AFC에서 admin이 재업로드한 첨부파일 즉시 반영
+            if (e.data && e.data.type === 'mop-evidenceFile-updated') {
+                try {
+                    var p = e.data.payload || {};
+                    // submissions[i].data.evidenceFiles[fileIndex] 갱신
+                    for (var si=0; si<submissions.length; si++){
+                        if (String(submissions[si].id) === String(p.submissionId)){
+                            var d = submissions[si].data || {};
+                            if (!Array.isArray(d.evidenceFiles)) d.evidenceFiles = [];
+                            if (typeof p.fileIndex === 'number' && p.fileIndex >= 0 && p.fileIndex < d.evidenceFiles.length) {
+                                d.evidenceFiles[p.fileIndex] = p.newFile;
+                            } else {
+                                d.evidenceFiles.push(p.newFile);
+                            }
+                            submissions[si].data = d;
+                            break;
+                        }
+                    }
+                    // reviews 의 submissionData 도 갱신
+                    for (var rj=0; rj<reviews.length; rj++){
+                        var rv2 = reviews[rj];
+                        if (!rv2) continue;
+                        var rsid2 = rv2.submissionId != null ? rv2.submissionId : rv2.id;
+                        if (String(rsid2) !== String(p.submissionId)) continue;
+                        if (!rv2.submissionData) rv2.submissionData = {};
+                        if (!Array.isArray(rv2.submissionData.evidenceFiles)) rv2.submissionData.evidenceFiles = [];
+                        var ef2 = rv2.submissionData.evidenceFiles;
+                        if (typeof p.fileIndex === 'number' && p.fileIndex >= 0 && p.fileIndex < ef2.length) {
+                            ef2[p.fileIndex] = p.newFile;
+                        } else {
+                            ef2.push(p.newFile);
+                        }
+                    }
+                    if (!document.getElementById('submissionsPage').classList.contains('hidden')) renderSubmissionsList();
+                    try { if (!document.getElementById('hqListPage').classList.contains('hidden')) renderHqList(); } catch(_){}
+                    try { if (!document.getElementById('statsPage').classList.contains('hidden')) renderStats(); } catch(_){}
+                } catch(err) { console.error('[Step2 evidenceFile-updated]', err); }
             }
             // Receive reviews from Gateway (persistence sync)
             if (e.data && e.data.type === 'mop-reviews-sync') {
@@ -4680,56 +4724,4 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var role = String((_userInfoStep2 && _userInfoStep2.role) || '').trim().toLowerCase();
                 var myRegion = String((_userInfoStep2 && _userInfoStep2.region) || '').trim();
                 // ★ dedup: 같은 (lang, role, region, filter) 조합이면 텍스트 재기록 건너뛰고 권한만 보장
-                var key = (ko?'ko':'en') + '|' + role + '|' + myRegion + '|' + (_mineFilter || 'all');
-                if (key === _lastLabelKey) {
-                    try { _enforceRoleScope(); } catch(_){}
-                    return;
-                }
-                _lastLabelKey = key;
-                // ★ FIX 2026-05-19: admin도 region 기반으로 통일
-                var isRegionBased = (role === 'manager' || role === 'admin') && !!myRegion;
-                var isPrivileged = (role === 'manager' || role === 'admin');
-                if (allBtn) allBtn.textContent = ko ? '전체' : 'All';
-                if (myBtn) {
-                    if (isRegionBased) {
-                        myBtn.innerHTML = (ko ? '내 Region (' : 'My Region (') + myRegion + ')' +
-                            ' <span id="mineMyCount" style="opacity:0.7;font-size:0.85em;"></span>';
-                    } else {
-                        myBtn.innerHTML = (ko ? '내 제출' : 'My submissions') +
-                            ' <span id="mineMyCount" style="opacity:0.7;font-size:0.85em;"></span>';
-                    }
-                    _updateMineCount();
-                }
-                if (hint) {
-                    if (isRegionBased) {
-                        hint.textContent = ko ? '※ 내 Region(' + myRegion + ') 의 모든 제출 (점수 부여 가능)' : '※ All submissions in my region (' + myRegion + ') — scoring enabled';
-                    } else if (isPrivileged) {
-                        // manager/admin인데 region이 없는 비정상 케이스
-                        hint.textContent = ko ? '※ Region 정보가 없어 표시할 수 없습니다' : '※ No region assigned';
-                    } else {
-                        hint.textContent = ko ? '※ 본인 제출은 조회 전용' : '※ Read-only for own submissions';
-                    }
-                    // hint는 mine 필터 활성 시만 표시 (역할 무관)
-                    hint.style.display = (_mineFilter === 'mine') ? '' : 'none';
-                }
-                if (banner) {
-                    if (isRegionBased) {
-                        banner.textContent = ko ? '📍 내 Region(' + myRegion + ') 제출 표시 중 — 점수 부여 가능' : '📍 Showing submissions in my region (' + myRegion + ') — scoring enabled';
-                    } else if (isPrivileged) {
-                        banner.textContent = ko ? '⚠ Region 정보가 없습니다' : '⚠ No region assigned';
-                    } else {
-                        banner.textContent = ko ? '📖 본인이 제출한 건만 표시 중입니다 (조회 전용)' : '📖 Showing only your own submissions (read-only)';
-                    }
-                }
-                // ★ FIX 2026-05-19: 라벨 갱신 후 권한 범위 강제 적용
-                try { _enforceRoleScope(); } catch(_){}
-            } catch(_){}
-        }
-        if (typeof setLanguage !== 'undefined') {
-            var _origSetLang = setLanguage;
-            setLanguage = function(lang) { _origSetLang.apply(this, arguments); _refreshMineLabels(); };
-        }
-        try { setTimeout(_refreshMineLabels, 200); } catch(_){}
-    </script>
-</body>
-</html>
+                var key = (ko?'ko':'en') + '|' + ro
