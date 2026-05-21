@@ -1200,8 +1200,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 }
                 // 모든 도구에 Submission/리뷰/AFC/포트폴리오 데이터를 보내 "내 Submission" 기능 활성화
                 try {
-                    if (mopSubmissions && mopSubmissions.length) iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: mopSubmissions }, __MOP_SEC.targetOrigin());
-                    if (mopReviews && mopReviews.length) iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: (typeof _enrichReviewsWithSubmissionData==='function'?_enrichReviewsWithSubmissionData(mopReviews):mopReviews) }, __MOP_SEC.targetOrigin());
+                    if (mopSubmissions && mopSubmissions.length) iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: _augmentSubsList(mopSubmissions) }, __MOP_SEC.targetOrigin());
+                    if (mopReviews && mopReviews.length) iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: _augmentRevsList((typeof _enrichReviewsWithSubmissionData==='function'?_enrichReviewsWithSubmissionData(mopReviews):mopReviews)) }, __MOP_SEC.targetOrigin());
                     if (mopAfcState) iframe.contentWindow.postMessage({ type: 'mop-afc-state-restore', payload: mopAfcState }, __MOP_SEC.targetOrigin());
                     if (mopPortfolioState) iframe.contentWindow.postMessage({ type: 'mop-portfolio-state-restore', payload: mopPortfolioState }, __MOP_SEC.targetOrigin());
                 } catch(_){}
@@ -1323,10 +1323,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         var iframe = document.getElementById('tool-iframe');
         try {
             if (mopSubmissions.length > 0) {
-                iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: mopSubmissions }, __MOP_SEC.targetOrigin());
+                iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: _augmentSubsList(mopSubmissions) }, __MOP_SEC.targetOrigin());
             }
             if (mopReviews.length > 0) {
-                iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: _enrichReviewsWithSubmissionData(mopReviews) }, __MOP_SEC.targetOrigin());
+                iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: _augmentRevsList(_enrichReviewsWithSubmissionData(mopReviews)) }, __MOP_SEC.targetOrigin());
             }
             if (_currentUser) {
                 // ★ FIX 2026-05-19: 전체 필드 전송 — role/dept 누락 시 iframe의 prev-merge 폴백이 이전 사용자 정보 leak할 수 있음
@@ -1348,11 +1348,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (iframe && iframe.contentWindow) {
                     // ★ FIX 2026-05-19: submissions도 AFC에 전송 — AFC 자체 backfill 가능하게
                     if (mopSubmissions && mopSubmissions.length > 0) {
-                        iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: mopSubmissions }, __MOP_SEC.targetOrigin());
+                        iframe.contentWindow.postMessage({ type: 'mop-submissions-sync', payload: _augmentSubsList(mopSubmissions) }, __MOP_SEC.targetOrigin());
                     }
                     if (mopReviews.length > 0) {
                         // submissionData 자동 보강
-                        iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: _enrichReviewsWithSubmissionData(mopReviews) }, __MOP_SEC.targetOrigin());
+                        iframe.contentWindow.postMessage({ type: 'mop-reviews-sync', payload: _augmentRevsList(_enrichReviewsWithSubmissionData(mopReviews)) }, __MOP_SEC.targetOrigin());
                     }
                     if (mopAfcState) {
                         iframe.contentWindow.postMessage({ type: 'mop-afc-state-restore', payload: mopAfcState }, __MOP_SEC.targetOrigin());
@@ -4559,6 +4559,33 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
     window._rememberDriveFile = _rememberDriveFile;
     window._augmentEvidenceFromCache = _augmentEvidenceFromCache;
+    // ★★★ FIX 2026-05-22 (CRITICAL): 모든 outbound sync 브로드캐스트용 helper — Drive URL cache 보강
+    function _augmentSubsList(arr) {
+        if (!Array.isArray(arr)) return arr;
+        return arr.map(function(s){
+            if (!s || !s.data || !Array.isArray(s.data.evidenceFiles)) return s;
+            try {
+                var copy = JSON.parse(JSON.stringify(s));
+                copy.data.evidenceFiles = _augmentEvidenceFromCache(s.id, copy.data.evidenceFiles);
+                return copy;
+            } catch(_) { return s; }
+        });
+    }
+    function _augmentRevsList(arr) {
+        if (!Array.isArray(arr)) return arr;
+        return arr.map(function(rv){
+            if (!rv || !rv.submissionData || !Array.isArray(rv.submissionData.evidenceFiles)) return rv;
+            try {
+                var copy = JSON.parse(JSON.stringify(rv));
+                var sid = rv.submissionId != null ? rv.submissionId : rv.id;
+                copy.submissionData.evidenceFiles = _augmentEvidenceFromCache(sid, copy.submissionData.evidenceFiles);
+                return copy;
+            } catch(_) { return rv; }
+        });
+    }
+    window._augmentSubsList = _augmentSubsList;
+    window._augmentRevsList = _augmentRevsList;
+
 
     function _stripDataUrls(arr) {
         if (!Array.isArray(arr)) return arr;
@@ -5235,6 +5262,17 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                             }
                         } catch(_){}
                     }
+                    // ★★★ FIX 2026-05-22 (CRITICAL): cloudLoad 완료 직후 모든 iframe에 cache-augmented 데이터 재전송
+                    try {
+                        var _ifrsAll = document.querySelectorAll('iframe');
+                        _ifrsAll.forEach(function(_if){
+                            if (!_if.contentWindow) return;
+                            try {
+                                __MOP_SEC.safePost(_if.contentWindow, { type:'mop-submissions-sync', payload: _augmentSubsList(mopSubmissions) });
+                                __MOP_SEC.safePost(_if.contentWindow, { type:'mop-reviews-sync', payload: _augmentRevsList((typeof _enrichReviewsWithSubmissionData==='function'?_enrichReviewsWithSubmissionData(mopReviews):mopReviews)) });
+                            } catch(_){}
+                        });
+                    } catch(_){}
                     showCloudBadge('loaded');
                 } else { showCloudBadge('empty'); }
             },
@@ -5315,7 +5353,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 try {
                     var ifr0 = document.getElementById('tool-iframe');
                     if (ifr0 && ifr0.contentWindow) {
-                        __MOP_SEC.safePost(ifr0.contentWindow, { type: 'mop-submissions-sync', payload: mopSubmissions });
+                        __MOP_SEC.safePost(ifr0.contentWindow, { type: 'mop-submissions-sync', payload: _augmentSubsList(mopSubmissions) });
                         console.log('[MOP] gw sent mop-submissions-sync count=', mopSubmissions.length);
                     }
                 } catch(_){}
@@ -5326,8 +5364,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             try {
                 var ifr1 = document.getElementById('tool-iframe');
                 if (ifr1 && ifr1.contentWindow) {
-                    if (mopSubmissions && mopSubmissions.length) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-submissions-sync', payload: mopSubmissions });
-                    if (mopReviews && mopReviews.length) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-reviews-sync', payload: mopReviews });
+                    if (mopSubmissions && mopSubmissions.length) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-submissions-sync', payload: _augmentSubsList(mopSubmissions) });
+                    if (mopReviews && mopReviews.length) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-reviews-sync', payload: _augmentRevsList(mopReviews) });
                     if (mopAfcState) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-afc-state-restore', payload: mopAfcState });
                     if (mopPortfolioState) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-portfolio-state-restore', payload: mopPortfolioState });
                     if (_currentUser) __MOP_SEC.safePost(ifr1.contentWindow, { type: 'mop-user-info', payload: { name: _currentUser.name || '', email: _currentUser.username || '', region: _currentUser.region || '', dept: _currentUser.dept || '', role: _currentUser.role || '' } });
@@ -5350,7 +5388,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         try {
                             var ifr = document.getElementById('tool-iframe');
                             if (ifr && ifr.contentWindow) {
-                                __MOP_SEC.safePost(ifr.contentWindow, { type: 'mop-submissions-sync', payload: mopSubmissions });
+                                __MOP_SEC.safePost(ifr.contentWindow, { type: 'mop-submissions-sync', payload: _augmentSubsList(mopSubmissions) });
                             }
                         } catch(_){}
                     }
@@ -5373,7 +5411,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         try {
                             var ifrD = document.getElementById('tool-iframe');
                             if (ifrD && ifrD.contentWindow) {
-                                __MOP_SEC.safePost(ifrD.contentWindow, { type: 'mop-submissions-sync', payload: mopSubmissions });
+                                __MOP_SEC.safePost(ifrD.contentWindow, { type: 'mop-submissions-sync', payload: _augmentSubsList(mopSubmissions) });
                             }
                         } catch(_){}
                         console.log('[MOP] Submission withdrawn:', dp.id);
