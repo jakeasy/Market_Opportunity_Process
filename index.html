@@ -695,17 +695,17 @@
         <div class="pw-modal" id="settingsModal" style="width:960px;height:750px;max-height:92vh;overflow:hidden;position:relative;display:flex;flex-direction:column;padding:32px 32px 24px;">
             <!-- 우측 상단 버튼 그룹 -->
             <div style="position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:10;">
-                <button onclick="toggleSettingsFullscreen()" id="settingsFullscreenBtn" title="전체화면 토글" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">⛶</button>
-                <button onclick="reloadAccounts()" title="새로고침" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">↻</button>
+                <button onclick="toggleSettingsFullscreen()" id="settingsFullscreenBtn" data-i18n-title="setFullscreenTitle" title="전체화면 토글" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">⛶</button>
+                <button onclick="reloadAccounts()" id="settingsReloadBtn" data-i18n-title="setRefreshTitle" title="새로고침" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">↻</button>
             </div>
             <div class="pw-icon" style="flex-shrink:0;">⚙️</div>
-            <div class="pw-title" style="flex-shrink:0;">MOP Settings</div>
-            <!-- Settings Tabs -->
+            <div class="pw-title" id="settingsModalTitle" data-i18n="setTitle" style="flex-shrink:0;">MOP Settings</div>
+            <!-- Settings Tabs — i18n via applySettingsI18n() -->
             <div style="display:flex;gap:4px;margin-bottom:16px;background:#0f1525;border-radius:10px;padding:4px;flex-shrink:0;">
-                <button onclick="switchSettingsTab('dashboard')" id="tabDashboard" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">📊 통계</button>
-                <button onclick="switchSettingsTab('general')" id="tabGeneral" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:#3b82f6;color:#fff;">⚙️ 일반</button>
-                <button onclick="switchSettingsTab('accounts')" id="tabAccounts" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">👥 Account 관리</button>
-                <button onclick="switchSettingsTab('emails')" id="tabEmails" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">📧 메일 로그</button>
+                <button onclick="switchSettingsTab('dashboard')" id="tabDashboard" data-i18n="setTabDashboard" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">📊 통계</button>
+                <button onclick="switchSettingsTab('general')" id="tabGeneral" data-i18n="setTabGeneral" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:#3b82f6;color:#fff;">⚙️ 일반</button>
+                <button onclick="switchSettingsTab('accounts')" id="tabAccounts" data-i18n="setTabAccounts" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">👥 Account 관리</button>
+                <button onclick="switchSettingsTab('emails')" id="tabEmails" data-i18n="setTabEmails" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">📧 메일 로그</button>
             </div>
             <!-- ★ FIX 2026-05-21: 탭 컨텐츠 영역 — 고정 높이 + 내부 스크롤 (모달 자체는 사이즈 불변) -->
             <div id="settingsContentArea" style="flex:1;overflow-y:auto;overflow-x:hidden;padding-right:6px;min-height:0;">
@@ -713,19 +713,19 @@
             <div id="settingsTabGeneral">
             <!-- Admin Email Management -->
             <div style="text-align:left;margin-bottom:16px;">
-                <label style="font-size:0.8rem;font-weight:600;color:#94a3b8;display:block;margin-bottom:8px;">📧 관리자 알림 이메일</label>
+                <label id="setAdminEmailLabel" data-i18n="setAdminEmailLabel" style="font-size:0.8rem;font-weight:600;color:#94a3b8;display:block;margin-bottom:8px;">📧 관리자 알림 이메일</label>
                 <div id="adminEmailList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px;"></div>
                 <div style="display:flex;gap:6px;">
-                    <input type="email" id="adminEmailInput" placeholder="추가할 이메일 입력"
+                    <input type="email" id="adminEmailInput" data-i18n-ph="setAdminEmailPh" placeholder="추가할 이메일 입력"
                         style="flex:1;padding:7px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.82rem;outline:none;font-family:inherit;"
                         onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#2d3a4f'"
                         onkeydown="if(event.key==='Enter')addAdminEmail()" />
-                    <button onclick="addAdminEmail()" style="padding:7px 14px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:0.82rem;font-weight:600;cursor:pointer;">+ 추가</button>
+                    <button id="setAdminEmailAddBtn" data-i18n="setAdminEmailAdd" onclick="addAdminEmail()" style="padding:7px 14px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:0.82rem;font-weight:600;cursor:pointer;">+ 추가</button>
                 </div>
-                <div style="font-size:0.7rem;color:#64748b;margin-top:5px;">MOP Submission 및 AFC Result 알림이 위 주소로 발송됩니다.</div>
+                <div id="setAdminEmailHelp" data-i18n="setAdminEmailHelp" style="font-size:0.7rem;color:#64748b;margin-top:5px;">MOP Submission 및 AFC Result 알림이 위 주소로 발송됩니다.</div>
             </div>
             <div style="text-align:left;margin-bottom:16px;">
-                <label style="font-size:0.8rem;font-weight:600;color:#94a3b8;display:block;margin-bottom:10px;">🔒 Password (Step별 개별 설정)</label>
+                <label id="setToolPwLabel" data-i18n="setToolPwLabel" style="font-size:0.8rem;font-weight:600;color:#94a3b8;display:block;margin-bottom:10px;">🔒 Password (Step별 개별 설정)</label>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
                     <div style="display:flex;align-items:center;gap:10px;background:#0f1525;border:1px solid #2d3a4f;border-radius:8px;padding:10px 14px;">
                         <span style="font-size:0.75rem;font-weight:600;color:#3b82f6;min-width:52px;">Step 1</span>
@@ -782,8 +782,8 @@
                 </div>
             </div>
             <div class="pw-btns">
-                <button class="pw-btn pw-btn-cancel" onclick="closeSettings()">Cancel</button>
-                <button class="pw-btn pw-btn-enter" onclick="saveSettings()">Save</button>
+                <button class="pw-btn pw-btn-cancel" data-i18n="setClose" onclick="closeSettings()">Cancel</button>
+                <button class="pw-btn pw-btn-enter" data-i18n="setSave" onclick="saveSettings()">Save</button>
             </div>
             </div><!-- /settingsTabGeneral -->
             <!-- Accounts Tab — ★ UX 개선 2026-05-18 -->
@@ -793,15 +793,14 @@
 
                 <!-- 검색 + 필터 -->
                 <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;flex-wrap:wrap;">
-                    <input type="text" id="accSearchBox" placeholder="🔍 이름 / 이메일 / 부서 검색…" autocomplete="off" oninput="filterAccList()"
+                    <input type="text" id="accSearchBox" data-i18n-ph="setAccSearchPh" placeholder="🔍 이름 / 이메일 / 부서 검색…" autocomplete="off" oninput="filterAccList()"
                         style="flex:1;min-width:200px;background:#0f1525;border:1px solid #2d3a4f;border-radius:8px;padding:8px 12px;color:#fff;font-size:0.82rem;outline:none;font-family:inherit;" />
                     <select id="accSortBy" onchange="filterAccList()"
                         style="background:#0f1525;border:1px solid #2d3a4f;border-radius:8px;padding:8px 12px;color:#fff;font-size:0.78rem;cursor:pointer;outline:none;font-family:inherit;">
-                        <option value="pending">정렬: 승인대기 우선</option>
-                        <option value="recent">정렬: 최근 로그인순</option>
-                        <option value="name">정렬: 이름 (가나다)</option>
-                        <option value="signup">정렬: 가입일 (최신)</option>
-                        <option value="loginCount">정렬: 로그인 횟수</option>
+                        <option value="pending" data-i18n="setAccSortPending">정렬: 승인대기 우선</option>
+                        <option value="recent" data-i18n="setAccSortRecent">정렬: 최근 로그인순</option>
+                        <option value="name" data-i18n="setAccSortName">정렬: 이름 (가나다)</option>
+                        <option value="loginCount" data-i18n="setAccSortLogin">정렬: 로그인 횟수</option>
                     </select>
                 </div>
 
@@ -810,7 +809,7 @@
 
                 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
                     <span id="accListCount" style="font-size:0.74rem;color:#94a3b8;"></span>
-                    <span style="font-size:0.7rem;color:#64748b;">👥 Account 목록</span>
+                    <span id="accListLabelText" data-i18n="setAccListLabel" style="font-size:0.7rem;color:#64748b;">👥 Account 목록</span>
                 </div>
                 <!-- ★ FIX 2026-05-21: 외부 settingsContentArea가 스크롤 관장 → 내부는 자연 높이 -->
                 <div id="accListContainer" style="display:flex;flex-direction:column;"></div>
@@ -821,37 +820,37 @@
                 <!-- 상단 통계 카드 -->
                 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
                     <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;text-align:center;">
-                        <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">남은 발송 한도</div>
+                        <div data-i18n="emRemainingQuota" style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">남은 발송 한도</div>
                         <div id="emQuotaVal" style="font-size:1.5rem;font-weight:800;color:#10b981;">—</div>
-                        <div style="font-size:0.65rem;color:#64748b;margin-top:2px;">/ day</div>
+                        <div data-i18n="emPerDay" style="font-size:0.65rem;color:#64748b;margin-top:2px;">/ day</div>
                     </div>
                     <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;text-align:center;">
-                        <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">전체 (최근)</div>
+                        <div data-i18n="emTotalRecent" style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">전체 (최근)</div>
                         <div id="emTotalCnt" style="font-size:1.5rem;font-weight:800;color:#60a5fa;">—</div>
                     </div>
                     <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;text-align:center;">
-                        <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">발송 성공</div>
+                        <div data-i18n="emSent" style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">발송 성공</div>
                         <div id="emSentCnt" style="font-size:1.5rem;font-weight:800;color:#22c55e;">—</div>
                     </div>
                     <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;text-align:center;">
-                        <div style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">실패</div>
+                        <div data-i18n="emFailed" style="font-size:0.65rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">실패</div>
                         <div id="emFailedCnt" style="font-size:1.5rem;font-weight:800;color:#ef4444;">—</div>
                     </div>
                 </div>
 
                 <!-- 액션 바 -->
                 <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
-                    <button onclick="loadEmailLog()" style="padding:7px 14px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;">↻ 새로고침</button>
-                    <button onclick="sendTestEmail()" style="padding:7px 14px;background:#10b981;color:#fff;border:none;border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;">📧 테스트 메일 발송</button>
-                    <input type="text" id="emFilterInput" placeholder="🔍 수신자/제목 검색..." oninput="renderEmailLog()" style="flex:1;min-width:160px;padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#2d3a4f'">
+                    <button data-i18n="emRefresh" onclick="loadEmailLog()" style="padding:7px 14px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;">↻ 새로고침</button>
+                    <button data-i18n="emSendTest" onclick="sendTestEmail()" style="padding:7px 14px;background:#10b981;color:#fff;border:none;border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;">📧 테스트 메일 발송</button>
+                    <input type="text" id="emFilterInput" data-i18n-ph="emSearchPh" placeholder="🔍 수신자/제목 검색..." oninput="renderEmailLog()" style="flex:1;min-width:160px;padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;" onfocus="this.style.borderColor='#3b82f6'" onblur="this.style.borderColor='#2d3a4f'">
                     <select id="emStatusFilter" onchange="renderEmailLog()" style="padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;">
-                        <option value="all">전체</option>
-                        <option value="sent">✓ 성공</option>
-                        <option value="failed">✗ 실패</option>
-                        <option value="skipped">⊘ 스킵</option>
+                        <option value="all" data-i18n="emFilterAll">전체</option>
+                        <option value="sent" data-i18n="emFilterSent">✓ 성공</option>
+                        <option value="failed" data-i18n="emFilterFailed">✗ 실패</option>
+                        <option value="skipped" data-i18n="emFilterSkipped">⊘ 스킵</option>
                     </select>
                 </div>
-                <div style="font-size:0.7rem;color:#64748b;margin-bottom:6px;" id="emFetchedAt">아직 로드되지 않음</div>
+                <div style="font-size:0.7rem;color:#64748b;margin-bottom:6px;" id="emFetchedAt" data-i18n="emNotLoaded">아직 로드되지 않음</div>
 
                 <!-- 로그 테이블 — 외부 settingsContentArea가 스크롤 관장 -->
                 <div id="emLogContainer" style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:10px;">
@@ -862,25 +861,25 @@
             <!-- ★ FIX 2026-05-21: Dashboard / 통계 탭 -->
             <div id="settingsTabDashboard" style="display:none;text-align:left;">
                 <!-- 오늘 활동 카드 (4-grid) -->
-                <div style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;">📅 오늘 활동</div>
+                <div data-i18n="dbTodayActivity" style="font-size:0.72rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:8px;">📅 오늘 활동</div>
                 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;">
                     <div style="background:linear-gradient(135deg,#1e3a8a,#3b82f6);border-radius:10px;padding:14px;color:#fff;">
-                        <div style="font-size:0.65rem;letter-spacing:1px;opacity:0.8;margin-bottom:4px;">로그인 사용자</div>
+                        <div data-i18n="dbActiveUsers" style="font-size:0.65rem;letter-spacing:1px;opacity:0.8;margin-bottom:4px;">로그인 사용자</div>
                         <div id="dbActiveToday" style="font-size:1.75rem;font-weight:800;">—</div>
                         <div style="font-size:0.65rem;opacity:0.7;margin-top:2px;" id="dbActiveTodayDetail">/ 전체 — 명</div>
                     </div>
                     <div style="background:linear-gradient(135deg,#065f46,#10b981);border-radius:10px;padding:14px;color:#fff;">
-                        <div style="font-size:0.65rem;letter-spacing:1px;opacity:0.8;margin-bottom:4px;">신규 제출</div>
+                        <div data-i18n="dbNewSubs" style="font-size:0.65rem;letter-spacing:1px;opacity:0.8;margin-bottom:4px;">신규 제출</div>
                         <div id="dbSubsToday" style="font-size:1.75rem;font-weight:800;">—</div>
                         <div style="font-size:0.65rem;opacity:0.7;margin-top:2px;" id="dbSubsTodayDetail">건</div>
                     </div>
                     <div style="background:linear-gradient(135deg,#7c2d12,#f59e0b);border-radius:10px;padding:14px;color:#fff;">
-                        <div style="font-size:0.65rem;letter-spacing:1px;opacity:0.8;margin-bottom:4px;">완료된 리뷰</div>
+                        <div data-i18n="dbCompletedReviews" style="font-size:0.65rem;letter-spacing:1px;opacity:0.8;margin-bottom:4px;">완료된 리뷰</div>
                         <div id="dbRevToday" style="font-size:1.75rem;font-weight:800;">—</div>
                         <div style="font-size:0.65rem;opacity:0.7;margin-top:2px;" id="dbRevTodayDetail">건</div>
                     </div>
                     <div style="background:linear-gradient(135deg,#581c87,#a855f7);border-radius:10px;padding:14px;color:#fff;">
-                        <div style="font-size:0.65rem;letter-spacing:1px;opacity:0.8;margin-bottom:4px;">신규 가입</div>
+                        <div data-i18n="dbNewSignups" style="font-size:0.65rem;letter-spacing:1px;opacity:0.8;margin-bottom:4px;">신규 가입</div>
                         <div id="dbSignupsToday" style="font-size:1.75rem;font-weight:800;">—</div>
                         <div style="font-size:0.65rem;opacity:0.7;margin-top:2px;" id="dbSignupsTodayDetail">건</div>
                     </div>
@@ -888,7 +887,7 @@
 
                 <!-- 새로고침 + 기간 선택 -->
                 <div style="display:flex;gap:8px;margin-bottom:14px;align-items:center;">
-                    <button onclick="renderDashboardStats()" style="padding:7px 14px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;">↻ 새로고침</button>
+                    <button data-i18n="dbRefresh" onclick="renderDashboardStats()" style="padding:7px 14px;background:#3b82f6;color:#fff;border:none;border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;">↻ 새로고침</button>
                     <span style="font-size:0.72rem;color:#64748b;" id="dbLastUpdate">—</span>
                 </div>
 
@@ -896,12 +895,12 @@
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
                     <!-- 제출 파이프라인 -->
                     <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;">
-                        <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">📋 제출 파이프라인</div>
+                        <div data-i18n="dbPipeline" style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">📋 제출 파이프라인</div>
                         <div id="dbPipeline" style="display:flex;flex-direction:column;gap:6px;font-size:0.82rem;"></div>
                     </div>
                     <!-- 사용자 통계 -->
                     <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;">
-                        <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">👥 사용자 현황</div>
+                        <div data-i18n="dbUsersSection" style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">👥 사용자 현황</div>
                         <div id="dbUsers" style="display:flex;flex-direction:column;gap:6px;font-size:0.82rem;"></div>
                     </div>
                 </div>
@@ -909,11 +908,11 @@
                 <!-- Region / Reviewer 분포 -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
                     <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;">
-                        <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">📍 Region 별 제출</div>
+                        <div data-i18n="dbRegionsSection" style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">📍 Region 별 제출</div>
                         <div id="dbRegions" style="display:flex;flex-direction:column;gap:6px;font-size:0.82rem;"></div>
                     </div>
                     <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;">
-                        <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">🏆 Top 리뷰어 (전체 기간)</div>
+                        <div data-i18n="dbReviewersSection" style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">🏆 Top 리뷰어 (전체 기간)</div>
                         <div id="dbReviewers" style="display:flex;flex-direction:column;gap:6px;font-size:0.82rem;"></div>
                     </div>
                 </div>
@@ -921,19 +920,19 @@
                 <!-- 7일 활동 차트 + 메일 헬스 -->
                 <div style="display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px;">
                     <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;">
-                        <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">📈 최근 7일 활동 (제출 / 리뷰)</div>
+                        <div data-i18n="dbWeekChart" style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">📈 최근 7일 활동 (제출 / 리뷰)</div>
                         <div id="dbWeekChart" style="display:flex;align-items:end;justify-content:space-around;gap:6px;height:120px;padding:6px 0;"></div>
                         <div id="dbWeekLabels" style="display:flex;justify-content:space-around;font-size:0.65rem;color:#64748b;margin-top:6px;"></div>
                     </div>
                     <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;">
-                        <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">📧 메일 헬스</div>
+                        <div data-i18n="dbEmailHealth" style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">📧 메일 헬스</div>
                         <div id="dbEmailHealth" style="display:flex;flex-direction:column;gap:8px;font-size:0.82rem;"></div>
                     </div>
                 </div>
 
                 <!-- 최근 활동 피드 -->
                 <div style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:14px;">
-                    <div style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">⏱ 최근 활동 (Top 10)</div>
+                    <div data-i18n="dbRecentFeed" style="font-size:0.72rem;color:#94a3b8;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">⏱ 최근 활동 (Top 10)</div>
                     <div id="dbRecentFeed" style="display:flex;flex-direction:column;gap:6px;font-size:0.78rem;max-height:280px;overflow-y:auto;"></div>
                 </div>
             </div><!-- /settingsTabDashboard -->
@@ -1439,6 +1438,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         } catch(_){}
         // ★ FIX 2026-05-21: Settings 열 때 Dashboard 탭을 기본으로 → admin이 통계 먼저 확인
         switchSettingsTab('dashboard');
+        // ★ FIX 2026-05-21: 모달 열 때 다국어 일괄 적용 (현재 언어 기준)
+        try { applySettingsI18n(); } catch(_){}
         document.getElementById('settingsOverlay').classList.add('active');
     }
     function closeSettings() { document.getElementById('settingsOverlay').classList.remove('active'); }
@@ -2190,9 +2191,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }
     }
 
-    // ★ FIX 2026-05-21: Dashboard 통계 렌더링
+    // ★ FIX 2026-05-21: Dashboard 통계 렌더링 (다국어 지원)
     window.renderDashboardStats = function() {
         try {
+            var t = i18n[currentLang] || i18n.en;
+            function _t(k, fb) { return (t[k] != null) ? t[k] : (fb || k); }
             function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
             function todayStr() {
                 var d = new Date();
@@ -2221,13 +2224,14 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             var signupsToday= accs.filter(function(a){ return a && a.signupDate && extractDate(a.signupDate) === today; }).length;
 
             document.getElementById('dbActiveToday').textContent = activeToday;
-            document.getElementById('dbActiveTodayDetail').textContent = '/ 전체 ' + accs.length + '명';
+            document.getElementById('dbActiveTodayDetail').textContent = _t('dbTotalUsers','/ Total') + ' ' + accs.length + _t('dbPeople','');
             document.getElementById('dbSubsToday').textContent = subsToday;
-            document.getElementById('dbSubsTodayDetail').textContent = '건 / 전체 ' + subs.length + '건';
+            document.getElementById('dbSubsTodayDetail').textContent = _t('dbCount','') + ' / ' + _t('dbTotalUsers','/ Total').replace('/','') + ' ' + subs.length;
             document.getElementById('dbRevToday').textContent = revsToday;
-            document.getElementById('dbRevTodayDetail').textContent = '건 / 전체 ' + revs.length + '건';
+            document.getElementById('dbRevTodayDetail').textContent = _t('dbCount','') + ' / ' + _t('dbTotalUsers','/ Total').replace('/','') + ' ' + revs.length;
             document.getElementById('dbSignupsToday').textContent = signupsToday;
-            document.getElementById('dbSignupsTodayDetail').textContent = signupsToday + '건 (대기 ' + accs.filter(function(a){return a&&a.approved===false;}).length + ')';
+            var pendCnt = accs.filter(function(a){return a&&a.approved===false;}).length;
+            document.getElementById('dbSignupsTodayDetail').textContent = signupsToday + _t('dbCount','') + ' (' + _t('dbPendingCount','pending') + ' ' + pendCnt + ')';
 
             // === 제출 파이프라인 ===
             var pendingCnt = 0, inS2Cnt = 0, inS3Cnt = 0, doneCnt = 0;
@@ -2240,10 +2244,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (hasReview.sendToStep3) { inS3Cnt++; return; }
                 inS2Cnt++;
             });
-            function barLine(label, value, max, color) {
+            // ★ FIX 2026-05-21: 한 줄 강제 표시 — 긴 이름(Top 리뷰어 등)도 줄바꿈 없이 ellipsis 처리
+            function barLine(label, value, max, color, labelWidth) {
                 var pct = max > 0 ? Math.round(value/max*100) : 0;
+                var lw = labelWidth || 90;
                 return '<div style="display:flex;align-items:center;gap:8px;">'+
-                    '<div style="width:90px;color:#cbd5e1;">'+esc(label)+'</div>'+
+                    '<div style="width:'+lw+'px;min-width:'+lw+'px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+esc(label)+'">'+esc(label)+'</div>'+
                     '<div style="flex:1;height:14px;background:#1e293b;border-radius:7px;overflow:hidden;">'+
                         '<div style="height:100%;width:'+pct+'%;background:'+color+';"></div>'+
                     '</div>'+
@@ -2252,11 +2258,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             }
             var maxPipe = Math.max(pendingCnt, inS2Cnt, inS3Cnt, doneCnt, 1);
             document.getElementById('dbPipeline').innerHTML =
-                barLine('🆕 Pending', pendingCnt, maxPipe, '#94a3b8') +
-                barLine('📊 Step 2', inS2Cnt, maxPipe, '#3b82f6') +
-                barLine('✅ Step 3', inS3Cnt, maxPipe, '#10b981') +
-                barLine('🏁 결정 완료', doneCnt, maxPipe, '#a855f7') +
-                '<div style="border-top:1px solid #1e293b;margin-top:6px;padding-top:6px;color:#94a3b8;font-size:0.72rem;">총 '+subs.length+'건</div>';
+                barLine(_t('dbPipelinePending','🆕 Pending'), pendingCnt, maxPipe, '#94a3b8') +
+                barLine(_t('dbPipelineStep2','📊 Step 2'), inS2Cnt, maxPipe, '#3b82f6') +
+                barLine(_t('dbPipelineStep3','✅ Step 3'), inS3Cnt, maxPipe, '#10b981') +
+                barLine(_t('dbPipelineDecided','🏁 Decided'), doneCnt, maxPipe, '#a855f7') +
+                '<div style="border-top:1px solid #1e293b;margin-top:6px;padding-top:6px;color:#94a3b8;font-size:0.72rem;">'+_t('dbPipelineTotal','Total')+' '+subs.length+_t('dbCount','')+'</div>';
 
             // === 사용자 현황 ===
             var nAdmin = accs.filter(function(a){return a&&a.role==='admin';}).length;
@@ -2273,11 +2279,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 } catch(_) { return false; }
             }).length;
             document.getElementById('dbUsers').innerHTML =
-                '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:#cbd5e1;">🔴 관리자</span><span style="font-weight:700;color:#f87171;">'+nAdmin+'</span></div>'+
-                '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:#cbd5e1;">🔵 일반관리자</span><span style="font-weight:700;color:#60a5fa;">'+nManager+'</span></div>'+
-                '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:#cbd5e1;">🟢 일반</span><span style="font-weight:700;color:#34d399;">'+nGeneral+'</span></div>'+
-                '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:#cbd5e1;">⏳ 승인 대기</span><span style="font-weight:700;color:#fbbf24;">'+nPending+'</span></div>'+
-                '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:#cbd5e1;">📈 최근 7일 활동</span><span style="font-weight:700;color:#60a5fa;">'+active7d+'명</span></div>';
+                '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:#cbd5e1;">'+_t('dbUserAdmin','🔴 Admin')+'</span><span style="font-weight:700;color:#f87171;">'+nAdmin+'</span></div>'+
+                '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:#cbd5e1;">'+_t('dbUserManager','🔵 Manager')+'</span><span style="font-weight:700;color:#60a5fa;">'+nManager+'</span></div>'+
+                '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:#cbd5e1;">'+_t('dbUserGeneral','🟢 General')+'</span><span style="font-weight:700;color:#34d399;">'+nGeneral+'</span></div>'+
+                '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);"><span style="color:#cbd5e1;">'+_t('dbUserPending','⏳ Pending')+'</span><span style="font-weight:700;color:#fbbf24;">'+nPending+'</span></div>'+
+                '<div style="display:flex;justify-content:space-between;padding:4px 0;"><span style="color:#cbd5e1;">'+_t('dbUser7d','📈 Active 7d')+'</span><span style="font-weight:700;color:#60a5fa;">'+active7d+_t('dbPeople','')+'</span></div>';
 
             // === Region 별 제출 ===
             var regionMap = {};
@@ -2292,7 +2298,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             regionEntries.slice(0, 8).forEach(function(r){
                 regionsHtml += barLine(r, regionMap[r], maxReg, '#60a5fa');
             });
-            if (!regionEntries.length) regionsHtml = '<div style="color:#64748b;padding:14px 0;text-align:center;">제출 없음</div>';
+            if (!regionEntries.length) regionsHtml = '<div style="color:#64748b;padding:14px 0;text-align:center;">'+_t('dbNoSubmissions','No submissions')+'</div>';
             document.getElementById('dbRegions').innerHTML = regionsHtml;
 
             // === Top 리뷰어 ===
@@ -2306,9 +2312,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             var reviewersHtml = '';
             revEntries.slice(0, 6).forEach(function(name, i){
                 var medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '👤';
-                reviewersHtml += barLine(medal + ' ' + name, reviewerMap[name], maxRev, '#a855f7');
+                // ★ FIX 2026-05-21: 리뷰어 이름은 길 수 있어 label width 160px 확장
+                reviewersHtml += barLine(medal + ' ' + name, reviewerMap[name], maxRev, '#a855f7', 160);
             });
-            if (!revEntries.length) reviewersHtml = '<div style="color:#64748b;padding:14px 0;text-align:center;">리뷰 없음</div>';
+            if (!revEntries.length) reviewersHtml = '<div style="color:#64748b;padding:14px 0;text-align:center;">'+_t('dbNoReviews','No reviews')+'</div>';
             document.getElementById('dbReviewers').innerHTML = reviewersHtml;
 
             // === 7일 활동 차트 ===
@@ -2341,7 +2348,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var lbl = (d.getMonth()+1)+'/'+d.getDate();
                 labelsHtml += '<span style="flex:1;text-align:center;">'+lbl+'</span>';
             });
-            document.getElementById('dbWeekLabels').innerHTML = labelsHtml + '<span style="font-size:0.65rem;margin-left:8px;color:#10b981;">■</span><span style="color:#64748b;">제출</span><span style="font-size:0.65rem;margin-left:6px;color:#f59e0b;">■</span><span style="color:#64748b;">리뷰</span>';
+            document.getElementById('dbWeekLabels').innerHTML = labelsHtml + '<span style="font-size:0.65rem;margin-left:8px;color:#10b981;">■</span><span style="color:#64748b;">'+_t('dbWeekLegendSub','Submissions')+'</span><span style="font-size:0.65rem;margin-left:6px;color:#f59e0b;">■</span><span style="color:#64748b;">'+_t('dbWeekLegendRev','Reviews')+'</span>';
 
             // === 메일 헬스 ===
             var emailLogs = _emailLogCache || [];
@@ -2355,34 +2362,34 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             var quotaColor = quota == null ? '#64748b' : quota >= 50 ? '#10b981' : quota >= 20 ? '#f59e0b' : '#ef4444';
             document.getElementById('dbEmailHealth').innerHTML =
                 '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'+
-                    '<span style="color:#cbd5e1;">남은 한도</span>'+
+                    '<span style="color:#cbd5e1;">'+_t('dbEmailQuota','Remaining')+'</span>'+
                     '<span style="font-weight:800;font-size:1.1rem;color:'+quotaColor+';">'+(quota != null ? quota : '—')+'</span>'+
                 '</div>'+
                 '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'+
-                    '<span style="color:#cbd5e1;">오늘 발송</span><span style="font-weight:700;color:#22c55e;">'+emSent+'</span>'+
+                    '<span style="color:#cbd5e1;">'+_t('dbEmailSent','Sent Today')+'</span><span style="font-weight:700;color:#22c55e;">'+emSent+'</span>'+
                 '</div>'+
                 '<div style="display:flex;justify-content:space-between;padding:4px 0;">'+
-                    '<span style="color:#cbd5e1;">오늘 실패</span><span style="font-weight:700;color:#ef4444;">'+emFailed+'</span>'+
+                    '<span style="color:#cbd5e1;">'+_t('dbEmailFailed','Failed Today')+'</span><span style="font-weight:700;color:#ef4444;">'+emFailed+'</span>'+
                 '</div>'+
-                '<div style="font-size:0.65rem;color:#64748b;margin-top:6px;text-align:center;">메일 로그 탭에서 상세 확인</div>';
+                '<div style="font-size:0.65rem;color:#64748b;margin-top:6px;text-align:center;">'+_t('dbEmailNote','See Email Log tab for details')+'</div>';
 
             // === 최근 활동 피드 (Top 10) ===
             var feed = [];
             subs.forEach(function(s){
                 if (!s || !s.data) return;
-                feed.push({ ts: s.timestamp || s.date || '', type: 'sub', label: '📝 신규 제출', detail: (s.data.opportunityTitle || '(제목 없음)') + ' — ' + (s.data.requestOwner || '?'), color: '#10b981' });
+                feed.push({ ts: s.timestamp || s.date || '', type: 'sub', label: _t('dbActSubmission','📝 New Submission'), detail: (s.data.opportunityTitle || '-') + ' — ' + (s.data.requestOwner || '?'), color: '#10b981' });
             });
             revs.forEach(function(r){
                 if (!r) return;
-                feed.push({ ts: r.date || '', type: 'rev', label: '📊 리뷰 완료', detail: (r.title || '(제목 없음)') + ' — ' + (r.reviewer || '?') + ' (' + (r.percentage||0) + '%)', color: '#3b82f6' });
+                feed.push({ ts: r.date || '', type: 'rev', label: _t('dbActReview','📊 Review Done'), detail: (r.title || '-') + ' — ' + (r.reviewer || '?') + ' (' + (r.percentage||0) + '%)', color: '#3b82f6' });
                 if (r.decision) {
                     var decEmoji = r.decision === 'go' ? '✅' : r.decision === 'hold' ? '⏸' : '❌';
-                    feed.push({ ts: r.date || '', type: 'dec', label: decEmoji + ' 결정', detail: (r.title || '') + ' → ' + r.decision.toUpperCase(), color: '#a855f7' });
+                    feed.push({ ts: r.date || '', type: 'dec', label: decEmoji + ' ' + _t('dbActDecision','Decision'), detail: (r.title || '') + ' → ' + r.decision.toUpperCase(), color: '#a855f7' });
                 }
             });
             accs.forEach(function(a){
                 if (!a) return;
-                if (a.signupDate) feed.push({ ts: a.signupDate, type: 'signup', label: '👤 신규 가입', detail: (a.name||'?') + ' (' + (a.username||'') + ')' + (a.approved===false?' [대기중]':''), color: '#fbbf24' });
+                if (a.signupDate) feed.push({ ts: a.signupDate, type: 'signup', label: _t('dbActSignup','👤 New Signup'), detail: (a.name||'?') + ' (' + (a.username||'') + ')' + (a.approved===false?' '+_t('dbWaitingLabel','[pending]'):''), color: '#fbbf24' });
             });
             feed.sort(function(a,b){
                 var ta = new Date(a.ts).getTime() || 0;
@@ -2401,10 +2408,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     '<div style="flex:1;color:#e2e8f0;font-size:0.78rem;">'+esc(item.detail)+'</div>'+
                     '</div>';
             }).join('');
-            document.getElementById('dbRecentFeed').innerHTML = feedHtml || '<div style="text-align:center;color:#64748b;padding:20px 0;">활동 없음</div>';
+            document.getElementById('dbRecentFeed').innerHTML = feedHtml || '<div style="text-align:center;color:#64748b;padding:20px 0;">'+_t('dbNoActivity','No activity')+'</div>';
 
             // 마지막 업데이트 시각
-            document.getElementById('dbLastUpdate').textContent = '마지막 업데이트: ' + new Date().toLocaleString();
+            document.getElementById('dbLastUpdate').textContent = _t('dbLastUpdate','Last update') + ': ' + new Date().toLocaleString();
         } catch(e) {
             console.error('[renderDashboardStats] error:', e);
         }
@@ -2432,7 +2439,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 _emailQuotaCache = j.quota;
                 var ts = j.fetched_at ? new Date(j.fetched_at).toLocaleString() : new Date().toLocaleString();
                 var fetchedEl = document.getElementById('emFetchedAt');
-                if (fetchedEl) fetchedEl.textContent = '마지막 조회: ' + ts + ' · 총 ' + _emailLogCache.length + '건';
+                var _tt = i18n[currentLang] || i18n.en;
+                if (fetchedEl) fetchedEl.textContent = (_tt.emLastFetch||'Last fetched') + ': ' + ts + ' · ' + _emailLogCache.length + ' ' + (_tt.emTotalRows||'rows');
                 renderEmailLog();
             } else if (j && j.success && j.data) {
                 // 옛 GAS — email-status 엔드포인트 미배포
@@ -2479,6 +2487,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     window.renderEmailLog = function() {
         var container = document.getElementById('emLogContainer');
         if (!container) return;
+        var _ti = i18n[currentLang] || i18n.en;
+        function _T(k, fb) { return (_ti[k] != null) ? _ti[k] : (fb || k); }
         var logs = _emailLogCache || [];
         // 통계 카드 업데이트
         var sent = logs.filter(function(l){return l.status==='sent';}).length;
@@ -2509,7 +2519,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         });
 
         if (!filtered.length) {
-            container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">📭 로그 없음</div>';
+            container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">'+_T('emEmpty','📭 No logs')+'</div>';
             return;
         }
 
@@ -2535,11 +2545,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
         var html = '<table style="width:100%;border-collapse:collapse;font-size:0.78rem;">';
         html += '<thead><tr style="border-bottom:1px solid #2d3a4f;color:#94a3b8;text-transform:uppercase;font-size:0.65rem;letter-spacing:1px;">'+
-            '<th style="text-align:left;padding:8px 6px;width:155px;">시각</th>'+
-            '<th style="text-align:left;padding:8px 6px;width:60px;">대상</th>'+
-            '<th style="text-align:left;padding:8px 6px;">수신자</th>'+
-            '<th style="text-align:left;padding:8px 6px;">제목</th>'+
-            '<th style="text-align:left;padding:8px 6px;width:75px;">상태</th>'+
+            '<th style="text-align:left;padding:8px 6px;width:155px;">'+_T('emColTime','Time')+'</th>'+
+            '<th style="text-align:left;padding:8px 6px;width:60px;">'+_T('emColTarget','Target')+'</th>'+
+            '<th style="text-align:left;padding:8px 6px;">'+_T('emColRecipient','Recipient')+'</th>'+
+            '<th style="text-align:left;padding:8px 6px;">'+_T('emColSubject','Subject')+'</th>'+
+            '<th style="text-align:left;padding:8px 6px;width:75px;">'+_T('emColStatus','Status')+'</th>'+
             '</tr></thead><tbody>';
         filtered.forEach(function(l, i) {
             var rowBg = i % 2 === 0 ? 'rgba(255,255,255,0.02)' : 'transparent';
@@ -3306,7 +3316,159 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             card1Role: 'Regional Marketing Manager',
             card2Role: 'Regional Marketing Director',
             card3Role: 'PM & MKT Director & MELC',
-            card4Role: 'Department Group Leader'
+            card4Role: 'Department Group Leader',
+
+            // ★ Settings — Modal title + Tabs
+            setTitle: 'MOP Settings',
+            setTabDashboard: '📊 Dashboard',
+            setTabGeneral: '⚙️ General',
+            setTabAccounts: '👥 Accounts',
+            setTabEmails: '📧 Email Log',
+            setClose: 'Close',
+            setSave: 'Save',
+            setFullscreenTitle: 'Toggle Fullscreen',
+            setRefreshTitle: 'Refresh',
+
+            // General Tab
+            setAdminEmailLabel: '📧 Admin Notification Emails',
+            setAdminEmailPh: 'Enter email to add',
+            setAdminEmailAdd: '+ Add',
+            setAdminEmailHelp: 'MOP Submissions and AFC Results are sent to the above addresses.',
+            setAdminEmailEmpty: 'No emails registered',
+            setAdminEmailRemove: 'Remove',
+            setAdminEmailInvalid: 'Please enter a valid email address (e.g. name@medit.com).',
+            setAdminEmailDup: 'Email already registered.',
+            setToolPwLabel: '🔐 Tool Passwords',
+            setPwForm: 'Submission Form',
+            setPwScoring: 'Scoring Tool',
+            setPwAfc: 'AFC Checklist',
+            setPwPortfolio: 'Portfolio Board',
+            setPwOn: 'ON',
+            setPwOff: 'OFF',
+            setAppsScriptUrl: '☁ Google Apps Script URL',
+            setAppsScriptUrlHelp: 'GAS Web App deployment URL. Used for cloud sync, emails, and attachments.',
+            setSaveSettings: '💾 Save Settings',
+            setDangerZone: '⚠ Danger Zone',
+            setResetAll: '🗑️ Reset All Data',
+            setResetPasswords: '🔑 Reset Passwords',
+            setResetAllConfirm: 'Delete ALL submissions, reviews, AFC state, and portfolios? This cannot be undone.',
+            setResetPwConfirm: 'Reset all user passwords to "1111"? Users will be forced to change on next login.',
+
+            // Account Tab
+            setAccTotal: 'Total',
+            setAccPending: 'Pending',
+            setAccAdmin: 'Admin',
+            setAccManager: 'Manager',
+            setAccGeneral: 'General',
+            setAccSearchPh: '🔍 Search name / email / dept...',
+            setAccSortLabel: 'Sort',
+            setAccSortPending: 'Sort: Pending First',
+            setAccSortRecent: 'Sort: Recently Joined',
+            setAccSortName: 'Sort: Name',
+            setAccSortLogin: 'Sort: Most Logins',
+            setAccFilterAll: 'All',
+            setAccFilterPending: '⏳ Pending',
+            setAccFilterAdmin: 'Admin',
+            setAccFilterManager: 'Manager',
+            setAccFilterGeneral: 'General',
+            setAccListLabel: '👥 Account List',
+            setAccShowing: 'Showing',
+            setAccOf: 'of',
+            setAccPeople: '',
+            setAccNoResult: 'No accounts found',
+            setAccApprove: 'Approve',
+            setAccReject: 'Reject',
+            setAccReapprove: 'Re-approve',
+            setAccEdit: 'Edit',
+            setAccResetPw: 'Reset PW',
+            setAccDelete: 'Delete',
+            setAccDeleteConfirm: 'Delete this account?',
+            setAccAlreadyApproved: 'Already approved.',
+            setAccAlreadyRejected: 'Already rejected.',
+            setAccApproveSent: 'approved — email sent',
+            setAccRejectSent: 'rejected',
+            setAccRejectConfirm: 'Reject this signup request?\nThe account will not be able to log in and will be marked as unapproved.',
+            setAccJoined: 'Joined',
+            setAccLast: 'Last',
+            setAccLogins: 'Logins',
+            setAccReviews: 'Reviews',
+            setAccPendingApproval: 'Pending Approval',
+            setAccRejected: 'Rejected',
+
+            // Email Log Tab
+            emRemainingQuota: 'Remaining Quota',
+            emPerDay: '/ day',
+            emTotalRecent: 'Total (Recent)',
+            emSent: 'Sent',
+            emFailed: 'Failed',
+            emRefresh: '↻ Refresh',
+            emSendTest: '📧 Send Test Email',
+            emSearchPh: '🔍 Search recipient/subject...',
+            emFilterAll: 'All',
+            emFilterSent: '✓ Sent',
+            emFilterFailed: '✗ Failed',
+            emFilterSkipped: '⊘ Skipped',
+            emNotLoaded: 'Not loaded yet',
+            emLastFetch: 'Last fetched',
+            emTotalRows: 'rows',
+            emColTime: 'Time',
+            emColTarget: 'Target',
+            emColRecipient: 'Recipient',
+            emColSubject: 'Subject',
+            emColStatus: 'Status',
+            emEmpty: '📭 No logs',
+            emLoading: '⏳ Loading...',
+            emOldGasTitle: '⚠ GAS Redeploy Required',
+            emOldGasDesc: 'To use the email log feature, paste the latest GAS code and Deploy as new version.',
+            emNetworkError: '❌ Network error — verify GAS URL',
+            emTimeout: '⏱ No response (30s) — check GAS URL',
+            emTestSending: '📧 Sending test email...',
+            emTestOk: '✅ Email request sent — check inbox & log',
+            emTestFailed: '❌ Send failed — see diagnostic',
+
+            // Dashboard Tab
+            dbTodayActivity: '📅 Today\'s Activity',
+            dbActiveUsers: 'Active Today',
+            dbTotalUsers: '/ Total',
+            dbPeople: '',
+            dbNewSubs: 'New Submissions',
+            dbCompletedReviews: 'Completed Reviews',
+            dbNewSignups: 'New Signups',
+            dbPendingCount: 'pending',
+            dbCount: '',
+            dbRefresh: '↻ Refresh',
+            dbLastUpdate: 'Last update',
+            dbPipeline: '📋 Submission Pipeline',
+            dbPipelinePending: '🆕 Pending',
+            dbPipelineStep2: '📊 Step 2',
+            dbPipelineStep3: '✅ Step 3',
+            dbPipelineDecided: '🏁 Decided',
+            dbPipelineTotal: 'Total',
+            dbUsersSection: '👥 Users',
+            dbUserAdmin: '🔴 Admin',
+            dbUserManager: '🔵 Manager',
+            dbUserGeneral: '🟢 General',
+            dbUserPending: '⏳ Pending Approval',
+            dbUser7d: '📈 Active in 7 days',
+            dbRegionsSection: '📍 Submissions by Region',
+            dbReviewersSection: '🏆 Top Reviewers (All-time)',
+            dbNoSubmissions: 'No submissions',
+            dbNoReviews: 'No reviews',
+            dbWeekChart: '📈 Last 7 Days (Submissions / Reviews)',
+            dbWeekLegendSub: 'Submissions',
+            dbWeekLegendRev: 'Reviews',
+            dbEmailHealth: '📧 Email Health',
+            dbEmailQuota: 'Remaining',
+            dbEmailSent: 'Sent Today',
+            dbEmailFailed: 'Failed Today',
+            dbEmailNote: 'See Email Log tab for details',
+            dbRecentFeed: '⏱ Recent Activity (Top 10)',
+            dbActSubmission: '📝 New Submission',
+            dbActReview: '📊 Review Done',
+            dbActDecision: 'Decision',
+            dbActSignup: '👤 New Signup',
+            dbWaitingLabel: '[pending]',
+            dbNoActivity: 'No activity'
         },
         ko: {
             // Login
@@ -3356,7 +3518,159 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             card1Role: 'Regional Marketing Manager',
             card2Role: 'Regional Marketing Director',
             card3Role: 'PM & MKT Director & MELC',
-            card4Role: 'Department Group Leader'
+            card4Role: 'Department Group Leader',
+
+            // ★ Settings — Modal title + Tabs
+            setTitle: 'MOP 설정',
+            setTabDashboard: '📊 통계',
+            setTabGeneral: '⚙️ 일반',
+            setTabAccounts: '👥 Account 관리',
+            setTabEmails: '📧 메일 로그',
+            setClose: '닫기',
+            setSave: '저장',
+            setFullscreenTitle: '전체화면 토글',
+            setRefreshTitle: '새로고침',
+
+            // General Tab
+            setAdminEmailLabel: '📧 관리자 알림 이메일',
+            setAdminEmailPh: '추가할 이메일 입력',
+            setAdminEmailAdd: '+ 추가',
+            setAdminEmailHelp: 'MOP Submission 및 AFC Result 알림이 위 주소로 발송됩니다.',
+            setAdminEmailEmpty: '등록된 이메일 없음',
+            setAdminEmailRemove: '삭제',
+            setAdminEmailInvalid: '유효한 이메일 주소를 입력하세요. (예: name@medit.com)',
+            setAdminEmailDup: '이미 등록된 이메일입니다.',
+            setToolPwLabel: '🔐 도구별 비밀번호',
+            setPwForm: 'Submission Form',
+            setPwScoring: 'Scoring Tool',
+            setPwAfc: 'AFC Checklist',
+            setPwPortfolio: 'Portfolio Board',
+            setPwOn: 'ON',
+            setPwOff: 'OFF',
+            setAppsScriptUrl: '☁ Google Apps Script URL',
+            setAppsScriptUrlHelp: 'GAS Web App 배포 URL. 클라우드 동기화, 이메일, 첨부파일에 사용됩니다.',
+            setSaveSettings: '💾 설정 저장',
+            setDangerZone: '⚠ 위험 기능',
+            setResetAll: '🗑️ 전체 데이터 초기화',
+            setResetPasswords: '🔑 비밀번호 초기화',
+            setResetAllConfirm: '모든 제출, 리뷰, AFC 상태, 포트폴리오를 삭제하시겠습니까? 되돌릴 수 없습니다.',
+            setResetPwConfirm: '모든 사용자의 비밀번호를 "1111"로 초기화하시겠습니까? 다음 로그인 시 변경이 강제됩니다.',
+
+            // Account Tab
+            setAccTotal: '전체',
+            setAccPending: '승인대기',
+            setAccAdmin: '관리자',
+            setAccManager: '일반관리자',
+            setAccGeneral: '일반',
+            setAccSearchPh: '🔍 이름 / 이메일 / 부서 검색...',
+            setAccSortLabel: '정렬',
+            setAccSortPending: '정렬: 승인대기 우선',
+            setAccSortRecent: '정렬: 최근 가입순',
+            setAccSortName: '정렬: 이름순',
+            setAccSortLogin: '정렬: 로그인 많은순',
+            setAccFilterAll: '전체',
+            setAccFilterPending: '⏳ 승인대기',
+            setAccFilterAdmin: '관리자',
+            setAccFilterManager: '일반관리자',
+            setAccFilterGeneral: '일반',
+            setAccListLabel: '👥 Account 목록',
+            setAccShowing: '명 표시',
+            setAccOf: '(전체',
+            setAccPeople: '명 중)',
+            setAccNoResult: '계정이 없습니다',
+            setAccApprove: '승인',
+            setAccReject: '미승인',
+            setAccReapprove: '재승인',
+            setAccEdit: '편집',
+            setAccResetPw: '비번초기화',
+            setAccDelete: '삭제',
+            setAccDeleteConfirm: '이 Account을 삭제하시겠습니까?',
+            setAccAlreadyApproved: '은(는) 이미 승인된 계정입니다.',
+            setAccAlreadyRejected: '은(는) 이미 거절된 계정입니다.',
+            setAccApproveSent: '승인됨 — 안내 메일 발송',
+            setAccRejectSent: '거절됨',
+            setAccRejectConfirm: '의 가입 Request을 거절하시겠습니까?\n해당 Account은 로그인할 수 없으며, 미승인 상태로 표시됩니다.',
+            setAccJoined: '가입',
+            setAccLast: '최근',
+            setAccLogins: '로그인',
+            setAccReviews: '리뷰',
+            setAccPendingApproval: 'Pending Approval',
+            setAccRejected: 'Rejected',
+
+            // Email Log Tab
+            emRemainingQuota: '남은 발송 한도',
+            emPerDay: '/ day',
+            emTotalRecent: '전체 (최근)',
+            emSent: '발송 성공',
+            emFailed: '실패',
+            emRefresh: '↻ 새로고침',
+            emSendTest: '📧 테스트 메일 발송',
+            emSearchPh: '🔍 수신자/제목 검색...',
+            emFilterAll: '전체',
+            emFilterSent: '✓ 성공',
+            emFilterFailed: '✗ 실패',
+            emFilterSkipped: '⊘ 스킵',
+            emNotLoaded: '아직 로드되지 않음',
+            emLastFetch: '마지막 조회',
+            emTotalRows: '건',
+            emColTime: '시각',
+            emColTarget: '대상',
+            emColRecipient: '수신자',
+            emColSubject: '제목',
+            emColStatus: '상태',
+            emEmpty: '📭 로그 없음',
+            emLoading: '⏳ 로딩 중...',
+            emOldGasTitle: '⚠ GAS 재배포 필요',
+            emOldGasDesc: '메일 로그 기능을 사용하려면 최신 GAS 코드를 Apps Script 편집기에 붙여넣고 새 버전으로 배포해야 합니다.',
+            emNetworkError: '❌ 네트워크 오류 — GAS URL 확인 필요',
+            emTimeout: '⏱ 응답 없음 (30초 초과) — GAS URL이 올바른지 확인하세요',
+            emTestSending: '📧 테스트 메일 발송 중...',
+            emTestOk: '✅ 메일 발송 요청 완료 — 메일함 + 로그 확인',
+            emTestFailed: '❌ 발송 실패 — 진단 정보 확인',
+
+            // Dashboard Tab
+            dbTodayActivity: '📅 오늘 활동',
+            dbActiveUsers: '로그인 사용자',
+            dbTotalUsers: '/ 전체',
+            dbPeople: '명',
+            dbNewSubs: '신규 제출',
+            dbCompletedReviews: '완료된 리뷰',
+            dbNewSignups: '신규 가입',
+            dbPendingCount: '대기',
+            dbCount: '건',
+            dbRefresh: '↻ 새로고침',
+            dbLastUpdate: '마지막 업데이트',
+            dbPipeline: '📋 제출 파이프라인',
+            dbPipelinePending: '🆕 Pending',
+            dbPipelineStep2: '📊 Step 2',
+            dbPipelineStep3: '✅ Step 3',
+            dbPipelineDecided: '🏁 결정 완료',
+            dbPipelineTotal: '총',
+            dbUsersSection: '👥 사용자 현황',
+            dbUserAdmin: '🔴 관리자',
+            dbUserManager: '🔵 일반관리자',
+            dbUserGeneral: '🟢 일반',
+            dbUserPending: '⏳ 승인 대기',
+            dbUser7d: '📈 최근 7일 활동',
+            dbRegionsSection: '📍 Region 별 제출',
+            dbReviewersSection: '🏆 Top 리뷰어 (전체 기간)',
+            dbNoSubmissions: '제출 없음',
+            dbNoReviews: '리뷰 없음',
+            dbWeekChart: '📈 최근 7일 활동 (제출 / 리뷰)',
+            dbWeekLegendSub: '제출',
+            dbWeekLegendRev: '리뷰',
+            dbEmailHealth: '📧 메일 헬스',
+            dbEmailQuota: '남은 한도',
+            dbEmailSent: '오늘 발송',
+            dbEmailFailed: '오늘 실패',
+            dbEmailNote: '메일 로그 탭에서 상세 확인',
+            dbRecentFeed: '⏱ 최근 활동 (Top 10)',
+            dbActSubmission: '📝 신규 제출',
+            dbActReview: '📊 리뷰 완료',
+            dbActDecision: '결정',
+            dbActSignup: '👤 신규 가입',
+            dbWaitingLabel: '[대기중]',
+            dbNoActivity: '활동 없음'
         }
     };
 
@@ -3364,6 +3678,43 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         try { var v = localStorage.getItem('mopLang'); return (v === 'ko' || v === 'en') ? v : 'en'; }
         catch(e) { return 'en'; }
     })();
+    // ★ FIX 2026-05-21: Settings 다국어 일괄 적용
+    //   data-i18n="key" → textContent 변경
+    //   data-i18n-ph="key" → placeholder 변경
+    //   data-i18n-title="key" → title 변경
+    function applySettingsI18n() {
+        try {
+            var t = i18n[currentLang] || i18n.en;
+            document.querySelectorAll('[data-i18n]').forEach(function(el) {
+                var key = el.getAttribute('data-i18n');
+                if (key && t[key] != null) el.textContent = t[key];
+            });
+            document.querySelectorAll('[data-i18n-ph]').forEach(function(el) {
+                var key = el.getAttribute('data-i18n-ph');
+                if (key && t[key] != null) el.setAttribute('placeholder', t[key]);
+            });
+            document.querySelectorAll('[data-i18n-title]').forEach(function(el) {
+                var key = el.getAttribute('data-i18n-title');
+                if (key && t[key] != null) el.setAttribute('title', t[key]);
+            });
+            // Account 통계 카드 / 필터 탭 / 리스트 — 동적 렌더링이라 별도 호출
+            try { if (typeof renderAccStats === 'function') renderAccStats(); } catch(_){}
+            try { if (typeof renderAccRoleTabs === 'function') renderAccRoleTabs(); } catch(_){}
+            try { if (typeof renderAccList === 'function') renderAccList(); } catch(_){}
+            // Dashboard 동적 렌더 — 열려있을 때만
+            try {
+                var dashTabActive = document.getElementById('settingsTabDashboard') && document.getElementById('settingsTabDashboard').style.display !== 'none';
+                if (dashTabActive && typeof renderDashboardStats === 'function') renderDashboardStats();
+            } catch(_){}
+            // Email 로그 동적 렌더 — 열려있을 때만
+            try {
+                var emailTabActive = document.getElementById('settingsTabEmails') && document.getElementById('settingsTabEmails').style.display !== 'none';
+                if (emailTabActive && typeof renderEmailLog === 'function') renderEmailLog();
+            } catch(_){}
+        } catch(e) { console.error('[applySettingsI18n]', e); }
+    }
+    window.applySettingsI18n = applySettingsI18n;
+
     function setLang(lang) {
         try { localStorage.setItem('mopLang', lang); } catch(e) {}
         currentLang = lang;
@@ -3410,6 +3761,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         setTxt('card4Link', t.card4Link||'');
         setTxt('card1Role', t.card1Role);   setTxt('card2Role', t.card2Role);
         setTxt('card3Role', t.card3Role);   setTxt('card4Role', t.card4Role);
+        // ★ FIX 2026-05-21: Settings 모달 다국어 일괄 적용
+        try { applySettingsI18n(); } catch(_){}
         // Forward language change to iframe if open
         try {
             var iframe = document.getElementById('tool-iframe');
