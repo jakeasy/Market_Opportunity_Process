@@ -4522,17 +4522,20 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     function _saveDriveCache(cache) {
         try { localStorage.setItem(_MOP_DRIVE_CACHE_KEY, JSON.stringify(cache || {})); } catch(_){}
     }
-    function _rememberDriveFile(submissionId, file) {
-        if (!file || !file.name || !(file.fileId || file.viewUrl || file.driveUrl)) return;
+    function _rememberDriveFile(submissionId, file, fileIndex) {
+        if (!file || !(file.fileId || file.viewUrl || file.driveUrl)) return;
         var cache = _loadDriveCache();
         var sid = String(submissionId);
         if (!cache[sid]) cache[sid] = {};
-        cache[sid][String(file.name)] = {
-            name: file.name, type: file.type || '', size: file.size || 0,
+        var entry = {
+            name: file.name || '', type: file.type || '', size: file.size || 0,
             fileId: file.fileId || '', driveUrl: file.driveUrl || file.viewUrl || '',
             viewUrl: file.viewUrl || file.driveUrl || '', directUrl: file.directUrl || '',
             updatedAt: Date.now()
         };
+        // 이름 기반 + 인덱스 기반 두 키로 저장 — 이름 변경(.png→.jpeg) 시에도 인덱스로 복원 가능
+        if (file.name) cache[sid][String(file.name)] = entry;
+        if (typeof fileIndex === 'number') cache[sid]['_idx_' + fileIndex] = entry;
         _saveDriveCache(cache);
     }
     function _augmentEvidenceFromCache(submissionId, evidenceFiles) {
@@ -4540,16 +4543,20 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (!Array.isArray(evidenceFiles)) return evidenceFiles;
             var cache = _loadDriveCache();
             var subCache = cache[String(submissionId)];
-            return evidenceFiles.map(function(f){
+            return evidenceFiles.map(function(f, idx){
                 if (!f) return f;
                 if (f.viewUrl || f.driveUrl || f.fileId) {
-                    _rememberDriveFile(submissionId, f);
+                    _rememberDriveFile(submissionId, f, idx);
                     return f;
                 }
                 if (!subCache) return f;
+                // 1순위: 이름 매칭
                 var cached = subCache[String(f.name)];
+                // 2순위: 인덱스 매칭 (이름이 변경된 경우 — .png → .jpeg)
+                if (!cached) cached = subCache['_idx_' + idx];
                 if (cached) {
-                    return { name: f.name, type: f.type || cached.type, size: f.size || cached.size,
+                    // ★ 인덱스 매칭 시 캐시된 이름/타입/크기를 사용 (재업로드된 파일의 실제 메타데이터)
+                    return { name: cached.name || f.name, type: cached.type || f.type, size: cached.size || f.size,
                              fileId: cached.fileId || undefined, driveUrl: cached.driveUrl || undefined,
                              viewUrl: cached.viewUrl || undefined, directUrl: cached.directUrl || undefined };
                 }
@@ -5043,25 +5050,26 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 var loc = localById[String(srv.id)];
                                 if (!loc || !loc.data || !Array.isArray(loc.data.evidenceFiles)) return srv;
                                 if (!srv.data) srv.data = {};
+                                var locEFs = loc.data.evidenceFiles;
                                 if (!Array.isArray(srv.data.evidenceFiles) || !srv.data.evidenceFiles.length) {
-                                    // 서버에 없으면 로컬 그대로 사용
-                                    srv.data.evidenceFiles = loc.data.evidenceFiles;
+                                    srv.data.evidenceFiles = locEFs;
                                     return srv;
                                 }
-                                // 양쪽 모두 있으면 — 이름 매칭으로 Drive URL 보충
-                                srv.data.evidenceFiles = srv.data.evidenceFiles.map(function(sf, idx){
-                                    if (!sf) return sf;
-                                    if (sf.viewUrl || sf.driveUrl || sf.fileId) return sf; // 서버에 이미 있음
-                                    var lf = loc.data.evidenceFiles[idx];
-                                    if (lf && (lf.viewUrl || lf.driveUrl || lf.fileId) && (lf.name === sf.name)) {
-                                        // 로컬에 Drive URL 있고 이름 일치 → 보충
-                                        return { name: sf.name, type: sf.type || lf.type, size: sf.size || lf.size, fileId: lf.fileId, driveUrl: lf.driveUrl, viewUrl: lf.viewUrl, directUrl: lf.directUrl };
-                                    }
-                                    // 이름이 안 맞으면 로컬 전체에서 같은 이름 찾기
-                                    var byName = (loc.data.evidenceFiles || []).find(function(x){ return x && x.name === sf.name && (x.viewUrl || x.driveUrl || x.fileId); });
-                                    if (byName) return { name: sf.name, type: sf.type || byName.type, size: sf.size || byName.size, fileId: byName.fileId, driveUrl: byName.driveUrl, viewUrl: byName.viewUrl, directUrl: byName.directUrl };
-                                    return sf;
-                                });
+                                // ★★★ FIX 2026-05-22 (FINAL): INDEX 기준 우선 — 이름이 달라져도(.png→.jpeg) 로컬 보존
+                                //   - 서버에 Drive URL 있음 → 서버 사용
+                                //   - 로컬 같은 인덱스에 Drive URL 있음 → 로컬 entry 통째로 사용 (이름/타입/크기까지)
+                                //   - 그 외엔 서버 사용
+                                var maxLen = Math.max(srv.data.evidenceFiles.length, locEFs.length);
+                                var merged = [];
+                                for (var i = 0; i < maxLen; i++) {
+                                    var sf = srv.data.evidenceFiles[i];
+                                    var lf = locEFs[i];
+                                    if (sf && (sf.viewUrl || sf.driveUrl || sf.fileId)) { merged.push(sf); continue; }
+                                    if (lf && (lf.viewUrl || lf.driveUrl || lf.fileId)) { merged.push(lf); continue; }
+                                    if (sf) merged.push(sf);
+                                    else if (lf) merged.push(lf);
+                                }
+                                srv.data.evidenceFiles = merged;
                                 return srv;
                             });
                         } catch(_){ return serverList; }
@@ -5077,21 +5085,23 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 var loc = localById[String(srv.id)];
                                 if (!loc || !loc.submissionData || !Array.isArray(loc.submissionData.evidenceFiles)) return srv;
                                 if (!srv.submissionData) srv.submissionData = {};
+                                var locEFs = loc.submissionData.evidenceFiles;
                                 if (!Array.isArray(srv.submissionData.evidenceFiles) || !srv.submissionData.evidenceFiles.length) {
-                                    srv.submissionData.evidenceFiles = loc.submissionData.evidenceFiles;
+                                    srv.submissionData.evidenceFiles = locEFs;
                                     return srv;
                                 }
-                                srv.submissionData.evidenceFiles = srv.submissionData.evidenceFiles.map(function(sf, idx){
-                                    if (!sf) return sf;
-                                    if (sf.viewUrl || sf.driveUrl || sf.fileId) return sf;
-                                    var lf = loc.submissionData.evidenceFiles[idx];
-                                    if (lf && (lf.viewUrl || lf.driveUrl || lf.fileId) && (lf.name === sf.name)) {
-                                        return { name: sf.name, type: sf.type || lf.type, size: sf.size || lf.size, fileId: lf.fileId, driveUrl: lf.driveUrl, viewUrl: lf.viewUrl, directUrl: lf.directUrl };
-                                    }
-                                    var byName = (loc.submissionData.evidenceFiles || []).find(function(x){ return x && x.name === sf.name && (x.viewUrl || x.driveUrl || x.fileId); });
-                                    if (byName) return { name: sf.name, type: sf.type || byName.type, size: sf.size || byName.size, fileId: byName.fileId, driveUrl: byName.driveUrl, viewUrl: byName.viewUrl, directUrl: byName.directUrl };
-                                    return sf;
-                                });
+                                // ★★★ FIX 2026-05-22 (FINAL): INDEX 기준 — 파일명 변경(.png→.jpeg)에도 robust
+                                var maxLen = Math.max(srv.submissionData.evidenceFiles.length, locEFs.length);
+                                var merged = [];
+                                for (var i = 0; i < maxLen; i++) {
+                                    var sf = srv.submissionData.evidenceFiles[i];
+                                    var lf = locEFs[i];
+                                    if (sf && (sf.viewUrl || sf.driveUrl || sf.fileId)) { merged.push(sf); continue; }
+                                    if (lf && (lf.viewUrl || lf.driveUrl || lf.fileId)) { merged.push(lf); continue; }
+                                    if (sf) merged.push(sf);
+                                    else if (lf) merged.push(lf);
+                                }
+                                srv.submissionData.evidenceFiles = merged;
                                 return srv;
                             });
                         } catch(_){ return serverList; }
@@ -5840,7 +5850,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(_){}
                                 try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){}
                                 // ★★★ FIX 2026-05-22 (final): 영구 Drive URL 캐시 — 어떤 race 에도 보존
-                                try { _rememberDriveFile(p.submissionId, newFile); } catch(_){}
+                                try { _rememberDriveFile(p.submissionId, newFile, p.fileIndex); } catch(_){}
                                 // ★ race condition 방지 — 즉시 push
                                 try { window._mopReuploadProtectUntil = Date.now() + 30000; } catch(_){}
                                 try { cloudSaveNow(); } catch(_){
