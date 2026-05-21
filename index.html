@@ -2116,18 +2116,23 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         } catch(_){}
     }
 
-    // ★ FIX 2026-05-22: My Dashboard 페이지 뷰 열기 / 닫기 (Step 1/2/3/4와 동일한 풀페이지 전환)
+    // ★ FIX 2026-05-22: My Dashboard 페이지 뷰 열기 / 닫기 (Step 1/2/3/4 페이지와 동일한 구성)
+    //   - gateway-view 숨김, userBadge 숨김, homeDashBtn 숨김 (Step 페이지 진입과 동일한 행동)
+    //   - langToggle만 유지 (어디서든 언어 전환 가능)
     window.openHomeDashboard = function() {
         try {
             var view = document.getElementById('dashboard-view');
             if (!view) return;
-            // gateway-view는 그대로 두고 dashboard-view를 위에 표시 (iframe-view와 동일 패턴)
-            view.classList.add('active');
             // 이전 iframe(tool)이 열려있었다면 닫기 (충돌 방지)
             try {
                 var ifv = document.getElementById('iframe-view');
                 if (ifv && ifv.classList.contains('active')) closeTool();
             } catch(_){}
+            // Step 페이지 진입과 동일하게 다른 메인 UI 숨김
+            try { document.getElementById('gateway-view').style.display = 'none'; } catch(_){}
+            try { document.getElementById('userBadge').style.display = 'none'; } catch(_){}
+            try { document.getElementById('homeDashBtn').style.display = 'none'; } catch(_){}
+            view.classList.add('active');
             // 진입 시 최신 데이터로 렌더 + cloudLoad 트리거
             try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
             try { renderHomeDashboard(); } catch(e) { console.error('[renderHomeDashboard]', e); }
@@ -2136,7 +2141,16 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         } catch(_){}
     };
     window.closeHomeDashboard = function() {
-        try { document.getElementById('dashboard-view').classList.remove('active'); } catch(_){}
+        try {
+            document.getElementById('dashboard-view').classList.remove('active');
+            // Step 페이지 종료(closeTool)와 동일하게 메인 UI 복귀
+            document.getElementById('gateway-view').style.display = 'block';
+            if (_currentUser) {
+                document.getElementById('userBadge').style.display = 'flex';
+                var dashBtn = document.getElementById('homeDashBtn');
+                if (dashBtn) dashBtn.style.display = 'flex';
+            }
+        } catch(_){}
     };
     // 호환: 기존 toggleHomeDashboard/toggleHomeDashFullscreen 호출 잔재가 있어도 깨지지 않도록 alias
     window.toggleHomeDashboard = window.openHomeDashboard;
