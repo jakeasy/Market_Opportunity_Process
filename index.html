@@ -691,17 +691,24 @@
     </div>
     <!-- Settings Modal -->
     <div class="pw-overlay" id="settingsOverlay">
-        <div class="pw-modal" style="width:960px;max-height:92vh;overflow-y:auto;position:relative;">
-            <button onclick="reloadAccounts()" title="새로고침" style="position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">↻</button>
-            <div class="pw-icon">⚙️</div>
-            <div class="pw-title">MOP Settings</div>
+        <!-- ★ FIX 2026-05-21: 모달 사이즈 고정 (960x750) + 전체화면 토글 -->
+        <div class="pw-modal" id="settingsModal" style="width:960px;height:750px;max-height:92vh;overflow:hidden;position:relative;display:flex;flex-direction:column;padding:32px 32px 24px;">
+            <!-- 우측 상단 버튼 그룹 -->
+            <div style="position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:10;">
+                <button onclick="toggleSettingsFullscreen()" id="settingsFullscreenBtn" title="전체화면 토글" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">⛶</button>
+                <button onclick="reloadAccounts()" title="새로고침" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">↻</button>
+            </div>
+            <div class="pw-icon" style="flex-shrink:0;">⚙️</div>
+            <div class="pw-title" style="flex-shrink:0;">MOP Settings</div>
             <!-- Settings Tabs -->
-            <div style="display:flex;gap:4px;margin-bottom:20px;background:#0f1525;border-radius:10px;padding:4px;">
+            <div style="display:flex;gap:4px;margin-bottom:16px;background:#0f1525;border-radius:10px;padding:4px;flex-shrink:0;">
                 <button onclick="switchSettingsTab('dashboard')" id="tabDashboard" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">📊 통계</button>
                 <button onclick="switchSettingsTab('general')" id="tabGeneral" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:#3b82f6;color:#fff;">⚙️ 일반</button>
                 <button onclick="switchSettingsTab('accounts')" id="tabAccounts" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">👥 Account 관리</button>
                 <button onclick="switchSettingsTab('emails')" id="tabEmails" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">📧 메일 로그</button>
             </div>
+            <!-- ★ FIX 2026-05-21: 탭 컨텐츠 영역 — 고정 높이 + 내부 스크롤 (모달 자체는 사이즈 불변) -->
+            <div id="settingsContentArea" style="flex:1;overflow-y:auto;overflow-x:hidden;padding-right:6px;min-height:0;">
             <!-- General Tab -->
             <div id="settingsTabGeneral">
             <!-- Admin Email Management -->
@@ -805,8 +812,8 @@
                     <span id="accListCount" style="font-size:0.74rem;color:#94a3b8;"></span>
                     <span style="font-size:0.7rem;color:#64748b;">👥 Account 목록</span>
                 </div>
-                <!-- ★ FIX 2026-05-19: 계정 수에 무관하게 고정 높이로 모달 크기 안정화 -->
-                <div id="accListContainer" style="height:480px;overflow-y:auto;display:flex;flex-direction:column;"></div>
+                <!-- ★ FIX 2026-05-21: 외부 settingsContentArea가 스크롤 관장 → 내부는 자연 높이 -->
+                <div id="accListContainer" style="display:flex;flex-direction:column;"></div>
             </div><!-- /settingsTabAccounts -->
 
             <!-- ★ FIX 2026-05-21: Email Logs Tab -->
@@ -846,8 +853,8 @@
                 </div>
                 <div style="font-size:0.7rem;color:#64748b;margin-bottom:6px;" id="emFetchedAt">아직 로드되지 않음</div>
 
-                <!-- 로그 테이블 -->
-                <div id="emLogContainer" style="height:420px;overflow-y:auto;background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:10px;">
+                <!-- 로그 테이블 — 외부 settingsContentArea가 스크롤 관장 -->
+                <div id="emLogContainer" style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:10px;">
                     <div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">⏳ 새로고침 버튼을 눌러 로그를 불러오세요</div>
                 </div>
             </div><!-- /settingsTabEmails -->
@@ -930,9 +937,10 @@
                     <div id="dbRecentFeed" style="display:flex;flex-direction:column;gap:6px;font-size:0.78rem;max-height:280px;overflow-y:auto;"></div>
                 </div>
             </div><!-- /settingsTabDashboard -->
+            </div><!-- /settingsContentArea (★ FIX 2026-05-21: 내부 스크롤 영역 종료) -->
 
-            <!-- Accounts tab bottom close button -->
-            <div id="settingsAccBtns" style="display:none;" class="pw-btns">
+            <!-- 하단 버튼 영역 (모달 하단 고정) -->
+            <div id="settingsAccBtns" style="display:none;flex-shrink:0;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06);margin-top:8px;" class="pw-btns">
                 <button class="pw-btn pw-btn-cancel" onclick="closeSettings()">닫기</button>
             </div>
         </div>
@@ -1434,6 +1442,34 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         document.getElementById('settingsOverlay').classList.add('active');
     }
     function closeSettings() { document.getElementById('settingsOverlay').classList.remove('active'); }
+
+    // ★ FIX 2026-05-21: Settings 전체화면 토글 — admin 이 통계/로그를 큰 화면으로 보고 싶을 때
+    var _settingsFullscreen = false;
+    window.toggleSettingsFullscreen = function() {
+        try {
+            _settingsFullscreen = !_settingsFullscreen;
+            var modal = document.getElementById('settingsModal');
+            var btn = document.getElementById('settingsFullscreenBtn');
+            if (!modal) return;
+            if (_settingsFullscreen) {
+                // 전체화면 모드
+                modal.style.width = '96vw';
+                modal.style.height = '94vh';
+                modal.style.maxHeight = '94vh';
+                modal.style.maxWidth = '96vw';
+                if (btn) { btn.textContent = '⊟'; btn.title = '기본 사이즈로'; }
+                try { _toast('🖥️ 전체화면 모드', '#3b82f6'); } catch(_){}
+            } else {
+                // 기본 모달 사이즈
+                modal.style.width = '960px';
+                modal.style.height = '750px';
+                modal.style.maxHeight = '92vh';
+                modal.style.maxWidth = '';
+                if (btn) { btn.textContent = '⛶'; btn.title = '전체화면'; }
+                try { _toast('🪟 기본 사이즈', '#64748b'); } catch(_){}
+            }
+        } catch(e) { console.error('[toggleSettingsFullscreen]', e); }
+    };
     function saveSettings() {
         var pw1 = document.getElementById('settingsPwForm').value.trim() || '1111';
         var pw2 = document.getElementById('settingsPwScoring').value.trim() || '1111';
