@@ -2695,7 +2695,15 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (id) {
             var acc = _accounts.find(function(a){ return String(a.id) === String(id); });
             if (acc) {
-                acc.name=name; acc.username=uname; acc.region=region; acc.dept=dept; acc.role=role; acc.approved=true;
+                acc.name=name; acc.username=uname; acc.region=region; acc.dept=dept; acc.role=role;
+                // ★ FIX 2026-05-21: 자동 승인 제거 — pending 상태 보존 (실수로 권한 부여 방지)
+                //   기존 버그: 가입대기 사용자 편집만 해도 approved=true → 서버 monotonic merge로 되돌릴 수 없음
+                //   해결: 명시적으로 승인된 계정만 approved 유지. pending(false)이면 그대로 둠.
+                //   승인은 [승인] 버튼 (approveAcc)으로만 가능.
+                if (acc.approved === true) {
+                    // 이미 승인된 사용자만 true 유지 (편집해도 권한 떨어지지 않게)
+                    acc.approved = true;
+                }
                 // ★ FIX 2026-05-19: 편집 타임스탬프 — server/다른탭의 stale push가 덮어쓰는 것 방지
                 acc._modAt = Date.now();
             }
@@ -4288,16 +4296,17 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                             htmlBody: _appendMopCta(submitterHtml),
                             textBody: 'AFC Complete: ' + _title + ' — ' + _gateLabel
                         };
-                        gasPost(getAppsScriptUrl(), subPayload,
+                        // ★ FIX 2026-05-21: gasPost → gasPostEmail (fetch+retry 안정성)
+                        gasPostEmail(getAppsScriptUrl(), subPayload,
                             function(){ console.log('✓ AFC submitter email sent →', _submitterEmail); },
                             function(err){ console.error('✗ AFC submitter email error:', err); });
                     } catch(_){}
                 } else {
                     console.warn('[MOP] AFC submitter email skipped — no submitter email');
                 }
-                // Reviewer + 관리자 메일 (기존)
-                var reviewerHtml = '<!DOCTYPE html><html><body style="font-family:Arial;padding:24px;"><h2 style="color:' + _gateColor + ';">' + _gateEmoji + ' AFC ' + _gateLabel + '</h2><p>Hi ' + _reviewer + ',</p><p>' + _gateMsg + '</p><p>Project: <strong>' + _title + '</strong><br>Pass Rate: ' + _pct + '<br>Date: ' + _date + '</p></body></html>';
-                var adminHtml = '<!DOCTYPE html><html><body style="font-family:Arial;padding:24px;"><h2>[ADMIN] AFC ' + _gateLabel + '</h2><p>Title: <strong>' + _title + '</strong></p><p>Reviewer: ' + _reviewer + '<br>Result: ' + _gateEmoji + ' ' + _gateLabel + '<br>Pass Rate: ' + _pct + '</p></body></html>';
+                // Reviewer + 관리자 메일
+                // ★ FIX 2026-05-21: 위에서 만든 reviewerHtml/adminHtml (rich version) 그대로 사용.
+                //   기존 버그: 여기서 var로 1줄 stub HTML을 재선언해서 위의 rich HTML이 폐기되고 stub만 발송됨.
                 var afcPayload = {
                     type: 'custom-email',
                     to: ep.reviewerEmail,
@@ -4309,7 +4318,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     adminHtml: _appendMopCta(adminHtml),
                     adminText: 'AFC ' + _gateLabel + ' by ' + _reviewer + ': ' + _title
                 };
-                gasPost(getAppsScriptUrl(), afcPayload,
+                // ★ FIX 2026-05-21: gasPost → gasPostEmail (fetch+retry 안정성)
+                gasPostEmail(getAppsScriptUrl(), afcPayload,
                     function(){ console.log('✓ AFC reviewer+admin email sent'); },
                     function(err){ console.error('✗ AFC reviewer+admin email error:', err); });
             }
