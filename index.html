@@ -620,16 +620,6 @@
                 </div>
             </div>
             <footer>
-                <!-- ★ FIX 2026-05-21: 문의 메일 링크 — 다국어 지원 -->
-                <div id="footerContact" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;font-size:0.82rem;color:rgba(255,255,255,0.45);flex-wrap:wrap;">
-                    <span id="footerContactPrompt">📧 Questions or feedback?</span>
-                    <a href="mailto:jake@medit.com?subject=%5BMOP%5D%20%EB%AC%B8%EC%9D%98%EC%82%AC%ED%95%AD&body=%0A%0A--%0AMOP%20%EC%82%AC%EC%9A%A9%20%EB%AC%B8%EC%9D%98"
-                       style="color:#60a5fa;text-decoration:none;font-weight:600;padding:3px 10px;border:1px solid rgba(96,165,250,0.3);border-radius:14px;background:rgba(96,165,250,0.08);transition:all 0.2s;"
-                       onmouseover="this.style.background='rgba(96,165,250,0.18)';this.style.borderColor='rgba(96,165,250,0.5)';"
-                       onmouseout="this.style.background='rgba(96,165,250,0.08)';this.style.borderColor='rgba(96,165,250,0.3)';">
-                        ✉ jake@medit.com
-                    </a>
-                </div>
                 <p>Copyright © 2026 MEDIT Corp. All rights reserved.</p>
                 <button id="settingsBtn" onclick="openSettings()" style="background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;font-size:0.8rem;margin-top:8px;padding:4px 8px;display:none;" title="Settings">⚙️ Settings</button>
             </footer>
@@ -703,13 +693,8 @@
     <div class="pw-overlay" id="settingsOverlay">
         <!-- ★ FIX 2026-05-21: 모달 사이즈 고정 (960x750) + 전체화면 토글 -->
         <div class="pw-modal" id="settingsModal" style="width:960px;height:750px;max-height:92vh;overflow:hidden;position:relative;display:flex;flex-direction:column;padding:32px 32px 24px;">
-            <!-- 우측 상단 버튼 그룹 — ★ FIX 2026-05-21: 언어 토글 추가 (overlay로 인해 외부 버튼 클릭 불가 해결) -->
+            <!-- 우측 상단 버튼 그룹 — 전체화면 + 새로고침 -->
             <div style="position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:10;align-items:center;">
-                <!-- 언어 토글 (모달 내부) -->
-                <div style="display:flex;background:#0f1525;border:1px solid #2d3a4f;border-radius:8px;overflow:hidden;height:36px;">
-                    <button onclick="setLang('en')" id="setLangEnBtn" style="background:transparent;border:none;color:#94a3b8;padding:0 12px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s;">EN</button>
-                    <button onclick="setLang('ko')" id="setLangKoBtn" style="background:transparent;border:none;color:#94a3b8;padding:0 12px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s;">한국어</button>
-                </div>
                 <button onclick="toggleSettingsFullscreen()" id="settingsFullscreenBtn" data-i18n-title="setFullscreenTitle" title="전체화면 토글" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">⛶</button>
                 <button onclick="reloadAccounts()" id="settingsReloadBtn" data-i18n-title="setRefreshTitle" title="새로고침" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">↻</button>
             </div>
@@ -784,7 +769,7 @@
                     <span id="dangerZoneIcon" style="display:inline-block;transition:transform 0.2s;">⚙️</span>
                     <span id="dangerZoneLabel" data-i18n="setAdvancedSettings">고급 설정</span>
                 </button>
-                <div id="dangerZoneContent" style="display:none;margin-top:12px;display:none;flex-direction:column;gap:10px;background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.12);border-radius:10px;padding:14px 16px;">
+                <div id="dangerZoneContent" style="display:none;margin-top:12px;flex-direction:column;gap:10px;background:rgba(239,68,68,0.04);border:1px solid rgba(239,68,68,0.12);border-radius:10px;padding:14px 16px;">
                     <div data-i18n="setDangerWarning" style="font-size:0.7rem;color:#f87171;font-weight:600;margin-bottom:4px;">⚠️ 위험 작업 — 신중히 사용</div>
                     <div>
                         <button data-i18n="setResetAll" onclick="clearAllData()" style="background:rgba(239,68,68,0.1);color:#ef4444;border:1px solid rgba(239,68,68,0.2);border-radius:8px;padding:8px 16px;font-size:0.8rem;font-weight:600;cursor:pointer;">🗑️ Reset All Data</button>
@@ -2496,6 +2481,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var _tt = i18n[currentLang] || i18n.en;
                 if (fetchedEl) fetchedEl.textContent = (_tt.emLastFetch||'Last fetched') + ': ' + ts + ' · ' + _emailLogCache.length + ' ' + (_tt.emTotalRows||'rows');
                 renderEmailLog();
+                // ★ FIX 2026-05-21: Dashboard 탭이 활성이면 quota 갱신 위해 자동 재렌더
+                try {
+                    var dashTabActive = document.getElementById('settingsTabDashboard') && document.getElementById('settingsTabDashboard').style.display !== 'none';
+                    if (dashTabActive && typeof renderDashboardStats === 'function') renderDashboardStats();
+                } catch(_){}
             } else if (j && j.success && j.data) {
                 // 옛 GAS — email-status 엔드포인트 미배포
                 console.warn('[loadEmailLog] OLD GAS detected — email-status endpoint not deployed');
@@ -3846,17 +3836,6 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         setTxt('changePwBtn', t.changePwBtn);
         document.getElementById('langEn').classList.toggle('active', lang === 'en');
         document.getElementById('langKo').classList.toggle('active', lang === 'ko');
-        // ★ FIX 2026-05-21: Settings 모달 내부 언어 버튼 active 상태 동기화
-        var setLangEn = document.getElementById('setLangEnBtn');
-        var setLangKo = document.getElementById('setLangKoBtn');
-        if (setLangEn) {
-            setLangEn.style.background = lang === 'en' ? '#3b82f6' : 'transparent';
-            setLangEn.style.color = lang === 'en' ? '#fff' : '#94a3b8';
-        }
-        if (setLangKo) {
-            setLangKo.style.background = lang === 'ko' ? '#3b82f6' : 'transparent';
-            setLangKo.style.color = lang === 'ko' ? '#fff' : '#94a3b8';
-        }
         // Gateway cards (null-safe)
         setTxt('headerDesc', t.headerDesc);
         setTxt('card1Desc', t.card1Desc);   setTxt('card1Link', t.card1Link);
@@ -3866,8 +3845,6 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         setTxt('card4Link', t.card4Link||'');
         setTxt('card1Role', t.card1Role);   setTxt('card2Role', t.card2Role);
         setTxt('card3Role', t.card3Role);   setTxt('card4Role', t.card4Role);
-        // ★ FIX 2026-05-21: Footer 문의 메일 prompt 다국어
-        setTxt('footerContactPrompt', t.footerContact);
         // ★ FIX 2026-05-21: Settings 모달 다국어 일괄 적용
         try { applySettingsI18n(); } catch(_){}
         // Forward language change to iframe if open
