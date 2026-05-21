@@ -575,9 +575,49 @@
         <span class="user-badge-role" id="userBadgeRole"></span>
         <button class="user-logout-btn" onclick="doLogout()" title="로그아웃">⏻</button>
     </div>
+    <!-- ★ FIX 2026-05-22: My Dashboard 트리거 — 다국어 토글 좌측에 배치 (로그인 시에만 표시) -->
+    <button id="homeDashBtn" onclick="openHomeDashboard()" title="My Dashboard"
+        style="position:fixed;top:20px;right:170px;z-index:9200;display:none;align-items:center;gap:6px;
+               padding:8px 14px;font-size:0.78rem;font-weight:600;font-family:'DM Sans',sans-serif;
+               background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
+               color:var(--text-muted);cursor:pointer;backdrop-filter:blur(12px);transition:all .25s;letter-spacing:.3px;"
+        onmouseover="this.style.background='rgba(59,130,246,0.18)';this.style.color='#60a5fa';this.style.borderColor='rgba(59,130,246,0.4)'"
+        onmouseout="this.style.background='var(--bg-card)';this.style.color='var(--text-muted)';this.style.borderColor='var(--border)'">
+        <span style="font-size:0.95rem;">📊</span>
+        <span id="homeDashBtnLabel">My Dashboard</span>
+    </button>
     <div class="lang-toggle" id="langToggle">
         <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
         <button class="lang-btn" id="langKo" onclick="setLang('ko')">한국어</button>
+    </div>
+
+    <!-- ★ FIX 2026-05-22: My Dashboard Modal (Settings 모달과 동일 스타일) -->
+    <div class="pw-overlay" id="homeDashOverlay">
+        <div class="pw-modal" id="homeDashModal" style="width:1060px;height:760px;max-height:92vh;overflow:hidden;position:relative;display:flex;flex-direction:column;padding:32px 32px 24px;">
+            <div style="position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:10;align-items:center;">
+                <button onclick="toggleHomeDashFullscreen()" id="homeDashFullscreenBtn" title="전체화면 토글" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">⛶</button>
+                <button onclick="renderHomeDashboard()" id="homeDashRefreshBtn" title="새로고침" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">↻</button>
+            </div>
+            <div class="pw-icon" style="flex-shrink:0;">📊</div>
+            <div class="pw-title" id="homeDashModalTitle" style="flex-shrink:0;">My Dashboard</div>
+            <div id="homeDashSubtitle" style="font-size:0.82rem;color:#64748b;text-align:center;margin-top:-8px;margin-bottom:18px;flex-shrink:0;">At-a-glance status overview</div>
+            <div style="flex:1;overflow-y:auto;overflow-x:hidden;padding-right:6px;min-height:0;">
+                <div id="homeDashContent">
+                    <!-- KPI 4-card row -->
+                    <div id="homeKpiCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;"></div>
+                    <!-- 단계별 분포 + AFC Gate 분포 -->
+                    <div id="homeStageDist" style="margin-bottom:18px;"></div>
+                    <!-- To-do + 최근 제출 (2-col) -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                        <div id="homeTodoBox" style="background:rgba(15,21,37,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;"></div>
+                        <div id="homeRecentBox" style="background:rgba(15,21,37,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:flex-end;gap:8px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.06);margin-top:14px;flex-shrink:0;">
+                <button id="homeDashCloseBtn" onclick="closeHomeDashboard()" style="padding:9px 22px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#cbd5e1;cursor:pointer;font-size:0.85rem;font-weight:600;font-family:'DM Sans',sans-serif;transition:all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.12)'" onmouseout="this.style.background='rgba(255,255,255,0.06)'">Close</button>
+            </div>
+        </div>
     </div>
     <div id="gateway-view" style="display:none;">
         <div class="container">
@@ -593,34 +633,7 @@
                 <div class="flow-step"><span class="step-num">4</span> Portfolio</div>
             </div>
 
-            <!-- ★ FIX 2026-05-21: Home Dashboard — 임원/PM용 한 화면 현황 파악 -->
-            <div id="homeDashboard" style="background:linear-gradient(180deg,rgba(15,21,37,0.4),rgba(15,21,37,0.2));border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:22px 26px;margin-bottom:30px;backdrop-filter:blur(8px);">
-                <!-- 헤더 + 토글 -->
-                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
-                    <div>
-                        <div id="homeDashTitle" style="font-size:1.05rem;font-weight:700;color:#e2e8f0;display:flex;align-items:center;gap:8px;">
-                            <span style="font-size:1.2rem;">📊</span>
-                            <span id="homeDashTitleText">My Dashboard</span>
-                        </div>
-                        <div id="homeDashSubtitle" style="font-size:0.75rem;color:#64748b;margin-top:2px;">At-a-glance status overview</div>
-                    </div>
-                    <div style="display:flex;gap:6px;">
-                        <button onclick="renderHomeDashboard()" title="Refresh" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;">↻</button>
-                        <button onclick="toggleHomeDashboard()" id="homeDashToggleBtn" title="Collapse" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:#94a3b8;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:0.85rem;display:flex;align-items:center;justify-content:center;">▼</button>
-                    </div>
-                </div>
-                <div id="homeDashContent">
-                    <!-- KPI 4-card row -->
-                    <div id="homeKpiCards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;"></div>
-                    <!-- 단계별 분포 + AFC Gate 분포 -->
-                    <div id="homeStageDist" style="margin-bottom:18px;"></div>
-                    <!-- To-do + 최근 제출 (2-col) -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                        <div id="homeTodoBox" style="background:rgba(15,21,37,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;"></div>
-                        <div id="homeRecentBox" style="background:rgba(15,21,37,0.5);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;"></div>
-                    </div>
-                </div>
-            </div>
+            <!-- ★ FIX 2026-05-21: Home Dashboard 는 헤더 우측 📊 버튼으로 모달 표시 (메인 화면 비움) -->
 
             <div class="cards">
                 <div class="card" id="card1" onclick="handleCardClick('form')">
@@ -2037,6 +2050,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         document.getElementById('gateway-view').style.display = 'none';
         document.getElementById('userBadge').style.display = 'none';
         document.getElementById('settingsBtn').style.display = 'none';
+        // ★ FIX 2026-05-22: My Dashboard 트리거 숨김 + 열려있던 모달 닫기
+        try { var hd=document.getElementById('homeDashBtn'); if (hd) hd.style.display='none'; } catch(_){}
+        try { document.getElementById('homeDashOverlay').classList.remove('active'); } catch(_){}
         document.getElementById('loginOverlay').style.display = 'flex';
         document.getElementById('loginUsername').value = '';
         document.getElementById('loginPassword').value = '';
@@ -2058,27 +2074,64 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         roleEl.className = 'user-badge-role ' + _currentUser.role;
         // Settings: admin only
         document.getElementById('settingsBtn').style.display = _currentUser.role === 'admin' ? '' : 'none';
-        // ★ FIX 2026-05-21: 로그인 직후 Home Dashboard 렌더
-        try { renderHomeDashboard(); } catch(e) { console.error('[renderHomeDashboard]', e); }
-        // cloudLoad 완료 후 자동 갱신 (다른 브라우저 변경 반영)
-        setTimeout(function(){ try { renderHomeDashboard(); } catch(_){} }, 2500);
+        // ★ FIX 2026-05-22: My Dashboard 트리거 버튼 노출 (로그인 시에만)
+        var dashBtn = document.getElementById('homeDashBtn');
+        if (dashBtn) dashBtn.style.display = 'flex';
+        // i18n 라벨 적용 (모달은 열릴 때만 렌더)
+        try { _applyHomeDashLabel(); } catch(_){}
     }
 
-    // ★ FIX 2026-05-21: Home Dashboard 토글
-    window.toggleHomeDashboard = function() {
-        var content = document.getElementById('homeDashContent');
-        var btn = document.getElementById('homeDashToggleBtn');
-        if (!content || !btn) return;
-        if (content.style.display === 'none') {
-            content.style.display = '';
-            btn.textContent = '▼';
-            try { localStorage.setItem('mop_homeDash_collapsed', '0'); } catch(_){}
-        } else {
-            content.style.display = 'none';
-            btn.textContent = '▲';
-            try { localStorage.setItem('mop_homeDash_collapsed', '1'); } catch(_){}
-        }
+    // ★ FIX 2026-05-22: My Dashboard 모달 트리거 라벨 다국어 적용
+    function _applyHomeDashLabel() {
+        try {
+            var t = i18n[currentLang] || i18n.en;
+            var lbl = document.getElementById('homeDashBtnLabel');
+            if (lbl) lbl.textContent = (t && t.homeDashTitle) ? t.homeDashTitle : 'My Dashboard';
+            var btn = document.getElementById('homeDashBtn');
+            if (btn) btn.setAttribute('title', (t && t.homeDashSubtitle) ? t.homeDashSubtitle : 'At-a-glance status overview');
+        } catch(_){}
+    }
+
+    // ★ FIX 2026-05-22: My Dashboard 모달 열기 / 닫기
+    window.openHomeDashboard = function() {
+        try {
+            var overlay = document.getElementById('homeDashOverlay');
+            if (!overlay) return;
+            overlay.classList.add('active');
+            // 모달 진입 시 최신 데이터로 렌더 + cloudLoad 트리거
+            try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
+            try { renderHomeDashboard(); } catch(e) { console.error('[renderHomeDashboard]', e); }
+            // cloudLoad 완료 후 한 번 더 갱신
+            setTimeout(function(){ try { renderHomeDashboard(); } catch(_){} }, 1200);
+        } catch(_){}
     };
+    window.closeHomeDashboard = function() {
+        try { document.getElementById('homeDashOverlay').classList.remove('active'); } catch(_){}
+    };
+
+    // ★ FIX 2026-05-22: My Dashboard 모달 전체화면 토글
+    var _homeDashFullscreen = false;
+    window.toggleHomeDashFullscreen = function() {
+        try {
+            _homeDashFullscreen = !_homeDashFullscreen;
+            var modal = document.getElementById('homeDashModal');
+            var btn = document.getElementById('homeDashFullscreenBtn');
+            if (!modal) return;
+            if (_homeDashFullscreen) {
+                modal.style.width = '98vw';
+                modal.style.height = '96vh';
+                modal.style.maxHeight = '96vh';
+                if (btn) btn.textContent = '⛶';
+            } else {
+                modal.style.width = '1060px';
+                modal.style.height = '760px';
+                modal.style.maxHeight = '92vh';
+                if (btn) btn.textContent = '⛶';
+            }
+        } catch(_){}
+    };
+    // 호환: 기존 toggleHomeDashboard 호출 잔재가 있어도 깨지지 않도록 alias
+    window.toggleHomeDashboard = window.openHomeDashboard;
 
     // ★ FIX 2026-05-21: Home Dashboard 메인 렌더링 — 역할별 적응형
     window.renderHomeDashboard = function() {
@@ -2101,20 +2154,15 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 } catch(_) { return null; }
             }
 
-            // Title 갱신
-            var titleEl = document.getElementById('homeDashTitleText');
+            // ★ FIX 2026-05-22: 모달 헤더 i18n (제목 / 부제 / 닫기 버튼)
+            var titleEl = document.getElementById('homeDashModalTitle');
             if (titleEl) titleEl.textContent = _h('homeDashTitle','My Dashboard');
             var subEl = document.getElementById('homeDashSubtitle');
             if (subEl) subEl.textContent = _h('homeDashSubtitle','At-a-glance status overview');
-
-            // 토글 상태 복원
-            try {
-                var collapsed = localStorage.getItem('mop_homeDash_collapsed') === '1';
-                var content = document.getElementById('homeDashContent');
-                var btn = document.getElementById('homeDashToggleBtn');
-                if (content) content.style.display = collapsed ? 'none' : '';
-                if (btn) btn.textContent = collapsed ? '▲' : '▼';
-            } catch(_){}
+            var closeEl = document.getElementById('homeDashCloseBtn');
+            if (closeEl) closeEl.textContent = _h('setBtnClose', isKo ? '닫기' : 'Close');
+            // 트리거 버튼 라벨도 동기화
+            try { _applyHomeDashLabel(); } catch(_){}
 
             var subs = mopSubmissions || [];
             var revs = mopReviews || [];
@@ -3671,7 +3719,23 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (e.key === 'Enter') submitPw();
             if (e.key === 'Escape') closePwModal();
         }
+        // ★ FIX 2026-05-22: My Dashboard 모달 Escape 닫기
+        try {
+            var hd = document.getElementById('homeDashOverlay');
+            if (hd && hd.classList.contains('active') && e.key === 'Escape') {
+                closeHomeDashboard();
+            }
+        } catch(_){}
     });
+    // ★ FIX 2026-05-22: My Dashboard overlay 빈 영역 클릭 시 닫기
+    setTimeout(function() {
+        try {
+            var ov = document.getElementById('homeDashOverlay');
+            if (ov) ov.addEventListener('click', function(e) {
+                if (e.target === ov) closeHomeDashboard();
+            });
+        } catch(_){}
+    }, 100);
 
     var i18n = {
         en: {
@@ -3826,6 +3890,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         setTxt('card4Link', t.card4Link||'');
         setTxt('card1Role', t.card1Role);   setTxt('card2Role', t.card2Role);
         setTxt('card3Role', t.card3Role);   setTxt('card4Role', t.card4Role);
+        // ★ FIX 2026-05-22: My Dashboard 트리거 라벨 + (열려있다면) 모달 헤더 다국어 적용
+        try { if (typeof _applyHomeDashLabel === 'function') _applyHomeDashLabel(); } catch(_){}
+        try {
+            var hdOv = document.getElementById('homeDashOverlay');
+            if (hdOv && hdOv.classList.contains('active') && typeof renderHomeDashboard === 'function') renderHomeDashboard();
+        } catch(_){}
         // Forward language change to iframe if open
         try {
             var iframe = document.getElementById('tool-iframe');
@@ -5010,7 +5080,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     title: rev.title || sd.opportunityTitle || ('MOP-' + rid),
                     owner: rev.reviewer || sd.requestOwner || '',
                     region: sd.division || '',
-                                      score: rev.score || 0,
+                    score: rev.score || 0,
                     maxScore: rev.maxScore || 0,
                     percentage: rev.percentage || 0,
                     gate: st.gate,
