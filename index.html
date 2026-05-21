@@ -693,8 +693,13 @@
     <div class="pw-overlay" id="settingsOverlay">
         <!-- ★ FIX 2026-05-21: 모달 사이즈 고정 (960x750) + 전체화면 토글 -->
         <div class="pw-modal" id="settingsModal" style="width:960px;height:750px;max-height:92vh;overflow:hidden;position:relative;display:flex;flex-direction:column;padding:32px 32px 24px;">
-            <!-- 우측 상단 버튼 그룹 -->
-            <div style="position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:10;">
+            <!-- 우측 상단 버튼 그룹 — ★ FIX 2026-05-21: 언어 토글 추가 (overlay로 인해 외부 버튼 클릭 불가 해결) -->
+            <div style="position:absolute;top:14px;right:14px;display:flex;gap:6px;z-index:10;align-items:center;">
+                <!-- 언어 토글 (모달 내부) -->
+                <div style="display:flex;background:#0f1525;border:1px solid #2d3a4f;border-radius:8px;overflow:hidden;height:36px;">
+                    <button onclick="setLang('en')" id="setLangEnBtn" style="background:transparent;border:none;color:#94a3b8;padding:0 12px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s;">EN</button>
+                    <button onclick="setLang('ko')" id="setLangKoBtn" style="background:transparent;border:none;color:#94a3b8;padding:0 12px;font-size:0.75rem;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s;">한국어</button>
+                </div>
                 <button onclick="toggleSettingsFullscreen()" id="settingsFullscreenBtn" data-i18n-title="setFullscreenTitle" title="전체화면 토글" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">⛶</button>
                 <button onclick="reloadAccounts()" id="settingsReloadBtn" data-i18n-title="setRefreshTitle" title="새로고침" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:8px;width:36px;height:36px;cursor:pointer;font-size:1rem;color:#94a3b8;display:flex;align-items:center;justify-content:center;transition:all 0.2s;" onmouseover="this.style.background='rgba(59,130,246,0.15)';this.style.color='#60a5fa'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='#94a3b8'">↻</button>
             </div>
@@ -2187,8 +2192,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (tab === 'dashboard') {
             // Dashboard 자동 렌더링 + cloudLoad로 최신 데이터 반영
             try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
+            // ★ FIX 2026-05-21: Dashboard 의 메일 헬스 카드를 위해 EmailLog 도 자동 로드
+            try { if (typeof loadEmailLog === 'function' && (!_emailLogCache || !_emailLogCache.length)) loadEmailLog(); } catch(_){}
             try { renderDashboardStats(); } catch(_){}
         }
+        // ★ FIX 2026-05-21: 매 탭 전환마다 i18n 재적용 (static + dynamic 모두)
+        try { applySettingsI18n(); } catch(_){}
     }
 
     // ★ FIX 2026-05-21: Dashboard 통계 렌더링 (다국어 지원)
@@ -2223,15 +2232,28 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             var revsToday   = revs.filter(function(r){ return r && extractDate(r.date) === today; }).length;
             var signupsToday= accs.filter(function(a){ return a && a.signupDate && extractDate(a.signupDate) === today; }).length;
 
+            // ★ FIX 2026-05-21: 통계 진단 로그 — admin이 F12 콘솔에서 수치 검증 가능
+            console.group('[MOP Dashboard Stats] ' + today);
+            console.log('Today active:', activeToday, '/ Total accounts:', accs.length);
+            console.log('Today submissions:', subsToday, '/ Total:', subs.length);
+            console.log('Today reviews:', revsToday, '/ Total:', revs.length);
+            console.log('Today signups:', signupsToday);
+            console.log('Sample submissions[0]:', subs[0]);
+            console.log('Sample reviews[0]:', revs[0]);
+            console.log('Sample accounts[0]:', accs[0]);
+            console.groupEnd();
+
+            // ★ FIX 2026-05-21: detail 라벨 명확하게 — 언어별 자연스러운 포맷
+            var isKo = currentLang === 'ko';
             document.getElementById('dbActiveToday').textContent = activeToday;
-            document.getElementById('dbActiveTodayDetail').textContent = _t('dbTotalUsers','/ Total') + ' ' + accs.length + _t('dbPeople','');
+            document.getElementById('dbActiveTodayDetail').textContent = isKo ? ('전체 ' + accs.length + '명 중') : ('of ' + accs.length + ' total');
             document.getElementById('dbSubsToday').textContent = subsToday;
-            document.getElementById('dbSubsTodayDetail').textContent = _t('dbCount','') + ' / ' + _t('dbTotalUsers','/ Total').replace('/','') + ' ' + subs.length;
+            document.getElementById('dbSubsTodayDetail').textContent = isKo ? ('전체 ' + subs.length + '건 중') : ('of ' + subs.length + ' total');
             document.getElementById('dbRevToday').textContent = revsToday;
-            document.getElementById('dbRevTodayDetail').textContent = _t('dbCount','') + ' / ' + _t('dbTotalUsers','/ Total').replace('/','') + ' ' + revs.length;
+            document.getElementById('dbRevTodayDetail').textContent = isKo ? ('전체 ' + revs.length + '건 중') : ('of ' + revs.length + ' total');
             document.getElementById('dbSignupsToday').textContent = signupsToday;
             var pendCnt = accs.filter(function(a){return a&&a.approved===false;}).length;
-            document.getElementById('dbSignupsTodayDetail').textContent = signupsToday + _t('dbCount','') + ' (' + _t('dbPendingCount','pending') + ' ' + pendCnt + ')';
+            document.getElementById('dbSignupsTodayDetail').textContent = isKo ? ('승인 대기 ' + pendCnt + '명') : (pendCnt + ' pending approval');
 
             // === 제출 파이프라인 ===
             var pendingCnt = 0, inS2Cnt = 0, inS3Cnt = 0, doneCnt = 0;
@@ -2248,12 +2270,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             function barLine(label, value, max, color, labelWidth) {
                 var pct = max > 0 ? Math.round(value/max*100) : 0;
                 var lw = labelWidth || 90;
-                return '<div style="display:flex;align-items:center;gap:8px;">'+
-                    '<div style="width:'+lw+'px;min-width:'+lw+'px;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+esc(label)+'">'+esc(label)+'</div>'+
-                    '<div style="flex:1;height:14px;background:#1e293b;border-radius:7px;overflow:hidden;">'+
+                // ★ FIX 2026-05-21: 절대 줄바꿈 차단 — flex-shrink:0 + min-width:0 (bar) 명시
+                return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;white-space:nowrap;">'+
+                    '<div style="width:'+lw+'px;min-width:'+lw+'px;max-width:'+lw+'px;flex-shrink:0;color:#cbd5e1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="'+esc(label)+'">'+esc(label)+'</div>'+
+                    '<div style="flex:1;min-width:0;height:14px;background:#1e293b;border-radius:7px;overflow:hidden;">'+
                         '<div style="height:100%;width:'+pct+'%;background:'+color+';"></div>'+
                     '</div>'+
-                    '<div style="width:50px;text-align:right;font-weight:700;color:'+color+';">'+value+'</div>'+
+                    '<div style="width:50px;min-width:50px;flex-shrink:0;text-align:right;font-weight:700;color:'+color+';">'+value+'</div>'+
                     '</div>';
             }
             var maxPipe = Math.max(pendingCnt, inS2Cnt, inS3Cnt, doneCnt, 1);
@@ -2312,8 +2335,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             var reviewersHtml = '';
             revEntries.slice(0, 6).forEach(function(name, i){
                 var medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '👤';
-                // ★ FIX 2026-05-21: 리뷰어 이름은 길 수 있어 label width 160px 확장
-                reviewersHtml += barLine(medal + ' ' + name, reviewerMap[name], maxRev, '#a855f7', 160);
+                // ★ FIX 2026-05-21: 리뷰어 이름 한 줄 보장 — label width 180px + ellipsis
+                reviewersHtml += barLine(medal + ' ' + name, reviewerMap[name], maxRev, '#a855f7', 180);
             });
             if (!revEntries.length) reviewersHtml = '<div style="color:#64748b;padding:14px 0;text-align:center;">'+_t('dbNoReviews','No reviews')+'</div>';
             document.getElementById('dbReviewers').innerHTML = reviewersHtml;
@@ -2360,10 +2383,18 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             var emFailed = emailToday.filter(function(e){return e.status==='failed';}).length;
             var quota = _emailQuotaCache != null ? _emailQuotaCache : null;
             var quotaColor = quota == null ? '#64748b' : quota >= 50 ? '#10b981' : quota >= 20 ? '#f59e0b' : '#ef4444';
+            // ★ FIX 2026-05-21: quota 가 null 이면 로드 안 됨 안내
+            var quotaDisplay = quota != null ? quota.toLocaleString() : '—';
+            var quotaHelpText = '';
+            if (quota == null) {
+                quotaHelpText = isKo ? '📧 메일 로그 탭에서 ↻ 클릭 후 다시 확인' : 'Click ↻ in Email Log tab first';
+            } else {
+                quotaHelpText = _t('dbEmailNote','See Email Log tab for details');
+            }
             document.getElementById('dbEmailHealth').innerHTML =
                 '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'+
                     '<span style="color:#cbd5e1;">'+_t('dbEmailQuota','Remaining')+'</span>'+
-                    '<span style="font-weight:800;font-size:1.1rem;color:'+quotaColor+';">'+(quota != null ? quota : '—')+'</span>'+
+                    '<span style="font-weight:800;font-size:1.1rem;color:'+quotaColor+';">'+quotaDisplay+'</span>'+
                 '</div>'+
                 '<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'+
                     '<span style="color:#cbd5e1;">'+_t('dbEmailSent','Sent Today')+'</span><span style="font-weight:700;color:#22c55e;">'+emSent+'</span>'+
@@ -2371,7 +2402,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 '<div style="display:flex;justify-content:space-between;padding:4px 0;">'+
                     '<span style="color:#cbd5e1;">'+_t('dbEmailFailed','Failed Today')+'</span><span style="font-weight:700;color:#ef4444;">'+emFailed+'</span>'+
                 '</div>'+
-                '<div style="font-size:0.65rem;color:#64748b;margin-top:6px;text-align:center;">'+_t('dbEmailNote','See Email Log tab for details')+'</div>';
+                '<div style="font-size:0.65rem;color:#64748b;margin-top:6px;text-align:center;">'+quotaHelpText+'</div>';
 
             // === 최근 활동 피드 (Top 10) ===
             var feed = [];
@@ -3752,6 +3783,17 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         setTxt('changePwBtn', t.changePwBtn);
         document.getElementById('langEn').classList.toggle('active', lang === 'en');
         document.getElementById('langKo').classList.toggle('active', lang === 'ko');
+        // ★ FIX 2026-05-21: Settings 모달 내부 언어 버튼 active 상태 동기화
+        var setLangEn = document.getElementById('setLangEnBtn');
+        var setLangKo = document.getElementById('setLangKoBtn');
+        if (setLangEn) {
+            setLangEn.style.background = lang === 'en' ? '#3b82f6' : 'transparent';
+            setLangEn.style.color = lang === 'en' ? '#fff' : '#94a3b8';
+        }
+        if (setLangKo) {
+            setLangKo.style.background = lang === 'ko' ? '#3b82f6' : 'transparent';
+            setLangKo.style.color = lang === 'ko' ? '#fff' : '#94a3b8';
+        }
         // Gateway cards (null-safe)
         setTxt('headerDesc', t.headerDesc);
         setTxt('card1Desc', t.card1Desc);   setTxt('card1Link', t.card1Link);
