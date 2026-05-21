@@ -4361,6 +4361,17 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             var hdOv = document.getElementById('dashboard-view');
             if (hdOv && hdOv.classList.contains('active') && typeof renderHomeDashboard === 'function') renderHomeDashboard();
         } catch(_){}
+        // ★ FIX 2026-05-22: Settings 모달이 열려있으면 i18n 즉시 적용 (탭 클릭 기다리지 않음)
+        try {
+            var setOv = document.getElementById('settingsOverlay');
+            if (setOv && setOv.classList.contains('active')) {
+                if (typeof applySettingsI18n === 'function') applySettingsI18n();
+                // 동적 렌더되는 영역도 갱신 (Dashboard 통계 / Email 로그 / Account 목록)
+                try { if (typeof renderDashboardStats === 'function') renderDashboardStats(); } catch(_){}
+                try { if (typeof renderEmailLog === 'function') renderEmailLog(); } catch(_){}
+                try { if (typeof renderAccList === 'function') renderAccList(); } catch(_){}
+            }
+        } catch(_){}
         // Forward language change to iframe if open
         try {
             var iframe = document.getElementById('tool-iframe');
