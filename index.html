@@ -620,6 +620,16 @@
                 </div>
             </div>
             <footer>
+                <!-- ★ FIX 2026-05-21: 문의 메일 링크 — 다국어 지원 -->
+                <div id="footerContact" style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;font-size:0.82rem;color:rgba(255,255,255,0.45);flex-wrap:wrap;">
+                    <span id="footerContactPrompt">📧 Questions or feedback?</span>
+                    <a href="mailto:jake@medit.com?subject=%5BMOP%5D%20%EB%AC%B8%EC%9D%98%EC%82%AC%ED%95%AD&body=%0A%0A--%0AMOP%20%EC%82%AC%EC%9A%A9%20%EB%AC%B8%EC%9D%98"
+                       style="color:#60a5fa;text-decoration:none;font-weight:600;padding:3px 10px;border:1px solid rgba(96,165,250,0.3);border-radius:14px;background:rgba(96,165,250,0.08);transition:all 0.2s;"
+                       onmouseover="this.style.background='rgba(96,165,250,0.18)';this.style.borderColor='rgba(96,165,250,0.5)';"
+                       onmouseout="this.style.background='rgba(96,165,250,0.08)';this.style.borderColor='rgba(96,165,250,0.3)';">
+                        ✉ jake@medit.com
+                    </a>
+                </div>
                 <p>Copyright © 2026 MEDIT Corp. All rights reserved.</p>
                 <button id="settingsBtn" onclick="openSettings()" style="background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;font-size:0.8rem;margin-top:8px;padding:4px 8px;display:none;" title="Settings">⚙️ Settings</button>
             </footer>
@@ -3382,6 +3392,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             card3Role: 'PM & MKT Director & MELC',
             card4Role: 'Department Group Leader',
 
+            // ★ Footer
+            footerContact: '📧 Questions or feedback?',
+            footerCopyright: 'Copyright © 2026 MEDIT Corp. All rights reserved.',
+
             // ★ Settings — Modal title + Tabs
             setTitle: 'MOP Settings',
             setTabDashboard: '📊 Dashboard',
@@ -3588,6 +3602,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             card2Role: 'Regional Marketing Director',
             card3Role: 'PM & MKT Director & MELC',
             card4Role: 'Department Group Leader',
+
+            // ★ Footer
+            footerContact: '📧 문의사항이 있으신가요?',
+            footerCopyright: 'Copyright © 2026 MEDIT Corp. All rights reserved.',
 
             // ★ Settings — Modal title + Tabs
             setTitle: 'MOP 설정',
@@ -3848,6 +3866,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         setTxt('card4Link', t.card4Link||'');
         setTxt('card1Role', t.card1Role);   setTxt('card2Role', t.card2Role);
         setTxt('card3Role', t.card3Role);   setTxt('card4Role', t.card4Role);
+        // ★ FIX 2026-05-21: Footer 문의 메일 prompt 다국어
+        setTxt('footerContactPrompt', t.footerContact);
         // ★ FIX 2026-05-21: Settings 모달 다국어 일괄 적용
         try { applySettingsI18n(); } catch(_){}
         // Forward language change to iframe if open
