@@ -360,6 +360,78 @@
         #dashboard-view .dashboard-inner {
             max-width: 1180px; margin: 0 auto;
         }
+        /* ★ NEW 2026-05-22: Approval Workflow 페이지 뷰 */
+        #approval-view {
+            display: none; position: fixed; inset: 0;
+            z-index: 100; background: var(--bg-deep);
+            flex-direction: column;
+        }
+        #approval-view.active { display: flex; }
+        #approval-view .approval-body {
+            flex: 1; overflow-y: auto; overflow-x: hidden;
+            padding: 36px 48px;
+            background: var(--bg-deep);
+        }
+        #approval-view .approval-inner {
+            max-width: 1280px; margin: 0 auto;
+        }
+        /* Stage Gate funnel */
+        .ap-funnel { display:grid; grid-template-columns: repeat(4, 1fr); gap:14px; margin-bottom:24px; position:relative; }
+        .ap-stage-card {
+            background: rgba(15,21,37,0.6); border:1px solid rgba(255,255,255,0.08); border-radius:14px;
+            padding:18px 16px; cursor:pointer; transition: all .2s ease; position:relative;
+        }
+        .ap-stage-card:hover { border-color: rgba(59,130,246,0.4); transform: translateY(-2px); }
+        .ap-stage-card.active { border-color:#3b82f6; background: rgba(59,130,246,0.12); box-shadow: 0 0 0 1px rgba(59,130,246,0.3); }
+        .ap-stage-icon { font-size:1.6rem; margin-bottom:6px; }
+        .ap-stage-label { font-size:0.7rem; letter-spacing:2px; color:#94a3b8; font-weight:700; text-transform:uppercase; margin-bottom:4px; }
+        .ap-stage-name { font-size:1.05rem; font-weight:700; color:#e2e8f0; margin-bottom:8px; }
+        .ap-stage-count { font-size:1.8rem; font-weight:800; line-height:1; }
+        .ap-stage-sub { font-size:0.7rem; color:#64748b; margin-top:6px; }
+        .ap-stage-arrow {
+            position:absolute; top:50%; right:-12px; transform:translateY(-50%);
+            color:#475569; font-size:1.4rem; z-index:1; pointer-events:none;
+        }
+        /* Region filter */
+        .ap-region-tabs { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:18px; }
+        .ap-region-tab {
+            padding:6px 14px; border-radius:18px; border:1px solid rgba(255,255,255,0.1);
+            background: transparent; color:#94a3b8; font-size:0.78rem; font-weight:600; cursor:pointer; transition: all .2s;
+        }
+        .ap-region-tab:hover { color:#e2e8f0; border-color:rgba(255,255,255,0.25); }
+        .ap-region-tab.active { background:#3b82f6; color:#fff; border-color:#3b82f6; }
+        /* Approval list */
+        .ap-list-wrap { background: rgba(15,21,37,0.5); border:1px solid rgba(255,255,255,0.06); border-radius:12px; overflow:hidden; }
+        .ap-list-table { width:100%; border-collapse: collapse; }
+        .ap-list-table th { background: rgba(255,255,255,0.03); padding:12px 14px; text-align:left; font-size:0.7rem;
+            letter-spacing:1px; color:#94a3b8; font-weight:700; text-transform:uppercase; border-bottom:1px solid rgba(255,255,255,0.08); }
+        .ap-list-table td { padding:14px; border-bottom:1px solid rgba(255,255,255,0.05); color:#cbd5e1; font-size:0.85rem; vertical-align:top; }
+        .ap-list-table tr.ap-row { cursor:pointer; transition: background .15s; }
+        .ap-list-table tr.ap-row:hover { background: rgba(59,130,246,0.06); }
+        .ap-stage-badge {
+            display:inline-block; padding:3px 10px; border-radius:12px; font-size:0.7rem; font-weight:700; letter-spacing:0.5px;
+        }
+        .ap-badge-discovery   { background: rgba(168,85,247,0.15); color:#c084fc; border:1px solid rgba(168,85,247,0.3); }
+        .ap-badge-concept     { background: rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); }
+        .ap-badge-development { background: rgba(245,158,11,0.15); color:#fbbf24; border:1px solid rgba(245,158,11,0.3); }
+        .ap-badge-launch      { background: rgba(34,197,94,0.15); color:#4ade80; border:1px solid rgba(34,197,94,0.3); }
+        .ap-gate-go    { background: rgba(34,197,94,0.15); color:#4ade80; padding:2px 8px; border-radius:8px; font-size:0.72rem; font-weight:700; }
+        .ap-gate-cond  { background: rgba(245,158,11,0.15); color:#fbbf24; padding:2px 8px; border-radius:8px; font-size:0.72rem; font-weight:700; }
+        .ap-gate-nogo  { background: rgba(239,68,68,0.15); color:#f87171; padding:2px 8px; border-radius:8px; font-size:0.72rem; font-weight:700; }
+        .ap-gate-none  { background: rgba(148,163,184,0.12); color:#94a3b8; padding:2px 8px; border-radius:8px; font-size:0.72rem; font-weight:700; }
+        /* Timeline (expanded) */
+        .ap-timeline { background: rgba(8,12,24,0.5); border-top:1px solid rgba(59,130,246,0.2); padding:18px 24px; }
+        .ap-tl-row { display:grid; grid-template-columns: 32px 130px 1fr; gap:14px; align-items:flex-start; padding:10px 0; border-bottom:1px dashed rgba(255,255,255,0.05); }
+        .ap-tl-row:last-child { border-bottom:none; }
+        .ap-tl-icon { font-size:1.2rem; text-align:center; line-height:1; padding-top:2px; }
+        .ap-tl-step { font-size:0.7rem; color:#64748b; letter-spacing:1px; font-weight:700; text-transform:uppercase; padding-top:3px; }
+        .ap-tl-body { font-size:0.85rem; color:#cbd5e1; line-height:1.55; }
+        .ap-tl-body b { color:#e2e8f0; }
+        .ap-tl-meta { font-size:0.72rem; color:#64748b; margin-top:2px; }
+        .ap-tl-note { background: rgba(245,158,11,0.08); border-left:3px solid #f59e0b; padding:8px 12px; margin-top:6px; font-size:0.8rem; color:#fbbf24; border-radius:0 6px 6px 0; }
+        .ap-tl-note.nogo { background: rgba(239,68,68,0.08); border-left-color:#ef4444; color:#fca5a5; }
+        .ap-tl-skipped { color:#475569; font-style:italic; font-size:0.78rem; }
+        .ap-empty { text-align:center; padding:48px 24px; color:#64748b; font-size:0.9rem; }
         .iframe-topbar {
             background: var(--bg-card); border-bottom: 1px solid var(--border);
             padding: 10px 20px; display: flex; align-items: center; gap: 16px;
@@ -601,6 +673,17 @@
         <span style="font-size:0.95rem;">📊</span>
         <span id="homeDashBtnLabel">My Dashboard</span>
     </button>
+    <!-- ★ NEW 2026-05-22: Approval Workflow 트리거 (My Dashboard 좌측에 배치, 로그인 시에만 표시) -->
+    <button id="approvalBtn" onclick="openApprovalView()" title="Approval Workflow"
+        style="position:fixed;top:20px;right:308px;z-index:9200;display:none;align-items:center;gap:6px;
+               padding:8px 14px;font-size:0.78rem;font-weight:600;font-family:'DM Sans',sans-serif;
+               background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
+               color:var(--text-muted);cursor:pointer;backdrop-filter:blur(12px);transition:all .25s;letter-spacing:.3px;"
+        onmouseover="this.style.background='rgba(168,85,247,0.18)';this.style.color='#c084fc';this.style.borderColor='rgba(168,85,247,0.4)'"
+        onmouseout="this.style.background='var(--bg-card)';this.style.color='var(--text-muted)';this.style.borderColor='var(--border)'">
+        <span style="font-size:0.95rem;">🏛️</span>
+        <span id="approvalBtnLabel">Approval</span>
+    </button>
     <div class="lang-toggle" id="langToggle">
         <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
         <button class="lang-btn" id="langKo" onclick="setLang('ko')">한국어</button>
@@ -644,6 +727,29 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+    <!-- ★ NEW 2026-05-22: Approval Workflow 페이지 뷰 -->
+    <div id="approval-view">
+        <div class="iframe-topbar">
+            <button class="back-btn" onclick="closeApprovalView()" id="apBackBtn">← Back</button>
+            <span class="iframe-badge" id="apBadge" style="background:rgba(168,85,247,0.15);color:#c084fc;">🏛️ APPROVAL</span>
+            <span class="iframe-title" id="apTitleText">Approval Workflow</span>
+        </div>
+        <div class="approval-body">
+            <div class="approval-inner">
+                <div style="text-align:center;margin-bottom:24px;">
+                    <div style="font-size:2rem;margin-bottom:8px;">🏛️</div>
+                    <div id="apModalTitle" style="font-size:1.6rem;font-weight:700;color:#e2e8f0;letter-spacing:-0.5px;">Approval Workflow</div>
+                    <div id="apSubtitle" style="font-size:0.85rem;color:#64748b;margin-top:6px;">Stage gate progression &amp; approval history</div>
+                </div>
+                <!-- Stage Gate funnel -->
+                <div id="apFunnel" class="ap-funnel"></div>
+                <!-- Region filter -->
+                <div id="apRegionTabs" class="ap-region-tabs"></div>
+                <!-- Item list (with timeline expansion) -->
+                <div id="apListWrap"></div>
             </div>
         </div>
     </div>
@@ -2081,7 +2187,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         document.getElementById('settingsBtn').style.display = 'none';
         // ★ FIX 2026-05-22: My Dashboard 트리거 숨김 + 열려있던 페이지뷰 닫기
         try { var hd=document.getElementById('homeDashBtn'); if (hd) hd.style.display='none'; } catch(_){}
+        try { var ab=document.getElementById('approvalBtn'); if (ab) ab.style.display='none'; } catch(_){}
         try { document.getElementById('dashboard-view').classList.remove('active'); } catch(_){}
+        try { document.getElementById('approval-view').classList.remove('active'); } catch(_){}
         document.getElementById('loginOverlay').style.display = 'flex';
         document.getElementById('loginUsername').value = '';
         document.getElementById('loginPassword').value = '';
@@ -2106,8 +2214,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         // ★ FIX 2026-05-22: My Dashboard 트리거 버튼 노출 (로그인 시에만)
         var dashBtn = document.getElementById('homeDashBtn');
         if (dashBtn) dashBtn.style.display = 'flex';
+        // ★ NEW 2026-05-22: Approval Workflow 트리거 버튼 노출 (로그인 시에만)
+        var apBtn = document.getElementById('approvalBtn');
+        if (apBtn) apBtn.style.display = 'flex';
         // i18n 라벨 적용 (모달은 열릴 때만 렌더)
         try { _applyHomeDashLabel(); } catch(_){}
+        try { _applyApprovalLabel(); } catch(_){}
     }
 
     // ★ FIX 2026-05-22: My Dashboard 모달 트리거 라벨 다국어 적용
@@ -2154,12 +2266,355 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 document.getElementById('userBadge').style.display = 'flex';
                 var dashBtn = document.getElementById('homeDashBtn');
                 if (dashBtn) dashBtn.style.display = 'flex';
+                var apBtn = document.getElementById('approvalBtn');
+                if (apBtn) apBtn.style.display = 'flex';
             }
         } catch(_){}
     };
     // 호환: 기존 toggleHomeDashboard/toggleHomeDashFullscreen 호출 잔재가 있어도 깨지지 않도록 alias
     window.toggleHomeDashboard = window.openHomeDashboard;
     window.toggleHomeDashFullscreen = function(){ /* 페이지뷰로 변경 — 풀스크린 토글 불필요 */ };
+
+    // ★ NEW 2026-05-22: Approval Workflow 트리거 라벨 다국어 적용
+    function _applyApprovalLabel() {
+        try {
+            var t = i18n[currentLang] || i18n.en;
+            var lbl = document.getElementById('approvalBtnLabel');
+            if (lbl) lbl.textContent = (t && t.apTitle) ? t.apTitle : 'Approval';
+            var btn = document.getElementById('approvalBtn');
+            if (btn) btn.setAttribute('title', (t && t.apSubtitle) ? t.apSubtitle : 'Approval workflow & stage gates');
+        } catch(_){}
+    }
+
+    // ★ NEW 2026-05-22: Approval Workflow 페이지 뷰 열기 / 닫기 (My Dashboard 와 동일한 구성)
+    window.openApprovalView = function() {
+        try {
+            var view = document.getElementById('approval-view');
+            if (!view) return;
+            try {
+                var ifv = document.getElementById('iframe-view');
+                if (ifv && ifv.classList.contains('active')) closeTool();
+            } catch(_){}
+            try { document.getElementById('dashboard-view').classList.remove('active'); } catch(_){}
+            try { document.getElementById('gateway-view').style.display = 'none'; } catch(_){}
+            try { document.getElementById('userBadge').style.display = 'none'; } catch(_){}
+            try { document.getElementById('homeDashBtn').style.display = 'none'; } catch(_){}
+            try { document.getElementById('approvalBtn').style.display = 'none'; } catch(_){}
+            view.classList.add('active');
+            try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
+            try { renderApprovalView(); } catch(e) { console.error('[renderApprovalView]', e); }
+            setTimeout(function(){ try { renderApprovalView(); } catch(_){} }, 1200);
+        } catch(_){}
+    };
+    window.closeApprovalView = function() {
+        try {
+            document.getElementById('approval-view').classList.remove('active');
+            document.getElementById('gateway-view').style.display = 'block';
+            if (_currentUser) {
+                document.getElementById('userBadge').style.display = 'flex';
+                var dashBtn = document.getElementById('homeDashBtn');
+                if (dashBtn) dashBtn.style.display = 'flex';
+                var apBtn = document.getElementById('approvalBtn');
+                if (apBtn) apBtn.style.display = 'flex';
+            }
+        } catch(_){}
+    };
+
+    // ★ NEW 2026-05-22: Approval Workflow — 상태/필터
+    var _apStageFilter = 'all';      // all | discovery | concept | development | launch
+    var _apRegionFilter = 'all';
+    var _apExpandedId = null;
+
+    function _apSetStage(stg) { _apStageFilter = stg; renderApprovalView(); }
+    function _apSetRegion(rgn) { _apRegionFilter = rgn; renderApprovalView(); }
+    function _apToggleRow(uid) { _apExpandedId = (_apExpandedId === uid ? null : uid); renderApprovalView(); }
+    window._apSetStage = _apSetStage;
+    window._apSetRegion = _apSetRegion;
+    window._apToggleRow = _apToggleRow;
+
+    // ★ NEW 2026-05-22: 각 제출항목의 Stage Gate 계산 — Step 기반 자동 매핑
+    function _apComputeStage(submission, review, afcSt, portfolioProj) {
+        if (portfolioProj && portfolioProj.funding === 'funded') return 'launch';
+        if (afcSt) return 'development';
+        if (review) return 'concept';
+        return 'discovery';
+    }
+
+    // ★ NEW 2026-05-22: 전체 항목을 unified 모델로 빌드
+    function _apBuildItems() {
+        var subs = mopSubmissions || [];
+        var revs = mopReviews || [];
+        var afcMap = (mopAfcState && mopAfcState.checklistState) ? mopAfcState.checklistState : {};
+        var projs = (mopPortfolioState && mopPortfolioState.projects) ? mopPortfolioState.projects : [];
+        var revBySubId = {};
+        revs.forEach(function(r){ if (r && r.submissionId != null) revBySubId[String(r.submissionId)] = r; });
+        var projByMopId = {};
+        projs.forEach(function(p){ if (p && p.mopId != null) projByMopId[String(p.mopId)] = p; });
+
+        var items = [];
+        subs.forEach(function(s){
+            if (!s || s.id == null) return;
+            var sid = String(s.id);
+            var rev = revBySubId[sid] || null;
+            var afcSt = rev ? (afcMap[String(rev.id)] || afcMap[rev.id]) : null;
+            var proj = rev ? projByMopId[String(rev.id)] : null;
+            var stage = _apComputeStage(s, rev, afcSt, proj);
+            items.push({
+                uid: sid,
+                submission: s,
+                review: rev,
+                afcState: afcSt,
+                project: proj,
+                stage: stage,
+                region: (s.data && s.data.division) || (rev && rev.region) || ''
+            });
+        });
+        return items;
+    }
+
+    // ★ NEW 2026-05-22: Approval Workflow 메인 렌더링
+    window.renderApprovalView = function() {
+        try {
+            if (!_currentUser) return;
+            var t = i18n[currentLang] || i18n.en;
+            var isKo = currentLang === 'ko';
+            function _h(k, fb) { return (t[k] != null) ? t[k] : (fb || k); }
+            function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+            // Topbar / title i18n
+            var titleEl = document.getElementById('apModalTitle');
+            if (titleEl) titleEl.textContent = _h('apTitle','Approval Workflow');
+            var subEl = document.getElementById('apSubtitle');
+            if (subEl) subEl.textContent = _h('apSubtitle','Stage gate progression & approval history');
+            var topbarTitle = document.getElementById('apTitleText');
+            if (topbarTitle) topbarTitle.textContent = _h('apTitle','Approval Workflow');
+            var backBtn = document.getElementById('apBackBtn');
+            if (backBtn) backBtn.textContent = isKo ? '← 뒤로' : '← Back';
+            try { _applyApprovalLabel(); } catch(_){}
+
+            var items = _apBuildItems();
+
+            // === Stage Gate Funnel ===
+            var stageCfg = [
+                { key:'discovery',   icon:'🌱', name:_h('apStgDiscovery','Discovery'),     sub:_h('apStgDiscoverySub','Submitted, awaiting review') },
+                { key:'concept',     icon:'💡', name:_h('apStgConcept','Concept'),         sub:_h('apStgConceptSub','Step 2 scoring in progress') },
+                { key:'development', icon:'⚙️', name:_h('apStgDevelopment','Development'), sub:_h('apStgDevelopmentSub','AFC committee deliberation') },
+                { key:'launch',      icon:'🚀', name:_h('apStgLaunch','Launch'),           sub:_h('apStgLaunchSub','Funded in portfolio') }
+            ];
+            var counts = { discovery:0, concept:0, development:0, launch:0 };
+            items.forEach(function(it){ counts[it.stage] = (counts[it.stage]||0) + 1; });
+            var funnel = document.getElementById('apFunnel');
+            if (funnel) {
+                var fhtml = '';
+                // "All" mini-card
+                var allActive = (_apStageFilter === 'all');
+                fhtml += '<div class="ap-stage-card'+(allActive?' active':'')+'" onclick="_apSetStage(\'all\')" style="grid-column:span 4;display:none"></div>'; // placeholder (hidden)
+                stageCfg.forEach(function(cfg, i){
+                    var active = (_apStageFilter === cfg.key);
+                    fhtml += '<div class="ap-stage-card'+(active?' active':'')+'" onclick="_apSetStage(\''+cfg.key+'\')">';
+                    fhtml += '<div class="ap-stage-icon">'+cfg.icon+'</div>';
+                    fhtml += '<div class="ap-stage-label">'+_h('apStage','Stage')+' '+(i+1)+'</div>';
+                    fhtml += '<div class="ap-stage-name">'+esc(cfg.name)+'</div>';
+                    fhtml += '<div class="ap-stage-count" style="color:'+(cfg.key==='discovery'?'#c084fc':cfg.key==='concept'?'#60a5fa':cfg.key==='development'?'#fbbf24':'#4ade80')+'">'+counts[cfg.key]+'</div>';
+                    fhtml += '<div class="ap-stage-sub">'+esc(cfg.sub)+'</div>';
+                    if (i < stageCfg.length-1) fhtml += '<span class="ap-stage-arrow">→</span>';
+                    fhtml += '</div>';
+                });
+                // "Show all" 토글 행
+                fhtml += '<div style="grid-column:span 4;text-align:center;margin-top:8px">';
+                fhtml += '<button onclick="_apSetStage(\'all\')" style="background:transparent;border:1px solid '+(allActive?'#3b82f6':'rgba(255,255,255,0.1)')+';color:'+(allActive?'#60a5fa':'#94a3b8')+';padding:5px 18px;border-radius:14px;font-size:0.72rem;font-weight:600;cursor:pointer">'+_h('apAllStages','All Stages')+' ('+items.length+')</button>';
+                fhtml += '</div>';
+                funnel.innerHTML = fhtml;
+            }
+
+            // === Region filter tabs ===
+            var regionSet = {};
+            items.forEach(function(it){ if (it.region) regionSet[it.region] = (regionSet[it.region]||0) + 1; });
+            var regions = Object.keys(regionSet).sort();
+            var rtabs = document.getElementById('apRegionTabs');
+            if (rtabs) {
+                var rhtml = '';
+                rhtml += '<button class="ap-region-tab'+(_apRegionFilter==='all'?' active':'')+'" onclick="_apSetRegion(\'all\')">'+_h('apAllRegions','All Regions')+' <span style="opacity:0.7;font-size:0.7rem">'+items.length+'</span></button>';
+                regions.forEach(function(rgn){
+                    var active = _apRegionFilter === rgn;
+                    rhtml += '<button class="ap-region-tab'+(active?' active':'')+'" onclick="_apSetRegion(\''+esc(rgn)+'\')">'+esc(rgn)+' <span style="opacity:0.7;font-size:0.7rem">'+regionSet[rgn]+'</span></button>';
+                });
+                rtabs.innerHTML = rhtml;
+            }
+
+            // === Item list ===
+            var filtered = items.filter(function(it){
+                if (_apStageFilter !== 'all' && it.stage !== _apStageFilter) return false;
+                if (_apRegionFilter !== 'all' && it.region !== _apRegionFilter) return false;
+                return true;
+            });
+            // 최근 항목 먼저
+            filtered.sort(function(a,b){
+                var ad = (a.submission && (a.submission.submittedAt || a.submission.timestamp || a.submission.id)) || 0;
+                var bd = (b.submission && (b.submission.submittedAt || b.submission.timestamp || b.submission.id)) || 0;
+                return String(bd).localeCompare(String(ad));
+            });
+
+            var listWrap = document.getElementById('apListWrap');
+            if (!listWrap) return;
+            if (!filtered.length) {
+                listWrap.innerHTML = '<div class="ap-empty">'+_h('apEmpty','No items match the current filter.')+'</div>';
+                return;
+            }
+            var lhtml = '<div class="ap-list-wrap"><table class="ap-list-table"><thead><tr>';
+            lhtml += '<th style="width:32px"></th>';
+            lhtml += '<th>'+_h('apColTitle','Title')+'</th>';
+            lhtml += '<th>'+_h('apColStage','Stage')+'</th>';
+            lhtml += '<th>'+_h('apColSubmitter','Submitter')+'</th>';
+            lhtml += '<th>'+_h('apColReviewer','Reviewer')+'</th>';
+            lhtml += '<th>'+_h('apColGate','AFC Gate')+'</th>';
+            lhtml += '<th>'+_h('apColRegion','Region')+'</th>';
+            lhtml += '</tr></thead><tbody>';
+            filtered.forEach(function(it){
+                var s = it.submission, r = it.review, afc = it.afcState, proj = it.project;
+                var sd = (s && s.data) || {};
+                var title = sd.opportunityTitle || (r && r.title) || (s && s.title) || (isKo?'(제목 없음)':'(Untitled)');
+                var submitter = sd.requestOwner || (s && s.submitter) || (r && r.submitter) || '-';
+                var reviewer = (r && r.reviewer) || '-';
+                var rawGate = afc ? afc.gate : '';
+                var finalized = afc && afc.finalized;
+                var gate = finalized ? rawGate : '';
+                var gateBadge = gate==='go' ? '<span class="ap-gate-go">GO</span>'
+                              : gate==='conditional' ? '<span class="ap-gate-cond">COND</span>'
+                              : gate==='nogo' ? '<span class="ap-gate-nogo">NO GO</span>'
+                              : (afc && !finalized ? '<span class="ap-gate-none">'+_h('apPending','Pending')+'</span>' : '<span class="ap-gate-none">—</span>');
+                var stageBadge = '<span class="ap-stage-badge ap-badge-'+it.stage+'">'+esc({discovery:'🌱 '+_h('apStgDiscovery','Discovery'),concept:'💡 '+_h('apStgConcept','Concept'),development:'⚙️ '+_h('apStgDevelopment','Development'),launch:'🚀 '+_h('apStgLaunch','Launch')}[it.stage])+'</span>';
+                var expanded = _apExpandedId === it.uid;
+                lhtml += '<tr class="ap-row" onclick="_apToggleRow(\''+esc(it.uid)+'\')">';
+                lhtml += '<td style="text-align:center;color:#64748b">'+(expanded?'▼':'▶')+'</td>';
+                lhtml += '<td><div style="font-weight:600;color:#e2e8f0">'+esc(title)+'</div></td>';
+                lhtml += '<td>'+stageBadge+'</td>';
+                lhtml += '<td>'+esc(submitter)+'</td>';
+                lhtml += '<td>'+esc(reviewer)+'</td>';
+                lhtml += '<td>'+gateBadge+'</td>';
+                lhtml += '<td>'+esc(it.region||'-')+'</td>';
+                lhtml += '</tr>';
+                if (expanded) {
+                    lhtml += '<tr><td colspan="7" style="padding:0;background:rgba(8,12,24,0.5)"><div class="ap-timeline">';
+                    lhtml += _apBuildTimeline(it, isKo, _h, esc);
+                    lhtml += '</div></td></tr>';
+                }
+            });
+            lhtml += '</tbody></table></div>';
+            // 요약
+            lhtml += '<div style="margin-top:14px;font-size:0.72rem;color:#64748b;text-align:right">'+_h('apShowing','Showing')+' '+filtered.length+' / '+items.length+' '+_h('apItems','items')+'</div>';
+            listWrap.innerHTML = lhtml;
+        } catch(e) {
+            console.error('[renderApprovalView]', e);
+        }
+    };
+
+    // ★ NEW 2026-05-22: 항목별 결재 타임라인 (Step 1 → 2 → 3 → 4)
+    function _apBuildTimeline(item, isKo, _h, esc) {
+        var s = item.submission, r = item.review, afc = item.afcState, proj = item.project;
+        var sd = (s && s.data) || {};
+        var out = '';
+
+        // ----- Step 1: Discovery (Submission)
+        out += '<div class="ap-tl-row">';
+        out += '<div class="ap-tl-icon">🌱</div>';
+        out += '<div class="ap-tl-step">STEP 1<br><span style="color:#c084fc;font-size:0.72rem">Discovery</span></div>';
+        out += '<div class="ap-tl-body">';
+        out += '<b>'+esc(sd.requestOwner||s.submitter||'-')+'</b> '+_h('apSubmitted','submitted')+' <b>'+esc(sd.opportunityTitle||s.title||'-')+'</b>';
+        var dt1 = s.submittedAt || s.timestamp || (s.data && s.data.submittedAt) || '';
+        out += '<div class="ap-tl-meta">📅 '+esc(dt1||'-')+(sd.requestType?'  ·  '+esc(sd.requestType):'')+(sd.division?'  ·  📍 '+esc(sd.division):'')+'</div>';
+        if (sd.opportunitySummary) out += '<div class="ap-tl-meta" style="margin-top:6px;color:#94a3b8">"'+esc(String(sd.opportunitySummary).slice(0,200))+(String(sd.opportunitySummary).length>200?'…':'')+'"</div>';
+        out += '</div></div>';
+
+        // ----- Step 2: Concept (Review)
+        out += '<div class="ap-tl-row">';
+        out += '<div class="ap-tl-icon">💡</div>';
+        out += '<div class="ap-tl-step">STEP 2<br><span style="color:#60a5fa;font-size:0.72rem">Concept</span></div>';
+        out += '<div class="ap-tl-body">';
+        if (r) {
+            out += '<b>'+esc(r.reviewer||'-')+'</b> '+_h('apScored','scored')+' <b>'+(r.score||0)+' / '+(r.maxScore||100)+'</b> ('+(r.percentage||0)+'%)';
+            if (r.recommendation || r.recKey) {
+                var recTxt = r.recommendation || r.recKey || '';
+                out += '  ·  '+_h('apRec','Recommendation')+': <b style="color:#60a5fa">'+esc(recTxt)+'</b>';
+            }
+            if (r.decision) {
+                var decColor = r.decision==='go'?'#4ade80':r.decision==='nogo'?'#f87171':'#fbbf24';
+                out += '  ·  '+_h('apDecision','Decision')+': <b style="color:'+decColor+'">'+esc(String(r.decision).toUpperCase())+'</b>';
+            }
+            out += '<div class="ap-tl-meta">📅 '+esc(r.date||'-')+'</div>';
+            // 메모/코멘트
+            if (r.memos && Array.isArray(r.memos) && r.memos.length) {
+                r.memos.forEach(function(m){
+                    if (!m) return;
+                    out += '<div class="ap-tl-note">📝 <b>'+esc(m.author||'-')+'</b>: '+esc(m.text||'')+(m.timestamp?' <span style="opacity:0.6">('+esc(m.timestamp)+')</span>':'')+'</div>';
+                });
+            } else if (r.memo || r.comment) {
+                out += '<div class="ap-tl-note">📝 '+esc(r.memo||r.comment||'')+'</div>';
+            }
+        } else {
+            out += '<span class="ap-tl-skipped">'+_h('apNotYet','Not yet reached this stage')+'</span>';
+        }
+        out += '</div></div>';
+
+        // ----- Step 3: Development (AFC Checklist Committee)
+        out += '<div class="ap-tl-row">';
+        out += '<div class="ap-tl-icon">⚙️</div>';
+        out += '<div class="ap-tl-step">STEP 3<br><span style="color:#fbbf24;font-size:0.72rem">Development</span></div>';
+        out += '<div class="ap-tl-body">';
+        if (afc) {
+            var rawGate = afc.gate || '';
+            var finalized = !!afc.finalized;
+            var finalizer = afc.finalizedBy || afc.finalizer || '';
+            var finalizedAt = afc.finalizedAt || '';
+            var itemsCount = 0, yc = 0, nc = 0;
+            if (afc.items) {
+                Object.keys(afc.items).forEach(function(k){
+                    var it = afc.items[k]; if (!it) return;
+                    itemsCount++;
+                    if (it.status==='complete') yc++;
+                    else if (it.status==='no') nc++;
+                });
+            }
+            var passRate = (yc+nc) > 0 ? Math.round(yc/(yc+nc)*100) : 0;
+            out += '<b>'+_h('apCommittee','Committee review')+'</b> · '+_h('apProgress','Progress')+': '+itemsCount+' '+_h('apItemsReviewed','items')+'  ·  '+_h('apPassRate','Pass Rate')+': <b>'+passRate+'%</b> ('+yc+'Y / '+nc+'N)';
+            if (finalized) {
+                var gateLbl = rawGate==='go'?'✅ GO': rawGate==='conditional'?'⚠ Conditional': rawGate==='nogo'?'❌ NO GO':'—';
+                var gateColor = rawGate==='go'?'#4ade80': rawGate==='conditional'?'#fbbf24': rawGate==='nogo'?'#f87171':'#94a3b8';
+                out += '<div class="ap-tl-meta" style="margin-top:6px">🔒 '+_h('apFinalized','Finalized')+(finalizer?' '+_h('apBy','by')+' <b style="color:#e2e8f0">'+esc(finalizer)+'</b>':'')+(finalizedAt?'  ·  '+esc(finalizedAt):'')+'  ·  '+_h('apGate','Gate')+': <b style="color:'+gateColor+'">'+gateLbl+'</b></div>';
+            } else {
+                out += '<div class="ap-tl-meta" style="margin-top:6px;color:#fbbf24">⏳ '+_h('apInDeliberation','In deliberation (not finalized)')+(rawGate?'  ·  '+_h('apSelectedGate','Selected gate')+': '+esc(rawGate.toUpperCase())+' '+_h('apButNotConfirmed','(pending confirmation)'):'')+'</div>';
+            }
+            // 결정 메모 / 반려 사유
+            if (afc.gateNotes) {
+                var noteCls = (rawGate==='nogo' && finalized) ? 'ap-tl-note nogo' : 'ap-tl-note';
+                var noteLabel = (rawGate==='nogo' && finalized) ? _h('apRejectReason','Rejection Reason') : _h('apDecisionNotes','Decision Notes');
+                out += '<div class="'+noteCls+'">📝 <b>'+esc(noteLabel)+':</b><br>'+esc(afc.gateNotes)+'</div>';
+            }
+        } else {
+            out += '<span class="ap-tl-skipped">'+_h('apNotYet','Not yet reached this stage')+'</span>';
+        }
+        out += '</div></div>';
+
+        // ----- Step 4: Launch (Portfolio)
+        out += '<div class="ap-tl-row">';
+        out += '<div class="ap-tl-icon">🚀</div>';
+        out += '<div class="ap-tl-step">STEP 4<br><span style="color:#4ade80;font-size:0.72rem">Launch</span></div>';
+        out += '<div class="ap-tl-body">';
+        if (proj) {
+            var fundLbl = proj.funding === 'funded' ? ('✅ '+_h('apFunded','Funded'))
+                        : proj.funding === 'declined' ? ('❌ '+_h('apDeclined','Declined'))
+                        : ('⏳ '+_h('apPending','Pending'));
+            out += '<b>'+esc(proj.title||'-')+'</b>  ·  '+_h('apFunding','Funding')+': <b>'+fundLbl+'</b>';
+            if (proj.category) out += '  ·  '+_h('apCategory','Category')+': '+esc(proj.category);
+            if (proj.impactType) out += '  ·  '+_h('apImpact','Impact')+': '+esc(proj.impactType);
+            if (proj.owner) out += '<div class="ap-tl-meta">'+_h('apOwner','Owner')+': '+esc(proj.owner)+'</div>';
+        } else {
+            out += '<span class="ap-tl-skipped">'+_h('apNotYet','Not yet reached this stage')+'</span>';
+        }
+        out += '</div></div>';
+
+        return out;
+    }
 
     // ★ FIX 2026-05-21: Home Dashboard 메인 렌더링 — 역할별 적응형
     window.renderHomeDashboard = function() {
@@ -4108,6 +4563,53 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             dbWeekLegendRev: 'Reviews',
             homeDashTitle: 'My Dashboard',
             homeDashSubtitle: 'At-a-glance status overview',
+            // ★ NEW 2026-05-22: Approval Workflow i18n (EN)
+            apTitle: 'Approval Workflow',
+            apSubtitle: 'Stage gate progression & approval history',
+            apStage: 'Stage',
+            apStgDiscovery: 'Discovery',
+            apStgDiscoverySub: 'Submitted, awaiting review',
+            apStgConcept: 'Concept',
+            apStgConceptSub: 'Step 2 scoring in progress',
+            apStgDevelopment: 'Development',
+            apStgDevelopmentSub: 'AFC committee deliberation',
+            apStgLaunch: 'Launch',
+            apStgLaunchSub: 'Funded in portfolio',
+            apAllStages: 'All Stages',
+            apAllRegions: 'All Regions',
+            apColTitle: 'Title',
+            apColStage: 'Stage',
+            apColSubmitter: 'Submitter',
+            apColReviewer: 'Reviewer',
+            apColGate: 'AFC Gate',
+            apColRegion: 'Region',
+            apPending: 'Pending',
+            apShowing: 'Showing',
+            apItems: 'items',
+            apEmpty: 'No items match the current filter.',
+            apSubmitted: 'submitted',
+            apScored: 'scored',
+            apRec: 'Recommendation',
+            apDecision: 'Decision',
+            apNotYet: 'Not yet reached this stage',
+            apCommittee: 'Committee review',
+            apProgress: 'Progress',
+            apItemsReviewed: 'items',
+            apPassRate: 'Pass Rate',
+            apFinalized: 'Finalized',
+            apBy: 'by',
+            apGate: 'Gate',
+            apInDeliberation: 'In deliberation (not finalized)',
+            apSelectedGate: 'Selected',
+            apButNotConfirmed: '(pending confirmation)',
+            apDecisionNotes: 'Decision Notes',
+            apRejectReason: 'Rejection Reason',
+            apFunded: 'Funded',
+            apDeclined: 'Declined',
+            apFunding: 'Funding',
+            apCategory: 'Category',
+            apImpact: 'Impact',
+            apOwner: 'Owner',
             homeKpiActive: 'Active Projects',
             homeKpiActiveDesc: 'In Step 2/3',
             homeKpiPassRate: 'AFC Pass Rate',
@@ -4275,6 +4777,53 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             dbWeekLegendRev: '리뷰',
             homeDashTitle: '내 대시보드',
             homeDashSubtitle: '한눈에 보는 현황',
+            // ★ NEW 2026-05-22: Approval Workflow i18n (KO)
+            apTitle: '결재 흐름',
+            apSubtitle: 'Stage Gate 진행 현황 및 결재 이력',
+            apStage: '단계',
+            apStgDiscovery: '발굴',
+            apStgDiscoverySub: '제출 완료, 검토 대기',
+            apStgConcept: '컨셉',
+            apStgConceptSub: 'Step 2 평가 진행중',
+            apStgDevelopment: '개발',
+            apStgDevelopmentSub: 'AFC 위원회 심의중',
+            apStgLaunch: '런칭',
+            apStgLaunchSub: '포트폴리오 편입',
+            apAllStages: '전체 단계',
+            apAllRegions: '전체 Region',
+            apColTitle: '제목',
+            apColStage: '단계',
+            apColSubmitter: '제출자',
+            apColReviewer: '리뷰어',
+            apColGate: 'AFC 게이트',
+            apColRegion: 'Region',
+            apPending: '대기중',
+            apShowing: '표시',
+            apItems: '건',
+            apEmpty: '현재 필터에 해당하는 항목이 없습니다.',
+            apSubmitted: '제출함',
+            apScored: '평가:',
+            apRec: '추천',
+            apDecision: '판정',
+            apNotYet: '아직 이 단계에 도달하지 않음',
+            apCommittee: '위원회 심의',
+            apProgress: '진행률',
+            apItemsReviewed: '항목',
+            apPassRate: '충족률',
+            apFinalized: '확정됨',
+            apBy: '·',
+            apGate: '게이트',
+            apInDeliberation: '심의 진행중 (미확정)',
+            apSelectedGate: '선택됨',
+            apButNotConfirmed: '(확정 대기중)',
+            apDecisionNotes: '결정 메모',
+            apRejectReason: '반려 사유',
+            apFunded: '승인됨',
+            apDeclined: '미승인',
+            apFunding: '펀딩',
+            apCategory: '카테고리',
+            apImpact: '임팩트',
+            apOwner: '담당',
             homeKpiActive: '진행 중 프로젝트',
             homeKpiActiveDesc: 'Step 2/3 단계',
             homeKpiPassRate: 'AFC 통과율',
@@ -4402,9 +4951,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         setTxt('card3Role', t.card3Role);   setTxt('card4Role', t.card4Role);
         // ★ FIX 2026-05-22: My Dashboard 트리거 라벨 + (열려있다면) 페이지뷰 다국어 적용
         try { if (typeof _applyHomeDashLabel === 'function') _applyHomeDashLabel(); } catch(_){}
+        try { if (typeof _applyApprovalLabel === 'function') _applyApprovalLabel(); } catch(_){}
         try {
             var hdOv = document.getElementById('dashboard-view');
             if (hdOv && hdOv.classList.contains('active') && typeof renderHomeDashboard === 'function') renderHomeDashboard();
+            var apOv = document.getElementById('approval-view');
+            if (apOv && apOv.classList.contains('active') && typeof renderApprovalView === 'function') renderApprovalView();
         } catch(_){}
         // ★ FIX 2026-05-22: Settings 모달이 열려있으면 i18n 즉시 적용 (탭 클릭 기다리지 않음)
         try {
