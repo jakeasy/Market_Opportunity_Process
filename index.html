@@ -3678,7 +3678,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }
         _emailLogLoadingUntil = Date.now() + 10000;
         var container = document.getElementById('emLogContainer');
-        if (container) container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">⏳ 로딩 중... (최대 10초)</div>';
+        // ★ FIX 2026-05-22: 로딩 메시지 i18n 적용
+        var _isKo = (currentLang === 'ko');
+        var _loadMsg = _isKo ? '⏳ 로딩 중... (최대 10초)' : '⏳ Loading... (up to 10s)';
+        if (container) container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">' + _loadMsg + '</div>';
         var cb = '__mop_email_log_cb_' + Date.now();
         var responded = false;
         window[cb] = function(j) {
@@ -3706,25 +3709,43 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 // 옛 GAS — email-status 엔드포인트 미배포
                 console.warn('[loadEmailLog] OLD GAS detected — email-status endpoint not deployed');
                 if (container) {
-                    container.innerHTML = '<div style="text-align:left;color:#f59e0b;padding:24px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;">'+
-                        '<div style="font-weight:700;color:#fbbf24;font-size:0.95rem;margin-bottom:10px;">⚠ GAS 재배포 필요</div>'+
-                        '<div style="font-size:0.82rem;line-height:1.7;color:#cbd5e1;">'+
-                        '메일 로그 기능을 사용하려면 <b>최신 GAS 코드</b>를 Apps Script 편집기에 붙여넣고 <b>새 버전으로 배포(Deploy)</b>해야 합니다.<br><br>'+
-                        '<b>현재 상태:</b><br>'+
-                        '• 옛 GAS 응답 받음 — <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">action=email-status</code> 엔드포인트 미인식<br>'+
-                        '• 그래서 quota / log 데이터 없음<br><br>'+
-                        '<b>수행 방법:</b><br>'+
-                        '1. 로컬 <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">D:\\Claude_Jake\\MOP_AppsScript_v3_FIXED.gs</code> 전체 복사<br>'+
-                        '2. Apps Script 편집기 → 기존 코드 덮어쓰기 → 저장<br>'+
-                        '3. <b>배포 (Deploy) → 새 버전 → 배포</b><br>'+
-                        '4. 임의 함수 한 번 Run → Drive 권한 + SpreadsheetApp 권한 승인<br>'+
-                        '5. 이 페이지 새로고침 (Ctrl+Shift+R) → 다시 ↻ 클릭'+
-                        '</div></div>';
+                    if (_isKo) {
+                        container.innerHTML = '<div style="text-align:left;color:#f59e0b;padding:24px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;">'+
+                            '<div style="font-weight:700;color:#fbbf24;font-size:0.95rem;margin-bottom:10px;">⚠ GAS 재배포 필요</div>'+
+                            '<div style="font-size:0.82rem;line-height:1.7;color:#cbd5e1;">'+
+                            '메일 로그 기능을 사용하려면 <b>최신 GAS 코드</b>를 Apps Script 편집기에 붙여넣고 <b>새 버전으로 배포(Deploy)</b>해야 합니다.<br><br>'+
+                            '<b>현재 상태:</b><br>'+
+                            '• 옛 GAS 응답 받음 — <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">action=email-status</code> 엔드포인트 미인식<br>'+
+                            '• 그래서 quota / log 데이터 없음<br><br>'+
+                            '<b>수행 방법:</b><br>'+
+                            '1. 로컬 <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">MOP_AppsScript_v3_FIXED.gs</code> 전체 복사<br>'+
+                            '2. Apps Script 편집기 → 기존 코드 덮어쓰기 → 저장<br>'+
+                            '3. <b>배포 (Deploy) → 새 버전 → 배포</b><br>'+
+                            '4. 임의 함수 한 번 Run → Drive 권한 + SpreadsheetApp 권한 승인<br>'+
+                            '5. 이 페이지 새로고침 (Ctrl+Shift+R) → 다시 ↻ 클릭'+
+                            '</div></div>';
+                    } else {
+                        container.innerHTML = '<div style="text-align:left;color:#f59e0b;padding:24px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;">'+
+                            '<div style="font-weight:700;color:#fbbf24;font-size:0.95rem;margin-bottom:10px;">⚠ GAS Redeploy Required</div>'+
+                            '<div style="font-size:0.82rem;line-height:1.7;color:#cbd5e1;">'+
+                            'The Email Log feature requires the <b>latest GAS code</b> deployed as a new version.<br><br>'+
+                            '<b>Current state:</b><br>'+
+                            '• Old GAS response received — <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">action=email-status</code> endpoint not recognized<br>'+
+                            '• Therefore no quota / log data<br><br>'+
+                            '<b>How to fix:</b><br>'+
+                            '1. Copy the latest <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">MOP_AppsScript_v3_FIXED.gs</code><br>'+
+                            '2. Apps Script editor → overwrite existing code → save<br>'+
+                            '3. <b>Deploy → New version → Deploy</b><br>'+
+                            '4. Run any function once → approve Drive + SpreadsheetApp permissions<br>'+
+                            '5. Hard reload (Ctrl+Shift+R) → click ↻ again'+
+                            '</div></div>';
+                    }
                 }
                 var fetchedEl2 = document.getElementById('emFetchedAt');
-                if (fetchedEl2) fetchedEl2.textContent = '⚠ 옛 GAS — 재배포 필요';
+                if (fetchedEl2) fetchedEl2.textContent = _isKo ? '⚠ 옛 GAS — 재배포 필요' : '⚠ Old GAS — redeploy required';
             } else {
-                if (container) container.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px 0;">❌ 로그 로드 실패: ' + (j && j.error || 'unknown') + '</div>';
+                var _failMsg = _isKo ? '❌ 로그 로드 실패: ' : '❌ Log load failed: ';
+                if (container) container.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px 0;">' + _failMsg + (j && j.error || 'unknown') + '</div>';
             }
         };
         var s = document.createElement('script');
@@ -3732,7 +3753,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         s.onerror = function(){
             _emailLogLoadingUntil = 0;
             try { delete window[cb]; } catch(_){}
-            if (container) container.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px 0;">❌ 네트워크 오류 — GAS URL 확인 필요</div>';
+            var _netMsg = _isKo ? '❌ 네트워크 오류 — GAS URL 확인 필요' : '❌ Network error — verify GAS URL';
+            if (container) container.innerHTML = '<div style="text-align:center;color:#ef4444;padding:40px 0;">' + _netMsg + '</div>';
         };
         document.head.appendChild(s);
         // ★ FIX 2026-05-22: 10초로 단축 (30초는 너무 길어 무한로딩으로 체감) + 안내 강화
@@ -3742,19 +3764,37 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             _emailLogLoadingUntil = 0;
             if (!responded) {
                 console.warn('[loadEmailLog] timeout — no response in 10s');
-                if (container) container.innerHTML = '<div style="text-align:left;color:#f59e0b;padding:24px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;">'+
-                    '<div style="font-weight:700;color:#fbbf24;font-size:0.95rem;margin-bottom:10px;">⏱ 응답 없음 (10초 초과)</div>'+
-                    '<div style="font-size:0.82rem;line-height:1.7;color:#cbd5e1;">'+
-                    '가능한 원인:<br>'+
-                    '• GAS Web App URL 이 잘못되었거나 미배포<br>'+
-                    '• <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">action=email-status</code> 엔드포인트가 미배포 (옛 GAS)<br>'+
-                    '• 토큰 불일치 (현재: <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">'+(MOP_API_TOKEN||'(없음)').slice(0,20)+'...</code>)<br>'+
-                    '• 네트워크 / 권한 문제<br><br>'+
-                    '<b>다음 시도:</b><br>'+
-                    '1. <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">D:\\Claude_Jake\\MOP_AppsScript_v3_FIXED.gs</code> 코드를 Apps Script 편집기에 붙여넣고<br>'+
-                    '2. <b>배포(Deploy) → 새 버전 → 배포</b><br>'+
-                    '3. <b>↻ Refresh</b> 클릭하여 다시 시도'+
-                    '</div></div>';
+                if (container) {
+                    if (_isKo) {
+                        container.innerHTML = '<div style="text-align:left;color:#f59e0b;padding:24px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;">'+
+                            '<div style="font-weight:700;color:#fbbf24;font-size:0.95rem;margin-bottom:10px;">⏱ 응답 없음 (10초 초과)</div>'+
+                            '<div style="font-size:0.82rem;line-height:1.7;color:#cbd5e1;">'+
+                            '가능한 원인:<br>'+
+                            '• GAS Web App URL 이 잘못되었거나 미배포<br>'+
+                            '• <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">action=email-status</code> 엔드포인트가 미배포 (옛 GAS)<br>'+
+                            '• 토큰 불일치 (현재: <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">'+(MOP_API_TOKEN||'(없음)').slice(0,20)+'...</code>)<br>'+
+                            '• 네트워크 / 권한 문제<br><br>'+
+                            '<b>다음 시도:</b><br>'+
+                            '1. <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">MOP_AppsScript_v3_FIXED.gs</code> 코드를 Apps Script 편집기에 붙여넣고<br>'+
+                            '2. <b>배포(Deploy) → 새 버전 → 배포</b><br>'+
+                            '3. <b>↻ Refresh</b> 클릭하여 다시 시도'+
+                            '</div></div>';
+                    } else {
+                        container.innerHTML = '<div style="text-align:left;color:#f59e0b;padding:24px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:10px;">'+
+                            '<div style="font-weight:700;color:#fbbf24;font-size:0.95rem;margin-bottom:10px;">⏱ No response (timeout after 10s)</div>'+
+                            '<div style="font-size:0.82rem;line-height:1.7;color:#cbd5e1;">'+
+                            'Possible causes:<br>'+
+                            '• GAS Web App URL is incorrect or not deployed<br>'+
+                            '• <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">action=email-status</code> endpoint not deployed (old GAS)<br>'+
+                            '• Token mismatch (current: <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">'+(MOP_API_TOKEN||'(none)').slice(0,20)+'...</code>)<br>'+
+                            '• Network / permission issue<br><br>'+
+                            '<b>Next steps:</b><br>'+
+                            '1. Paste <code style="background:#1e293b;padding:2px 6px;border-radius:4px;">MOP_AppsScript_v3_FIXED.gs</code> into Apps Script editor<br>'+
+                            '2. <b>Deploy → New version → Deploy</b><br>'+
+                            '3. Click <b>↻ Refresh</b> to retry'+
+                            '</div></div>';
+                    }
+                }
             }
         }, 10000);
     };
@@ -5652,9 +5692,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 try { delete window[cbName]; } catch(_) { window[cbName] = undefined; }
                 try { if (script && script.parentNode) script.parentNode.removeChild(script); } catch(_){}
             };
-            // ★ AUTH: 토큰 포함 (다른 JSONP 호출과 동일)
-            var token = (typeof MOP_API_TOKEN !== 'undefined') ? MOP_API_TOKEN : '';
-            var fullUrl = url + sep + 'action=save&type=settings&data=' + encoded + '&callback=' + cbName + (token ? '&token=' + encodeURIComponent(token) : '');
+            // ★ AUTH: 토큰 포함 (다른 JSONP 호출과 동일) — 하드코드 폴백
+            var token = MOP_API_TOKEN || 'medit-mop-2026-04ab7c8d5e3f9201';
+            var fullUrl = url + sep + 'action=save&type=settings&data=' + encoded + '&callback=' + cbName + '&token=' + encodeURIComponent(token);
             var script = document.createElement('script');
             script.src = fullUrl;
             script.onerror = function(){ console.warn('[MOP] _settingsJsonpSave ✗ script load err'); try { delete window[cbName]; } catch(_){} try { script.remove(); } catch(_){} };
@@ -5665,6 +5705,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             }, 10000);
         } catch(e) { console.warn('[MOP] _settingsJsonpSave exception:', e); }
     }
+
+    // ★ FIX 2026-05-22 (CRITICAL): _settingsDirty 를 명시적으로 선언 — 미선언 시 cloudSaveNow가 ReferenceError로 즉시 중단되어 모든 동기화 push가 실패함
+    var _settingsDirty = false;
 
     function cloudSaveNow() {
         var url = getAppsScriptUrl(); if (!url) return;
