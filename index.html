@@ -5709,6 +5709,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     // ★ FIX 2026-05-22 (CRITICAL): _settingsDirty 를 명시적으로 선언 — 미선언 시 cloudSaveNow가 ReferenceError로 즉시 중단되어 모든 동기화 push가 실패함
     var _settingsDirty = false;
 
+    // ★ FIX 2026-05-22 (CRITICAL): MOP_API_TOKEN 누락된 선언 — 8곳에서 참조하지만 어디에도 선언이 없어서
+    //   모든 JSONP 호출(save-accounts, email-status, delete-account, save-settings)이 ReferenceError로 실패하고 있었다.
+    //   하드코드 token으로 정상 선언. window 에도 노출.
+    var MOP_API_TOKEN = 'medit-mop-2026-04ab7c8d5e3f9201';
+    try { window.MOP_API_TOKEN = MOP_API_TOKEN; } catch(_){}
+
     function cloudSaveNow() {
         var url = getAppsScriptUrl(); if (!url) return;
         // ★ FIX 2026-05-15: settings도 함께 동기화 (Chrome ↔ Edge 등 브라우저 간 동기화)
