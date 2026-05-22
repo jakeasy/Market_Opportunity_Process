@@ -2292,10 +2292,14 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var ifv = document.getElementById('iframe-view');
                 if (ifv && ifv.classList.contains('active')) closeTool();
             } catch(_){}
+            // ★ FIX 2026-05-22: Approval 뷰가 열려있다면 명시적으로 닫기 (cross-nav)
+            try { document.getElementById('approval-view').classList.remove('active'); } catch(_){}
             // Step 페이지 진입과 동일하게 다른 메인 UI 숨김
             try { document.getElementById('gateway-view').style.display = 'none'; } catch(_){}
             try { document.getElementById('userBadge').style.display = 'none'; } catch(_){}
+            // ★ FIX 2026-05-22: 현재 페이지 버튼만 숨김, 반대 페이지 버튼은 cross-nav 위해 노출 유지
             try { document.getElementById('homeDashBtn').style.display = 'none'; } catch(_){}
+            try { document.getElementById('approvalBtn').style.display = 'flex'; } catch(_){}
             view.classList.add('active');
             // 진입 시 최신 데이터로 렌더 + cloudLoad 트리거
             try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
@@ -2345,7 +2349,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             try { document.getElementById('dashboard-view').classList.remove('active'); } catch(_){}
             try { document.getElementById('gateway-view').style.display = 'none'; } catch(_){}
             try { document.getElementById('userBadge').style.display = 'none'; } catch(_){}
-            try { document.getElementById('homeDashBtn').style.display = 'none'; } catch(_){}
+            // ★ FIX 2026-05-22: 현재 페이지 버튼만 숨김, 반대 페이지 버튼은 cross-nav 위해 노출 유지
+            try { document.getElementById('homeDashBtn').style.display = 'flex'; } catch(_){}
             try { document.getElementById('approvalBtn').style.display = 'none'; } catch(_){}
             view.classList.add('active');
             try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
