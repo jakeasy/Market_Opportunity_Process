@@ -2341,6 +2341,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
 
     // ★ NEW 2026-05-22: 전체 항목을 unified 모델로 빌드
+    //   ★ FIX 2026-05-22: 역할별 region 스코프 적용 — admin=전체, manager=자기 region, general=본인 제출만
     function _apBuildItems() {
         var subs = mopSubmissions || [];
         var revs = mopReviews || [];
@@ -2351,9 +2352,22 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         var projByMopId = {};
         projs.forEach(function(p){ if (p && p.mopId != null) projByMopId[String(p.mopId)] = p; });
 
+        var role = String((_currentUser && _currentUser.role) || '').toLowerCase();
+        var myEmail = String((_currentUser && _currentUser.username) || '').toLowerCase();
+        var myRegion = String((_currentUser && _currentUser.region) || '').toLowerCase();
+
         var items = [];
         subs.forEach(function(s){
             if (!s || s.id == null) return;
+            // ★ region scoping
+            var subRgn = String((s.data && s.data.division) || '').toLowerCase();
+            if (role === 'manager') {
+                if (subRgn !== myRegion) return;
+            } else if (role !== 'admin') {
+                // general: 본인 제출만
+                var ownerEm = String((s.data && s.data.requestOwnerEmail) || '').toLowerCase();
+                if (ownerEm !== myEmail) return;
+            }
             var sid = String(s.id);
             var rev = revBySubId[sid] || null;
             var afcSt = rev ? (afcMap[String(rev.id)] || afcMap[rev.id]) : null;
@@ -2658,21 +2672,59 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             var myEmail = String((_currentUser && _currentUser.username) || '').toLowerCase();
             var myRegion = String((_currentUser && _currentUser.region) || '').toLowerCase();
 
-            // === 1. KPI 카드 ===
+            // ★ FIX 2026-05-22: Manager region scoping — admin 은 전체, manager 는 자기 region 만
+            //   helper: 제출/리뷰가 현재 사용자 권한 범위 안인지 판단
+            function _subInScope(s) {
+                if (!s) return false;
+                if (role === 'admin') return true;
+                if (role === 'manager') {
+                    var reg = String((s.data && s.data.division) || '').toLowerCase();
+                    return reg === myRegion;
+                }
+                // general: own submissions only (이메일 매칭)
+                return String((s.data && s.data.requestOwnerEmail) || '').toLowerCase() === myEmail;
+            }
+            function _revInScope(r) {
+                if (!r) return false;
+                if (role === 'admin') return true;
+                if (role === 'manager') {
+                    var reg = String((r.submissionData && r.submissionData.division) || r.region || '').toLowerCase();
+                    if (!reg) {
+                        // fallback: submission 에서 lookup
+                        var sub = subs.find(function(s){ return s && String(s.id) === String(r.submissionId); });
+                        if (sub && sub.data) reg = String(sub.data.division||'').toLowerCase();
+                    }
+                    return reg === myRegion;
+                }
+                // general: own submission's review
+                var sub2 = subs.find(function(s){ return s && String(s.id) === String(r.submissionId); });
+                if (!sub2) return false;
+                return String((sub2.data && sub2.data.requestOwnerEmail) || '').toLowerCase() === myEmail;
+            }
+            // scoped 데이터셋 (이후 모든 집계는 이걸 사용)
+            var subsScoped = subs.filter(_subInScope);
+            var revsScoped = revs.filter(_revInScope);
+            var afcChecklistsScoped = {};
+            Object.keys(afcChecklists).forEach(function(rid){
+                var rev = revs.find(function(r){ return r && String(r.id) === String(rid); });
+                if (rev && _revInScope(rev)) afcChecklistsScoped[rid] = afcChecklists[rid];
+            });
+
+            // === 1. KPI 카드 === (scoped)
             // Active Projects: review가 있고 final decision이 없는 것
             var activeCount = 0;
-            subs.forEach(function(s){
+            subsScoped.forEach(function(s){
                 if (!s) return;
-                var hasReview = revs.find(function(r){ return r && String(r.submissionId) === String(s.id); });
+                var hasReview = revsScoped.find(function(r){ return r && String(r.submissionId) === String(s.id); });
                 if (!hasReview) return;
                 if (hasReview.decision === 'go' || hasReview.decision === 'hold' || hasReview.decision === 'nogo') return;
                 activeCount++;
             });
 
-            // AFC Pass Rate: finalized AFC 중 GO 비율
+            // AFC Pass Rate: finalized AFC 중 GO 비율 (scoped)
             var afcFinalized = 0, afcGo = 0;
-            Object.keys(afcChecklists).forEach(function(rid){
-                var st = afcChecklists[rid];
+            Object.keys(afcChecklistsScoped).forEach(function(rid){
+                var st = afcChecklistsScoped[rid];
                 if (st && st.finalized) {
                     afcFinalized++;
                     if (st.gate === 'go') afcGo++;
@@ -2680,11 +2732,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             });
             var passRate = afcFinalized > 0 ? Math.round(afcGo / afcFinalized * 100) : null;
 
-            // 평균 심의 일수: submission.timestamp ~ review.date 평균
+            // 평균 심의 일수: submission.timestamp ~ review.date 평균 (scoped)
             var totalDays = 0, daysCount = 0;
-            revs.forEach(function(r){
+            revsScoped.forEach(function(r){
                 if (!r || !r.submissionId) return;
-                var sub = subs.find(function(s){ return String(s.id) === String(r.submissionId); });
+                var sub = subsScoped.find(function(s){ return String(s.id) === String(r.submissionId); });
                 if (!sub) return;
                 var d = diffDays(sub.timestamp || sub.date, r.date);
                 if (d != null && d <= 365) { totalDays += d; daysCount++; }
@@ -2734,11 +2786,21 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     });
                 });
                 // AFC 진행 중 (sendToStep3=true, finalized=false)
+                // ★ FIX 2026-05-22: manager 는 자기 region 의 AFC 만 (이전엔 전체가 새서 다른 region 도 To-Do 에 노출됨)
                 revs.forEach(function(r){
                     if (!r || !r.sendToStep3) return;
                     var rid = r.id;
                     var st = afcChecklists[rid] || afcChecklists[String(rid)];
                     if (st && st.finalized) return;
+                    if (role === 'manager') {
+                        var rgn = String((r.submissionData && r.submissionData.division) || r.region || '').toLowerCase();
+                        if (!rgn) {
+                            // fallback: submissionId 로 lookup
+                            var rsub = subs.find(function(s){ return s && String(s.id) === String(r.submissionId); });
+                            if (rsub && rsub.data) rgn = String(rsub.data.division||'').toLowerCase();
+                        }
+                        if (rgn !== myRegion) return;
+                    }
                     todos.push({
                         type: 'afc',
                         label: _h('homeTodoFinalizeAfc','Finalize AFC'),
@@ -2781,15 +2843,16 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 _kpi(_h('homeKpiTodo','My To-Do'), todos.length, _h('homeKpiTodoDesc','Pending actions'), todos.length > 0 ? '#f59e0b' : '#34d399', todos.length > 0 ? 'rgba(245,158,11,0.06)' : 'rgba(16,185,129,0.06)');
             document.getElementById('homeKpiCards').innerHTML = kpiHtml;
 
-            // === 4. Stage Distribution ===
+            // === 4. Stage Distribution === (scoped)
+            // ★ FIX 2026-05-22: manager 는 자기 region 만 집계
             var stagePending = 0, stageStep2 = 0, stageStep3 = 0, stageGo = 0, stageCond = 0, stageNogo = 0;
-            subs.forEach(function(s){
+            subsScoped.forEach(function(s){
                 if (!s) return;
-                var rev = revs.find(function(r){ return r && String(r.submissionId) === String(s.id); });
+                var rev = revsScoped.find(function(r){ return r && String(r.submissionId) === String(s.id); });
                 if (!rev) { stagePending++; return; }
                 // AFC 결정 우선
                 var rid = rev.id;
-                var st = afcChecklists[rid] || afcChecklists[String(rid)];
+                var st = afcChecklistsScoped[rid] || afcChecklistsScoped[String(rid)];
                 if (st && st.finalized) {
                     if (st.gate === 'go') stageGo++;
                     else if (st.gate === 'conditional') stageCond++;
@@ -2799,7 +2862,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (rev.sendToStep3) { stageStep3++; return; }
                 stageStep2++;
             });
-            var stageTotal = subs.length;
+            var stageTotal = subsScoped.length;
             function _stage(label, value, color) {
                 var pct = stageTotal > 0 ? Math.round(value/stageTotal*100) : 0;
                 return '<div style="display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;padding:8px 6px;background:'+color+'11;border:1px solid '+color+'33;border-radius:8px;">'+
@@ -2844,16 +2907,17 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             }
             todoBox.innerHTML = todoHtml;
 
-            // === 6. Recent Submissions (5건) ===
+            // === 6. Recent Submissions (5건) === (scoped)
+            // ★ FIX 2026-05-22: manager 는 자기 region 만
             var recentBox = document.getElementById('homeRecentBox');
-            var sorted = subs.slice().sort(function(a,b){
+            var sorted = subsScoped.slice().sort(function(a,b){
                 var ta = new Date(a && (a.timestamp||a.date) || 0).getTime();
                 var tb = new Date(b && (b.timestamp||b.date) || 0).getTime();
                 return tb - ta;
             }).slice(0, 5);
             var recentHtml = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'+
                 '<div style="font-size:0.78rem;color:#e2e8f0;font-weight:700;">'+_h('homeRecentTitle','🕐 Recent Submissions')+'</div>'+
-                '<div style="font-size:0.7rem;color:#94a3b8;background:rgba(255,255,255,0.05);padding:1px 8px;border-radius:10px;">'+subs.length+'</div>'+
+                '<div style="font-size:0.7rem;color:#94a3b8;background:rgba(255,255,255,0.05);padding:1px 8px;border-radius:10px;">'+subsScoped.length+'</div>'+
                 '</div>';
             if (sorted.length === 0) {
                 recentHtml += '<div style="text-align:center;color:#64748b;padding:18px 0;font-size:0.82rem;">'+_h('homeRecentEmpty','No submissions yet')+'</div>';
