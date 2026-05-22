@@ -26,6 +26,20 @@
         }
         body { font-family:'DM Sans',sans-serif; background:var(--gray-50); color:var(--gray-700); line-height:1.6; }
 
+        /* ★ FIX 2026-05-19: 전역 다크 테마 스크롤바 */
+        html, body { scrollbar-width: thin; scrollbar-color: rgba(100,116,139,0.5) rgba(15,23,42,0.4); }
+        html::-webkit-scrollbar, body::-webkit-scrollbar { width:12px; height:12px; }
+        html::-webkit-scrollbar-track, body::-webkit-scrollbar-track { background:rgba(15,23,42,0.6); border-radius:8px; }
+        html::-webkit-scrollbar-thumb, body::-webkit-scrollbar-thumb {
+            background:rgba(100,116,139,0.5); border-radius:8px;
+            border:2px solid transparent; background-clip:padding-box;
+            transition:background 0.2s;
+        }
+        html::-webkit-scrollbar-thumb:hover, body::-webkit-scrollbar-thumb:hover {
+            background:rgba(148,163,184,0.8); background-clip:padding-box; border:2px solid transparent;
+        }
+        html::-webkit-scrollbar-corner, body::-webkit-scrollbar-corner { background:rgba(15,23,42,0.6); }
+
         /* LANG TOGGLE */
         .lang-toggle { position:fixed; top:20px; right:24px; z-index:200; display:flex; background:#111827; border:1px solid var(--gray-200); border-radius:20px; overflow:hidden; box-shadow:var(--shadow); }
         .lang-btn { padding:8px 16px; font-family:'DM Sans',sans-serif; font-size:0.85rem; font-weight:500; border:none; background:transparent; color:var(--gray-500); cursor:pointer; transition:all 0.3s; }
@@ -743,6 +757,41 @@ var checklistData=[
 ];
 
 var reviews=[],selectedReview=null,checklistState={},currentFilter='all',openCategories={},currentView='dashboard',_restoring=false;
+// ★ FIX 2026-05-19: Gateway에서 submissions 받아 submitter backfill 가능하게
+var submissionsForLookup=[];
+function _getSubmitterAFC(r){
+    if(!r) return '-';
+    if(r.submitter && r.submitter !== '-' && r.submitter !== '–') return r.submitter;
+    var sd = r.submissionData;
+    if(sd){
+        if(sd.requestOwner) return sd.requestOwner;
+        if(sd.submitter) return sd.submitter;
+        if(sd.requestOwnerName) return sd.requestOwnerName;
+    }
+    // 마지막 폴백: submissionsForLookup 에서 id로 찾기
+    try {
+        var sid = r.submissionId || r.id;
+        if (sid != null && submissionsForLookup.length) {
+            var s = submissionsForLookup.find(function(x){return String(x.id)===String(sid);});
+            if (s && s.data) {
+                return s.data.requestOwner || s.data.submitter || s.data.requestOwnerName || '-';
+            }
+        }
+    } catch(_){}
+    return '-';
+}
+function _getSubmissionDataAFC(r){
+    if(!r) return null;
+    if(r.submissionData && Object.keys(r.submissionData).length>0) return r.submissionData;
+    try {
+        var sid = r.submissionId || r.id;
+        if (sid != null && submissionsForLookup.length) {
+            var s = submissionsForLookup.find(function(x){return String(x.id)===String(sid);});
+            if (s && s.data) return s.data;
+        }
+    } catch(_){}
+    return null;
+}
 
 // === 부모(Gateway) localStorage에서 hydrate ===
 function _hydrateFromParent(){
@@ -782,11 +831,158 @@ function _hydrateFromParent(){
 window._hydrateFromParent_AFC = _hydrateFromParent;
 
 
+// ★ FIX 2026-05-22: user-info 수신 — 재첨부 등 관리자 기능 권한 체크용
+var _userInfoAfc = null;
+function _isAdminAfc() {
+    return _userInfoAfc && String(_userInfoAfc.role||'').toLowerCase() === 'admin';
+}
+// ★ FIX 2026-05-22: 로드 직후 parent에 user-info 요청 (timing race 방지)
+setTimeout(function(){
+    try {
+        if (!_userInfoAfc && window.parent) {
+            window.parent.postMessage({ type: 'mop-request-user-info' }, '*');
+        }
+    } catch(_){}
+}, 300);
+setTimeout(function(){
+    try {
+        if (!_userInfoAfc && window.parent) {
+            window.parent.postMessage({ type: 'mop-request-user-info' }, '*');
+        }
+    } catch(_){}
+}, 1500);
 window.addEventListener('message',function(e){if(!__MOP_SEC.isAllowedEvent(e))return;
     if(!e.data)return;
     if(e.data.type==='mop-lang-sync'){var l=e.data.lang;if((l==='en'||l==='ko')&&l!==currentLang){_langFromSync=true;setLang(l);}}
     if(e.data.type==='mop-reviews-sync'){reviews=e.data.payload||[];renderReviewCards();renderDashboard();}
+    // ★ FIX 2026-05-19: submissions 데이터도 받아서 submitter backfill 가능하게
+    if(e.data.type==='mop-submissions-sync'){
+        submissionsForLookup = e.data.payload || [];
+        // submissions가 새로 도착하면 dashboard/cards 재렌더 (submitter 표시 갱신)
+        try { renderReviewCards(); } catch(_){}
+        try { renderDashboard(); } catch(_){}
+    }
+    // ★ FIX 2026-05-22: 사용자 정보 수신 (Gateway → AFC)
+    if(e.data.type==='mop-user-info'){
+        _userInfoAfc = e.data.payload || null;
+    }
+    // ★ FIX 2026-05-22: 첨부파일 재업로드 완료 통지 (Gateway → AFC)
+    if(e.data.type==='mop-evidenceFile-updated'){
+        try {
+            var p = e.data.payload || {};
+            console.log('[AFC] evidenceFile-updated received:', p);
+            // 1) submissionsForLookup 갱신 — fileIndex 신뢰, 이름 체크 X
+            for (var i=0;i<submissionsForLookup.length;i++){
+                if (String(submissionsForLookup[i].id) === String(p.submissionId)){
+                    var d = submissionsForLookup[i].data || {};
+                    if (!Array.isArray(d.evidenceFiles)) d.evidenceFiles = [];
+                    if (typeof p.fileIndex === 'number' && p.fileIndex >= 0 && p.fileIndex < d.evidenceFiles.length) {
+                        d.evidenceFiles[p.fileIndex] = p.newFile;
+                    } else {
+                        d.evidenceFiles.push(p.newFile);
+                    }
+                    submissionsForLookup[i].data = d;
+                    break;
+                }
+            }
+            // 2) reviews 배열의 submissionData 도 갱신 — 모든 매칭 review 찾기 (submissionId 또는 id로 매칭)
+            for (var j=0;j<reviews.length;j++){
+                var rv = reviews[j];
+                if (!rv) continue;
+                var rsid = rv.submissionId != null ? rv.submissionId : rv.id;
+                if (String(rsid) !== String(p.submissionId)) continue;
+                if (!rv.submissionData) rv.submissionData = {};
+                if (!Array.isArray(rv.submissionData.evidenceFiles)) rv.submissionData.evidenceFiles = [];
+                var ef = rv.submissionData.evidenceFiles;
+                if (typeof p.fileIndex === 'number' && p.fileIndex >= 0 && p.fileIndex < ef.length) {
+                    ef[p.fileIndex] = p.newFile;
+                } else {
+                    ef.push(p.newFile);
+                }
+            }
+            // 3) selectedReview 도 직접 갱신 (참조 일치 보장)
+            if (selectedReview) {
+                if (!selectedReview.submissionData) selectedReview.submissionData = {};
+                if (!Array.isArray(selectedReview.submissionData.evidenceFiles)) selectedReview.submissionData.evidenceFiles = [];
+                var sef = selectedReview.submissionData.evidenceFiles;
+                if (typeof p.fileIndex === 'number' && p.fileIndex >= 0 && p.fileIndex < sef.length) {
+                    sef[p.fileIndex] = p.newFile;
+                }
+            }
+            // 4) 열려있는 review detail 모달 재렌더
+            var rd = document.getElementById('rdOverlay');
+            if (rd && rd.classList.contains('show') && typeof showReviewDetail === 'function' && selectedReview) {
+                try { showReviewDetail(selectedReview.id); } catch(_){}
+            }
+            // 5) 토스트
+            try {
+                var ko = currentLang==='ko';
+                var msg = (p.success ? (ko?'✓ 첨부파일 재업로드 완료: ':'✓ Re-uploaded: ') : (ko?'✗ 재업로드 실패: ':'✗ Upload failed: ')) + (p.newFile && p.newFile.name ? p.newFile.name : '');
+                // 이전 진행 토스트 제거
+                var old = document.getElementById('_afcUpToast');
+                if (old) try { old.remove(); } catch(_){}
+                var toast = document.createElement('div');
+                toast.textContent = msg;
+                toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:'+(p.success?'#10b981':'#ef4444')+';color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+                document.body.appendChild(toast);
+                setTimeout(function(){ try { document.body.removeChild(toast); } catch(_){} }, 3000);
+            } catch(_){}
+        } catch(err) { console.error('[AFC reupload result]', err); }
+    }
 });
+
+// ★ FIX 2026-05-22: 관리자가 file unavailable 첨부파일을 재업로드
+window._afcReuploadEvidence = function(submissionId, fileIndex) {
+    try {
+        if (!_isAdminAfc()) {
+            alert(currentLang==='ko' ? '관리자만 사용할 수 있습니다.' : 'Admin only.');
+            return;
+        }
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt';
+        input.onchange = function() {
+            var file = input.files && input.files[0];
+            if (!file) return;
+            // 크기 제한 10MB
+            if (file.size > 10 * 1024 * 1024) {
+                alert(currentLang==='ko' ? '파일은 10MB 이하만 가능합니다.' : 'Max 10MB.');
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function() {
+                var dataUrl = reader.result;
+                // 부모 Gateway로 재업로드 요청 (parent가 GAS 호출 + cloud 갱신)
+                try {
+                    window.parent.postMessage({
+                        type: 'mop-reupload-attachment',
+                        payload: {
+                            submissionId: submissionId,
+                            fileIndex: fileIndex,
+                            fileName: file.name,
+                            fileType: file.type,
+                            fileSize: file.size,
+                            dataBase64: dataUrl
+                        }
+                    }, '*');
+                    // 진행 중 토스트
+                    var ko = currentLang==='ko';
+                    var toast = document.createElement('div');
+                    toast.textContent = ko ? '📤 업로드 중... ' + file.name : '📤 Uploading... ' + file.name;
+                    toast.id = '_afcUpToast';
+                    toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#3b82f6;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;font-weight:600;z-index:99999;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+                    // 이전 토스트 제거
+                    var old = document.getElementById('_afcUpToast');
+                    if (old) try { old.remove(); } catch(_){}
+                    document.body.appendChild(toast);
+                    setTimeout(function(){ try { var t=document.getElementById('_afcUpToast'); if (t) t.remove(); } catch(_){} }, 8000);
+                } catch(e) { console.error('[AFC reupload post]', e); }
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    } catch(e) { console.error('[AFC reupload]', e); }
+};
 
 function switchView(v){
     currentView=v;
@@ -853,7 +1049,7 @@ function renderReviewCards(){
         var finalized=st&&st.finalized;
         h+='<div class="review-card'+(sel?' selected':'')+'" onclick="selectReview('+r.id+')">';
         h+='<div class="rc-left"><div class="rc-title">'+esc(r.title)+(finalized?' ✅':'')+'</div>';
-        h+='<div class="rc-meta">'+t('lSubmitter')+' '+esc(r.submitter||'-')+' · '+t('lReviewer')+' '+esc(r.reviewer)+'</div></div>';
+        h+='<div class="rc-meta">'+t('lSubmitter')+' '+esc(_getSubmitterAFC(r))+' · '+t('lReviewer')+' '+esc(r.reviewer)+'</div></div>';
         h+='<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0" onclick="showReviewDetail('+r.id+',event)"><div class="rc-score '+sc+'" style="cursor:pointer" title="'+(currentLang==='ko'?'클릭하여 평가 상세 보기':'Click to view review details')+'">'+r.percentage+'%</div><div style="font-size:0.6rem;color:var(--gray-500);margin-top:3px">'+t('lScore').replace(':','')+'</div></div></div>';
     });
     c.innerHTML=h+'</div>';
@@ -897,8 +1093,15 @@ function selectReview(id){
     // Render all content FIRST (while checklist may still be hidden)
     _setStyle('noSelectionGuide','display','none');
     renderReviewCards();
-    _setText('siTitle',selectedReview.title||'');
-    _setText('siSubmitter',selectedReview.submitter||'-');
+    // ★ FIX 2026-05-19: Submitter/Title 다중 소스 폴백 — _getSubmitterAFC 헬퍼 + submissions lookup
+    var _sd=_getSubmissionDataAFC(selectedReview)||selectedReview.submissionData||{};
+    // submissionData가 review에 없으면 lookup된 것을 review 객체에도 캐싱 (Submission Details 패널이 사용)
+    if (!selectedReview.submissionData || Object.keys(selectedReview.submissionData).length===0) {
+        selectedReview.submissionData = _sd;
+    }
+    var _submitter=_getSubmitterAFC(selectedReview);
+    _setText('siTitle',selectedReview.title||_sd.opportunityTitle||'');
+    _setText('siSubmitter',_submitter);
     _setText('siReviewer',selectedReview.reviewer||'-');
     _setText('siScore',(selectedReview.score||0)+'/'+(selectedReview.maxScore||0)+' ('+(selectedReview.percentage||0)+'%)');
     _setText('siDate',selectedReview.date||'');
@@ -928,6 +1131,20 @@ function renderChecklist(){
     if(!selectedReview)return;
     var st=checklistState[selectedReview.id];
     if(!st)return;
+    // ★ FIX 2026-05-19: 옛 state 호환성 — checklistData 변경으로 누락된 키 자동 보강 (크래시 방지)
+    if(!st.items)st.items={};
+    if(!st.owners)st.owners={};
+    checklistData.forEach(function(cat,ci){
+        if(typeof st.owners[ci]==='undefined')st.owners[ci]='';
+        cat.items.forEach(function(_,ii){
+            var k=ci+'-'+ii;
+            if(!st.items[k])st.items[k]={checked:false,status:'not-started',notes:''};
+            // 누락 필드 보강
+            if(typeof st.items[k].checked==='undefined')st.items[k].checked=false;
+            if(typeof st.items[k].status==='undefined')st.items[k].status='not-started';
+            if(typeof st.items[k].notes==='undefined')st.items[k].notes='';
+        });
+    });
     var container=document.getElementById('checklistContainer'),html='';
     var isFinalized=st&&st.finalized;
     checklistData.forEach(function(cat,ci){
@@ -938,7 +1155,7 @@ function renderChecklist(){
         var hasVisible=false;
         var disabledAttr=isFinalized?' disabled style="opacity:0.6;pointer-events:none"':'';
         var itemsHtml=items.map(function(item,ii){
-            var key=ci+'-'+ii,s=st.items[key],isDone=s.status==='complete'||s.status==='no';
+            var key=ci+'-'+ii,s=st.items[key]||{checked:false,status:'not-started',notes:''},isDone=s.status==='complete'||s.status==='no';
             if(currentFilter==='complete'&&!isDone)return '';
             if(currentFilter==='incomplete'&&isDone)return '';
             hasVisible=true;
@@ -1122,7 +1339,12 @@ function toggleCheck(key){if(isCurrentFinalized())return;var st=checklistState[s
 function setStatus(key,status){if(isCurrentFinalized())return;var st=checklistState[selectedReview.id];st.items[key].status=status;st.items[key].checked=(status==='complete');renderChecklist();updateSidebar();autoSave();}
 function setNotes(key,val){if(isCurrentFinalized())return;checklistState[selectedReview.id].items[key].notes=val;autoSave();}
 function setOwner(ci,val){checklistState[selectedReview.id].owners[ci]=val;autoSave();}
-function toggleCat(ci){openCategories[ci]=openCategories[ci]===false?true:false;renderChecklist();}
+// ★ FIX 2026-05-19: 초기 undefined 상태에서도 토글 정상 작동 — isOpen 판단과 동기화
+function toggleCat(ci){
+    var currentlyOpen = openCategories[ci]!==false; // undefined나 true는 open
+    openCategories[ci] = !currentlyOpen; // 토글
+    renderChecklist();
+}
 function setFilter(f,btn){currentFilter=f;document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');renderChecklist();}
 function setGate(d,btn){if(!selectedReview||isCurrentFinalized())return;checklistState[selectedReview.id].gate=d;document.querySelectorAll('.gate-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');updateConfirmBtn();autoSave();}
 document.getElementById('gateNotes').addEventListener('input',function(){if(selectedReview){checklistState[selectedReview.id].gateNotes=this.value;autoSave();}});
@@ -1307,16 +1529,17 @@ function toggleSubmissionDetail(){
             if(!f) return;
             var sz = f.size ? ' ('+(f.size>1048576?(f.size/1048576).toFixed(1)+'MB':(f.size/1024).toFixed(1)+'KB')+')' : '';
             var name = esc(f.name||'file');
-            if(f.dataUrl){
-                // 미리보기 가능
+            // ★ FIX 2026-05-19: 1순위 driveUrl/viewUrl (영구), 2순위 dataUrl (메모리), 3순위 메타만
+            if(f.viewUrl || f.driveUrl){
+                h+='<a href="'+(f.viewUrl||f.driveUrl)+'" target="_blank" rel="noopener" style="color:#60a5fa;text-decoration:none;font-size:0.85rem;">📎 '+name+sz+'</a>';
+            } else if(f.dataUrl){
                 var safeName = (f.name||'').replace(/'/g,"\\'");
                 var isImg = f.type && f.type.indexOf('image/')===0;
                 var isPdf = f.type === 'application/pdf';
                 var winInner = isImg ? '<img src=\\\''+f.dataUrl+'\\\' style=\\\'max-width:95vw;max-height:95vh\\\'>' : (isPdf ? '<iframe src=\\\''+f.dataUrl+'\\\' style=\\\'width:100%;height:100vh;border:none\\\'></iframe>' : '');
-                h+='<a href="#" onclick="event.preventDefault();var w=window.open();w.document.write(\'<html><head><title>'+safeName+'</title></head><body style=\\\'margin:0\\\'>'+winInner+'</body></html>\');" style="color:#60a5fa;text-decoration:none;font-size:0.85rem;">📎 '+name+sz+'</a>';
+                h+='<a href="#" onclick="event.preventDefault();var w=window.open();w.document.write(\'<html><head><title>'+safeName+'</title></head><body style=\\\'margin:0\\\'>'+winInner+'</body></html>\');" style="color:#60a5fa;text-decoration:none;font-size:0.85rem;">📄 '+name+sz+'</a>';
             } else {
-                // dataUrl 없음(quota 정리됨): 메타만 표시
-                h+='<div style="color:#94a3b8;font-size:0.85rem;">📎 '+name+sz+' <span style="color:#fbbf24;font-size:0.72rem;">('+(isKo?'파일 데이터 없음':'no file data')+')</span></div>';
+                h+='<div style="color:#94a3b8;font-size:0.85rem;">📎 '+name+sz+' <span style="color:#fbbf24;font-size:0.72rem;">('+(isKo?'파일 데이터 없음':'file unavailable')+')</span></div>';
             }
         });
         h+='</div>';
@@ -1384,6 +1607,44 @@ function showReviewDetail(reviewId,evt){
         });
         html+='</div>';
     }
+    // ★ FIX 2026-05-21: 첨부파일 섹션 추가 — Drive URL / dataUrl / metadata fallback
+    // ★ FIX 2026-05-22: 관리자에게는 "file unavailable" 항목에 재업로드 버튼 제공
+    if(sd.evidenceFiles && Array.isArray(sd.evidenceFiles) && sd.evidenceFiles.length){
+        html+='<div class="rd-section-title">📎 '+(isKo?'첨부파일':'Attached Files')+'</div>';
+        html+='<div style="display:flex;flex-direction:column;gap:6px;padding:4px 0 12px;">';
+        // ★ FIX 2026-05-22: showReviewDetail는 selectedReview를 갱신하지 않으므로 local r 사용
+        var _submissionId = (r && (r.submissionId != null ? r.submissionId : r.id));
+        var _isAdmin = (typeof _isAdminAfc === 'function') ? _isAdminAfc() : false;
+        try { console.log('[MOP AFC] attachments render — admin:', _isAdmin, 'submissionId:', _submissionId, 'userInfo:', _userInfoAfc); } catch(_){}
+        sd.evidenceFiles.forEach(function(f, idx){
+            if(!f) return;
+            var nm = esc(f.name||'file');
+            var sz = f.size ? ' ('+(f.size>1048576?(f.size/1048576).toFixed(1)+'MB':(f.size/1024).toFixed(1)+'KB')+')' : '';
+            // 1순위: Drive 영구 URL
+            if(f.viewUrl || f.driveUrl){
+                html+='<a href="'+(f.viewUrl||f.driveUrl)+'" target="_blank" rel="noopener" style="color:#60a5fa;text-decoration:none;font-size:0.88rem;padding:6px 10px;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);border-radius:6px;display:inline-block;">📎 '+nm+sz+'</a>';
+            } else if(f.dataUrl){
+                // 2순위: 메모리 잔존 dataUrl
+                var safeName = (f.name||'').replace(/'/g,"\\'");
+                var isImg = f.type && f.type.indexOf('image/')===0;
+                var isPdf = f.type === 'application/pdf';
+                var winInner = isImg ? '<img src=\\\''+f.dataUrl+'\\\' style=\\\'max-width:95vw;max-height:95vh\\\'>' : (isPdf ? '<iframe src=\\\''+f.dataUrl+'\\\' style=\\\'width:100%;height:100vh;border:none\\\'></iframe>' : '');
+                html+='<a href="#" onclick="event.preventDefault();var w=window.open();w.document.write(\'<html><head><title>'+safeName+'</title></head><body style=\\\'margin:0\\\'>'+winInner+'</body></html>\');" style="color:#60a5fa;text-decoration:none;font-size:0.88rem;padding:6px 10px;background:rgba(96,165,250,0.08);border:1px solid rgba(96,165,250,0.2);border-radius:6px;display:inline-block;">📄 '+nm+sz+'</a>';
+            } else {
+                // 3순위: 메타정보만 — 관리자는 재업로드 가능, 그 외엔 제출자가 Step 1에서 재첨부
+                var warnMsg = isKo?'영구 저장 안됨':'Not persisted';
+                var reupBtn = '';
+                if (_isAdmin && _submissionId != null) {
+                    var sidEsc = String(_submissionId).replace(/'/g,"\\'");
+                    reupBtn = ' <button onclick="_afcReuploadEvidence(\''+sidEsc+'\','+idx+')" style="margin-left:8px;padding:3px 10px;background:#3b82f6;color:#fff;border:none;border-radius:5px;font-size:0.72rem;font-weight:700;cursor:pointer;font-family:inherit;">📤 '+(isKo?'재업로드':'Re-upload')+'</button>';
+                } else {
+                    warnMsg += ' — ' + (isKo?'제출자가 Step 1에서 재첨부 필요':'submitter must re-attach in Step 1');
+                }
+                html+='<div style="display:flex;align-items:center;color:#94a3b8;font-size:0.88rem;padding:6px 10px;background:rgba(245,158,11,0.06);border:1px solid rgba(245,158,11,0.2);border-radius:6px;">📎 '+nm+sz+' <span style="color:#f59e0b;font-size:0.72rem;margin-left:6px;flex:1;">⚠ '+warnMsg+'</span>'+reupBtn+'</div>';
+            }
+        });
+        html+='</div>';
+    }
     html+='<button class="rd-close" onclick="closeRdPopup()">'+(isKo?'닫기':'Close')+'</button>';
     document.getElementById('rdBody').innerHTML=html;
     document.getElementById('rdOverlay').classList.add('show');
@@ -1395,56 +1656,239 @@ function printChecklist(){
     if(!selectedReview)return;
     var isKo=currentLang==='ko';
     var r=selectedReview;
-    var st=checklistState[r.id]||checklistState[String(r.id)];
+    var st=checklistState[r.id]||checklistState[String(r.id)]||{items:{},gate:'',gateNotes:''};
+    if(!st.items)st.items={};
     var pct=getChecklistPct(r.id);
-    var body='';
-    body+='<table><tr><td class="label-col">'+(isKo?'제목':'Title')+'</td><td class="val-col"><strong>'+esc(r.title)+'</strong></td></tr>';
-    body+='<tr><td class="label-col">'+(isKo?'입력자':'Submitter')+'</td><td class="val-col">'+esc(r.submitter||'-')+'</td></tr>';
-    body+='<tr><td class="label-col">'+(isKo?'리뷰어':'Reviewer')+'</td><td class="val-col">'+esc(r.reviewer)+'</td></tr>';
-    body+='<tr><td class="label-col">'+(isKo?'점수':'Score')+'</td><td class="val-col">'+r.score+'/'+r.maxScore+' ('+r.percentage+'%)</td></tr>';
-    body+='<tr><td class="label-col">'+(isKo?'날짜':'Date')+'</td><td class="val-col">'+esc(r.date)+'</td></tr>';
-    body+='<tr><td class="label-col">'+(isKo?'체크리스트 완료율':'Checklist Progress')+'</td><td class="val-col"><strong>'+pct+'%</strong></td></tr>';
-    var gateLabel=st.gate==='go'?'GO — Approved':st.gate==='conditional'?'Conditional':st.gate==='nogo'?'NO GO':'—';
-    body+='<tr><td class="label-col">'+(isKo?'Gate 결정':'Gate Decision')+'</td><td class="val-col"><strong>'+gateLabel+'</strong></td></tr>';
-    if(st.gateNotes)body+='<tr><td class="label-col">'+(isKo?'결정 메모':'Decision Notes')+'</td><td class="val-col">'+esc(st.gateNotes)+'</td></tr>';
+    var sd=r.submissionData||{};
+
+    // ★ FIX 2026-05-19: 통계 산출 (Y/N/미평가)
+    var totalItems=0, yesCount=0, noCount=0, naCount=0;
+    checklistData.forEach(function(cat,ci){
+        cat.items.forEach(function(_,ii){
+            totalItems++;
+            var s=st.items[ci+'-'+ii];
+            if(s&&s.status==='complete')yesCount++;
+            else if(s&&s.status==='no')noCount++;
+            else naCount++;
+        });
+    });
+    var passRate=(yesCount+noCount)>0?Math.round(yesCount/(yesCount+noCount)*100):0;
+
+    // ★ Gate Decision 박스
+    var gateConfig={
+        go:{ko:'✅ GO — 승인',en:'✅ GO — Approved',color:'#059669',bg:'#ecfdf5',border:'#10b981'},
+        conditional:{ko:'⚠ Conditional — 조건부 승인',en:'⚠ Conditional Approval',color:'#d97706',bg:'#fffbeb',border:'#f59e0b'},
+        nogo:{ko:'❌ NO GO — 미승인',en:'❌ NO GO — Rejected',color:'#dc2626',bg:'#fef2f2',border:'#ef4444'}
+    };
+    // ★ FIX 2026-05-22: 확정(finalized) 전에는 gate 선택을 외부 보고서에 노출하지 않음 — 실제 대시보드와 동일 정책
+    var _gcKey = (st.finalized ? st.gate : '');
+    var gc=gateConfig[_gcKey];
+    var gateBox='';
+    if(gc){
+        gateBox='<div class="decision-box" style="background:'+gc.bg+';border:2px solid '+gc.border+';">'+
+            '<div class="decision-label">'+(isKo?'📌 Gate 결정':'📌 Gate Decision')+'</div>'+
+            '<div class="decision-value" style="color:'+gc.color+';">'+(isKo?gc.ko:gc.en)+'</div>'+
+            (st.gateNotes?'<div class="decision-notes">'+(isKo?'📝 결정 메모: ':'📝 Decision Notes: ')+esc(st.gateNotes)+'</div>':'')+
+            (st.finalized?'<div class="decision-finalized">🔒 '+(isKo?'확정됨 (Finalized)':'Finalized')+'</div>':'')+
+            '</div>';
+    } else {
+        gateBox='<div class="decision-box" style="background:#f1f5f9;border:2px dashed #94a3b8;">'+
+            '<div class="decision-label">'+(isKo?'Gate 결정':'Gate Decision')+'</div>'+
+            '<div class="decision-value" style="color:#64748b;">'+(isKo?'— 미결정':'— Not Decided')+'</div>'+
+            '</div>';
+    }
+
+    // ★ 요약 카드 (체크리스트 진행률 + 충족률)
+    var pctColor=pct>=80?'#10b981':pct>=50?'#3b82f6':pct>=25?'#f59e0b':'#ef4444';
+    var prColor=passRate>=80?'#10b981':passRate>=60?'#3b82f6':passRate>=40?'#f59e0b':'#ef4444';
+    var summaryCard='<div class="summary-card">'+
+        '<div class="summary-block">'+
+            '<div class="summary-label">'+(isKo?'검토 진행률':'Review Progress')+'</div>'+
+            '<div class="summary-value" style="color:'+pctColor+';">'+pct+'<span class="summary-unit">%</span></div>'+
+            '<div class="summary-bar"><div class="summary-bar-fill" style="width:'+pct+'%;background:'+pctColor+';"></div></div>'+
+            '<div class="summary-detail">'+(yesCount+noCount)+' / '+totalItems+' '+(isKo?'항목 검토':'items reviewed')+'</div>'+
+        '</div>'+
+        '<div class="summary-block">'+
+            '<div class="summary-label">'+(isKo?'충족률 (Pass Rate)':'Pass Rate')+'</div>'+
+            '<div class="summary-value" style="color:'+prColor+';">'+passRate+'<span class="summary-unit">%</span></div>'+
+            '<div class="summary-bar"><div class="summary-bar-fill" style="width:'+passRate+'%;background:'+prColor+';"></div></div>'+
+            '<div class="summary-detail">'+(isKo?'충족 ':'Pass ')+'<b style="color:#10b981;">'+yesCount+'</b> · '+(isKo?'미충족 ':'Fail ')+'<b style="color:#ef4444;">'+noCount+'</b> · '+(isKo?'미평가 ':'N/A ')+'<b style="color:#94a3b8;">'+naCount+'</b></div>'+
+        '</div>'+
+        '<div class="summary-block">'+
+            '<div class="summary-label">'+(isKo?'평가 점수 (Step 2)':'Review Score (Step 2)')+'</div>'+
+            '<div class="summary-value" style="color:#1e40af;">'+(r.percentage||0)+'<span class="summary-unit">%</span></div>'+
+            '<div class="summary-bar"><div class="summary-bar-fill" style="width:'+(r.percentage||0)+'%;background:#1e40af;"></div></div>'+
+            '<div class="summary-detail">'+(r.score||0)+' / '+(r.maxScore||100)+' '+(isKo?'점':'pts')+'</div>'+
+        '</div>'+
+        '</div>';
+
+    var body=gateBox+summaryCard;
+
+    // ★ 제출 메타정보
+    body+='<h3>📋 '+(isKo?'기본 정보':'Basic Information')+'</h3>';
+    body+='<table>';
+    body+='<tr><td class="label-col">'+(isKo?'제목':'Title')+'</td><td class="val-col"><strong>'+esc(r.title||'-')+'</strong></td></tr>';
+    if(sd.requestType)body+='<tr><td class="label-col">'+(isKo?'요청 유형':'Request Type')+'</td><td class="val-col">'+esc(sd.requestType)+'</td></tr>';
+    if(sd.division||r.region)body+='<tr><td class="label-col">'+(isKo?'리전':'Region')+'</td><td class="val-col">📍 '+esc(sd.division||r.region)+'</td></tr>';
+    if(sd.department||sd.dept)body+='<tr><td class="label-col">'+(isKo?'부서':'Department')+'</td><td class="val-col">'+esc(sd.department||sd.dept)+'</td></tr>';
+    body+='<tr><td class="label-col">'+(isKo?'제출자':'Submitter')+'</td><td class="val-col">'+esc(r.submitter||sd.requestOwner||sd.submitter||'-')+(sd.requestOwnerEmail?' &nbsp;<span style="color:#64748b;font-size:0.82rem;">('+esc(sd.requestOwnerEmail)+')</span>':'')+'</td></tr>';
+    body+='<tr><td class="label-col">'+(isKo?'리뷰어 (Step 2)':'Reviewer (Step 2)')+'</td><td class="val-col">'+esc(r.reviewer||'-')+'</td></tr>';
+    body+='<tr><td class="label-col">'+(isKo?'리뷰 일시':'Review Date')+'</td><td class="val-col">'+esc(r.date||'-')+'</td></tr>';
     body+='</table>';
 
-    checklistData.forEach(function(cat,ci){
-        body+='<h3>'+cat.icon+'. '+t(cat.category)+'</h3>';
+    // ★ 제출 내용 (있을 때만)
+    if(sd.opportunitySummary||sd.problemBeingSolved||sd.targetCustomer||sd.strategicRelevance){
+        body+='<h3>📝 '+(isKo?'제출 내용':'Submission Details')+'</h3>';
         body+='<table>';
-        cat.items.forEach(function(item,ii){
-            var s=st.items[ci+'-'+ii];
-            var statusLabel=s.status==='complete'?'✅ Yes':s.status==='no'?'❌ No':'○';
-            var notes=s.notes?'<div style="font-size:0.82rem;color:#666;margin-top:3px;padding-left:4px">📝 '+esc(s.notes)+'</div>':'';
-            body+='<tr><td style="width:28px;text-align:center">'+statusLabel+'</td><td>'+esc(t(item))+notes+'</td></tr>';
+        if(sd.opportunitySummary)body+='<tr><td class="label-col">'+(isKo?'기회 요약':'Opportunity Summary')+'</td><td class="val-col">'+esc(sd.opportunitySummary)+'</td></tr>';
+        if(sd.problemBeingSolved)body+='<tr><td class="label-col">'+(isKo?'해결 문제':'Problem Being Solved')+'</td><td class="val-col">'+esc(sd.problemBeingSolved)+'</td></tr>';
+        if(sd.targetCustomer)body+='<tr><td class="label-col">'+(isKo?'대상 고객':'Target Customer')+'</td><td class="val-col">'+esc(sd.targetCustomer)+'</td></tr>';
+        if(sd.strategicRelevance)body+='<tr><td class="label-col">'+(isKo?'전략적 관련성':'Strategic Relevance')+'</td><td class="val-col">'+esc(sd.strategicRelevance)+'</td></tr>';
+        body+='</table>';
+    }
+
+    // ★ FIX 2026-05-19: 첨부파일 표시 (Drive URL 또는 dataUrl)
+    if(sd.evidenceFiles && Array.isArray(sd.evidenceFiles) && sd.evidenceFiles.length){
+        body+='<h3>📎 '+(isKo?'첨부파일':'Attached Files')+'</h3>';
+        body+='<table>';
+        sd.evidenceFiles.forEach(function(f){
+            if(!f) return;
+            var nm = esc(f.name||'file');
+            var sz = f.size ? ' ('+(f.size>1048576?(f.size/1048576).toFixed(1)+'MB':(f.size/1024).toFixed(1)+'KB')+')' : '';
+            var url = f.viewUrl || f.driveUrl || f.dataUrl;
+            if(url){
+                body+='<tr><td colspan="2"><a href="'+url+'" target="_blank" rel="noopener" style="color:#1e40af;text-decoration:none;">📎 '+nm+sz+'</a></td></tr>';
+            } else {
+                body+='<tr><td colspan="2" style="color:#94a3b8;">📎 '+nm+sz+'</td></tr>';
+            }
         });
         body+='</table>';
+    }
+
+    // ★ 카테고리별 체크리스트 — 카테고리별 진행률 + 시각화
+    body+='<h3>✅ '+(isKo?'AFI Readiness Checklist 결과':'AFI Readiness Checklist Results')+'</h3>';
+    checklistData.forEach(function(cat,ci){
+        var catTotal=cat.items.length;
+        var catYes=0, catNo=0, catNa=0;
+        cat.items.forEach(function(_,ii){
+            var s=st.items[ci+'-'+ii];
+            if(s&&s.status==='complete')catYes++;
+            else if(s&&s.status==='no')catNo++;
+            else catNa++;
+        });
+        var catPct=(catYes+catNo)>0?Math.round(catYes/(catYes+catNo)*100):0;
+        var catColor=catPct>=80?'#10b981':catPct>=60?'#3b82f6':catPct>=40?'#f59e0b':'#ef4444';
+
+        body+='<div class="category-block">';
+        body+='<div class="category-header">'+
+            '<div class="category-title">'+cat.icon+' '+esc(t(cat.category))+'</div>'+
+            '<div class="category-stats">'+
+                '<span class="cat-stat" style="color:#10b981;">✓ '+catYes+'</span> '+
+                '<span class="cat-stat" style="color:#ef4444;">✗ '+catNo+'</span> '+
+                '<span class="cat-stat" style="color:#94a3b8;">○ '+catNa+'</span>'+
+                '<span class="cat-pct" style="background:'+catColor+';">'+catPct+'%</span>'+
+            '</div></div>';
+        body+='<table class="cl-items">';
+        cat.items.forEach(function(item,ii){
+            var s=st.items[ci+'-'+ii]||{status:'not-started'};
+            var statusInfo;
+            if(s.status==='complete')statusInfo={icon:'✅',label:isKo?'충족':'Yes',color:'#10b981',bg:'#ecfdf5'};
+            else if(s.status==='no')statusInfo={icon:'❌',label:isKo?'미충족':'No',color:'#ef4444',bg:'#fef2f2'};
+            else statusInfo={icon:'○',label:isKo?'미평가':'N/A',color:'#94a3b8',bg:'#f8fafc'};
+            var notes=s.notes?'<div class="item-notes">📝 '+esc(s.notes)+'</div>':'';
+            var owner=s.owner?'<div class="item-owner">👤 '+(isKo?'담당: ':'Owner: ')+esc(s.owner)+'</div>':'';
+            body+='<tr>'+
+                '<td class="item-status" style="background:'+statusInfo.bg+';color:'+statusInfo.color+';">'+statusInfo.icon+'<br><span style="font-size:0.65rem;">'+statusInfo.label+'</span></td>'+
+                '<td class="item-text"><b>'+(ii+1)+'.</b> '+esc(t(item))+notes+owner+'</td>'+
+                '</tr>';
+        });
+        body+='</table></div>';
     });
 
-    var popupHtml='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>AFI Report</title>'+
-        '<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700&display=swap" rel="stylesheet">'+
+    var popupHtml='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+esc(r.title||'AFI Readiness Report')+' — AFI Readiness Report</title>'+
+        '<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">'+
         '<style>'+
         '* { margin:0; padding:0; box-sizing:border-box; }'+
-        'body { font-family:"Roboto",sans-serif; color:#333; padding:40px; max-width:900px; margin:0 auto; }'+
-        '.report-header { border-bottom:3px solid #004fec; padding-bottom:16px; margin-bottom:24px; }'+
-        '.report-header h1 { font-size:1.5rem; color:#004fec; margin-bottom:4px; }'+
-        '.report-header .date { color:#666; font-size:0.9rem; }'+
-        'h3 { font-size:1rem; color:#004fec; margin:24px 0 10px; border-bottom:2px solid #004fec; padding-bottom:6px; }'+
-        'table { width:100%; border-collapse:collapse; margin-bottom:16px; table-layout:fixed; }'+
-        'td { padding:8px 10px; border-bottom:1px solid #e0e3e8; font-size:0.88rem; vertical-align:top; }'+
-        '.label-col { width:160px; color:#666; font-weight:500; white-space:nowrap; }'+
-        '.val-col { word-wrap:break-word; overflow-wrap:break-word; }'+
-        '.actions-bar { margin-top:32px; text-align:center; }'+
-        '.actions-bar button { padding:10px 28px; border-radius:8px; font-family:"Roboto",sans-serif; font-size:0.95rem; font-weight:600; cursor:pointer; margin:0 6px; }'+
-        '.btn-print { background:#004fec; color:#fff; border:none; }'+
-        '.btn-print:hover { background:#0039b3; }'+
-        '.btn-close { background:#f0f2f5; color:#333; border:1px solid #e0e3e8; }'+
-        '.btn-close:hover { background:#e0e3e8; }'+
-        '@page { margin:15mm 10mm; size:auto; }'+
-        '@media print { .actions-bar { display:none; } }'+
+        'body { font-family:"DM Sans",-apple-system,sans-serif; color:#1e293b; padding:40px; max-width:920px; margin:0 auto; background:#fff; }'+
+        /* 헤더 */
+        '.report-header { border-bottom:3px solid #1e40af; padding-bottom:18px; margin-bottom:20px; }'+
+        '.report-header .brand-line { font-size:0.72rem; letter-spacing:3px; color:#94a3b8; font-weight:700; margin-bottom:8px; }'+
+        '.report-header h1 { font-size:1.25rem; color:#1e40af; font-weight:700; margin-bottom:8px; }'+
+        '.report-header .opp-title { font-size:1.6rem; font-weight:800; color:#0f172a; margin-bottom:10px; line-height:1.3; }'+
+        '.report-header .meta-row { display:flex; flex-wrap:wrap; gap:8px; }'+
+        '.report-header .meta-chip { background:#f1f5f9; color:#334155; padding:4px 12px; border-radius:14px; font-size:0.78rem; font-weight:600; border:1px solid #e2e8f0; }'+
+        '.report-header .meta-region { background:#eff6ff; color:#1e40af; border-color:#bfdbfe; }'+
+        '.report-header .meta-date { background:#f0fdf4; color:#166534; border-color:#bbf7d0; }'+
+        /* Decision box */
+        '.decision-box { padding:18px 24px; border-radius:12px; margin-bottom:20px; text-align:center; }'+
+        '.decision-box .decision-label { font-size:0.78rem; font-weight:700; color:#64748b; letter-spacing:1px; margin-bottom:8px; text-transform:uppercase; }'+
+        '.decision-box .decision-value { font-size:1.45rem; font-weight:800; margin-bottom:8px; }'+
+        '.decision-box .decision-notes { font-size:0.88rem; color:#475569; padding:10px 14px; background:rgba(255,255,255,0.6); border-radius:8px; margin-top:8px; text-align:left; white-space:pre-wrap; }'+
+        '.decision-box .decision-finalized { display:inline-block; margin-top:10px; background:#dbeafe; color:#1e40af; padding:4px 14px; border-radius:14px; font-size:0.78rem; font-weight:700; }'+
+        /* Summary card */
+        '.summary-card { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }'+
+        '.summary-block { background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:16px; }'+
+        '.summary-block .summary-label { font-size:0.7rem; letter-spacing:1px; color:#64748b; font-weight:700; text-transform:uppercase; margin-bottom:8px; }'+
+        '.summary-block .summary-value { font-size:2.2rem; font-weight:800; line-height:1; }'+
+        '.summary-block .summary-unit { font-size:1rem; opacity:0.7; }'+
+        '.summary-block .summary-bar { width:100%; height:6px; background:#e2e8f0; border-radius:3px; margin:8px 0; overflow:hidden; }'+
+        '.summary-block .summary-bar-fill { height:100%; border-radius:3px; }'+
+        '.summary-block .summary-detail { font-size:0.78rem; color:#475569; }'+
+        /* 섹션 헤더 */
+        'h3 { font-size:1rem; color:#1e40af; margin:22px 0 10px; border-bottom:2px solid #1e40af; padding-bottom:6px; font-weight:700; }'+
+        /* 일반 테이블 */
+        'table { width:100%; border-collapse:collapse; margin-bottom:14px; table-layout:auto; }'+
+        'td { padding:9px 12px; border-bottom:1px solid #e2e8f0; font-size:0.88rem; vertical-align:top; }'+
+        '.label-col { width:170px; color:#475569; font-weight:600; background:#f8fafc; }'+
+        '.val-col { word-wrap:break-word; overflow-wrap:break-word; color:#1e293b; }'+
+        /* 카테고리 */
+        '.category-block { margin-bottom:18px; border:1px solid #e2e8f0; border-radius:10px; overflow:hidden; }'+
+        '.category-header { background:#1e40af; color:#fff; padding:10px 16px; display:flex; justify-content:space-between; align-items:center; }'+
+        '.category-title { font-weight:700; font-size:0.95rem; }'+
+        '.category-stats { display:flex; gap:10px; align-items:center; font-size:0.78rem; }'+
+        '.cat-stat { font-weight:600; }'+
+        '.cat-pct { background:#10b981; color:#fff; padding:3px 10px; border-radius:10px; font-weight:700; font-size:0.78rem; }'+
+        /* 체크리스트 항목 */
+        '.cl-items { margin-bottom:0; }'+
+        '.cl-items td { border-bottom:1px solid #f1f5f9; }'+
+        '.cl-items tr:last-child td { border-bottom:none; }'+
+        '.item-status { width:70px; text-align:center; font-size:1.1rem; font-weight:700; padding:8px !important; }'+
+        '.item-text { padding:10px 14px !important; line-height:1.5; }'+
+        '.item-notes { background:#fffbeb; border-left:3px solid #f59e0b; padding:6px 10px; margin-top:6px; font-size:0.82rem; color:#451a03; border-radius:0 6px 6px 0; }'+
+        '.item-owner { color:#1e40af; font-size:0.78rem; margin-top:4px; font-weight:600; }'+
+        /* Footer */
+        '.report-footer { margin-top:32px; padding-top:16px; border-top:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; font-size:0.72rem; color:#94a3b8; }'+
+        /* Actions */
+        '.actions-bar { margin-top:24px; text-align:center; }'+
+        '.actions-bar button { padding:10px 28px; border-radius:8px; font-family:"DM Sans",sans-serif; font-size:0.95rem; font-weight:600; cursor:pointer; margin:0 6px; }'+
+        '.btn-print { background:#1e40af; color:#fff; border:none; }'+
+        '.btn-print:hover { background:#1e3a8a; }'+
+        '.btn-close { background:#f1f5f9; color:#334155; border:1px solid #cbd5e1; }'+
+        '.btn-close:hover { background:#e2e8f0; }'+
+        '@page { margin:14mm 10mm; size:auto; }'+
+        '@media print { '+
+            '.actions-bar, .report-footer { display:none !important; } '+
+            'body { padding:0; max-width:100%; } '+
+            'h3 { break-after:avoid; page-break-after:avoid; } '+
+            '.category-block, .decision-box, .summary-card { break-inside:avoid; page-break-inside:avoid; } '+
+            'tr { break-inside:avoid; page-break-inside:avoid; } '+
+        '}'+
         '</style></head><body>'+
-        '<div class="report-header"><h1>AFI Readiness Report — Medit</h1><div class="date">'+esc(r.date)+'</div></div>'+
+        '<div class="report-header">'+
+            '<div class="brand-line">MEDIT DIGITAL SOLUTIONS · MOP SYSTEM · STEP 3</div>'+
+            '<h1>'+(isKo?'AFI Readiness 보고서':'AFI Readiness Report')+'</h1>'+
+            '<div class="opp-title">'+esc(r.title||'-')+'</div>'+
+            '<div class="meta-row">'+
+                (sd.requestType?'<span class="meta-chip">'+esc(sd.requestType)+'</span>':'')+
+                ((sd.division||r.region)?'<span class="meta-chip meta-region">📍 '+esc(sd.division||r.region)+'</span>':'')+
+                '<span class="meta-chip meta-date">📅 '+esc(r.date||new Date().toLocaleDateString())+'</span>'+
+            '</div>'+
+        '</div>'+
         body+
+        '<div class="report-footer">'+
+            '<div>'+(isKo?'생성 일시':'Generated')+': '+new Date().toLocaleString(isKo?'ko-KR':'en-US')+'</div>'+
+            '<div>© 2026 MEDIT Corp. — MOP System Confidential</div>'+
+        '</div>'+
         '<div class="actions-bar">'+
         '<button class="btn-print" onclick="window.print()">🖨️ '+(isKo?'인쇄':'Print')+'</button>'+
         '<button class="btn-close" onclick="window.close()">'+(isKo?'닫기':'Close')+'</button>'+
@@ -1500,19 +1944,18 @@ function renderDashboard(){
     sortedReviews.forEach(function(r){
         var st=checklistState[r.id]||checklistState[String(r.id)];
         var pct=getChecklistPct(r.id);
-        var gate=st?st.gate:'';
+        var rawGate=st?st.gate:'';
         var finalized=st&&st.finalized;
+        // ★ FIX 2026-05-22: 확정 전(finalized=false)에는 게이트 미정으로 표시 — 단순 선택은 외부에 노출 X
+        var gate = finalized ? rawGate : '';
         var sc=r.percentage>=80?'background:#22a861':r.percentage>=60?'background:#f59e0b':'background:#ef4444';
         var gateClass=gate==='go'?'gate-badge-go':gate==='conditional'?'gate-badge-conditional':gate==='nogo'?'gate-badge-nogo':'gate-badge-none';
         var gateText=gate==='go'?'GO':gate==='conditional'?'COND':gate==='nogo'?'NO GO':t('gateNone');
         var pctColor=pct>=80?'#22a861':pct>=50?'#f59e0b':'#ef4444';
-        // 진행 상태: 0%=시작 전, 1-99%=진행 중, 100%=결정 대기, gate set=결정 진행, finalized=확정
+        // ★ FIX 2026-05-22: 상태 표시 — Decision Pending 은 finalized 이후에만, 그 전엔 Review Done/In Progress 유지
         var statusText;
         if (finalized) {
             statusText = '<span style="color:#22a861;font-weight:600;font-size:0.78rem">✅ '+t('dFinalized')+'</span>';
-        } else if (gate) {
-            // 게이트 결정은 했지만 최종 확정 전
-            statusText = '<span style="color:#a78bfa;font-weight:600;font-size:0.78rem">'+(isKo?'⏳ 결정 대기':'⏳ Decision Pending')+'</span>';
         } else if (pct >= 100) {
             statusText = '<span style="color:#3b82f6;font-weight:600;font-size:0.78rem">'+(isKo?'📋 검토 완료':'📋 Review Done')+'</span>';
         } else if (pct > 0) {
@@ -1523,7 +1966,7 @@ function renderDashboard(){
 
         h+='<tr>';
         h+='<td style="cursor:pointer" onclick="selectReview('+r.id+')"><div class="dash-title" style="color:var(--primary);text-decoration:underline">'+esc(r.title)+'</div>'+statusText+'</td>';
-        h+='<td>'+esc(r.submitter||'-')+'</td>';
+        h+='<td>'+esc(_getSubmitterAFC(r))+'</td>';
         h+='<td style="max-width:160px;word-break:break-word;font-size:0.78rem">'+esc(r.reviewer)+'</td>';
         var yc=0,nc=0;
         if(st&&st.items){Object.keys(st.items).forEach(function(k){if(st.items[k].status==='complete')yc++;else if(st.items[k].status==='no')nc++;});}
@@ -1578,13 +2021,16 @@ html+='@media print{.actions-bar{display:none}}';
     html+='<p>Approval for Investment — Department Checklist</p>';
     html+='<span class="region-tag">Region: '+regionLabel+'</span>';
     html+='<p style="margin-top:6px;font-size:10px;color:#94a3b8">Printed: '+new Date().toLocaleDateString()+'</p></div>';
-    html+='<table><thead><tr><th>'+(isKo?'제목':'Title')+'</th><th>'+(isKo?'상태':'Status')+'</th><th>'+(isKo?'제출자':'Submitter')+'</th><th>'+(isKo?'검토자':'Reviewer')+'</th><th>'+(isKo?'평가점수':'Score')+'</th><th>'+(isKo?'검토 진행':'Progress')+'</th><th>'+(isKo?'충족률':'Pass Rate')+'</th><th>'+(isKo?'판정':'Decision')+'</th></tr></thead><tbody>';
+    // ★ FIX 2026-05-22: 실제 대시보드와 1:1 정합 — TITLE(상태 sub-text 포함) | SUBMITTER | REVIEWER | REVIEW SCORE | PROGRESS | PASS RATE | DECISION
+    html+='<table><thead><tr><th style="min-width:200px">'+(isKo?'제목':'Title')+'</th><th>'+(isKo?'제출자':'Submitter')+'</th><th>'+(isKo?'검토자':'Reviewer')+'</th><th style="text-align:center">'+(isKo?'평가점수':'Review Score')+'</th><th style="text-align:center">'+(isKo?'검토 진행':'Progress')+'</th><th style="text-align:center">'+(isKo?'충족률':'Pass Rate')+'</th><th style="text-align:center">'+(isKo?'판정':'Decision')+'</th></tr></thead><tbody>';
 
     sortedReviews.forEach(function(r){
         var st=checklistState[r.id]||checklistState[String(r.id)];
         var pct=getChecklistPct(r.id);
-        var gate=st?st.gate:'';
+        var rawGate=st?st.gate:'';
         var finalized=st&&st.finalized;
+        // ★ 실제 대시보드와 동일 — 확정 전에는 게이트 비공개
+        var gate = finalized ? rawGate : '';
         var scCls=r.percentage>=80?'score-green':r.percentage>=60?'score-yellow':'score-red';
         var gateCls=gate==='go'?'gate-go':gate==='conditional'?'gate-cond':gate==='nogo'?'gate-nogo':'gate-none';
         var gateText=gate==='go'?'GO':gate==='conditional'?'COND':gate==='nogo'?'NO GO':'—';
@@ -1593,27 +2039,25 @@ html+='@media print{.actions-bar{display:none}}';
         if(st&&st.items){Object.keys(st.items).forEach(function(k){if(st.items[k].status==='complete')yc++;else if(st.items[k].status==='no')nc++;});}
         var passRate=(yc+nc)>0?Math.round(yc/(yc+nc)*100):0;
         var prColor=passRate>=80?'#22a861':passRate>=60?'#f59e0b':'#ef4444';
-                var statusHtml;
+        // ★ 상태 텍스트 — 실제 대시보드와 동일 우선순위 (finalized → review done → in progress → not started)
+        var statusHtml;
         if (finalized) {
-            statusHtml = '<span class="status-fin">✅ '+(isKo?'확정됨':'Finalized')+'</span>';
-        } else if (st && st.gate) {
-            statusHtml = '<span class="status-pend" style="color:#a78bfa">'+(isKo?'⏳ 결정 대기':'⏳ Decision Pending')+'</span>';
+            statusHtml = '<div style="font-size:10px;color:#16a34a;font-weight:600;margin-top:3px">✅ '+(isKo?'확정됨':'Finalized')+'</div>';
         } else if (pct >= 100) {
-            statusHtml = '<span class="status-pend" style="color:#3b82f6">'+(isKo?'📋 검토 완료':'📋 Review Done')+'</span>';
+            statusHtml = '<div style="font-size:10px;color:#3b82f6;font-weight:600;margin-top:3px">📋 '+(isKo?'검토 완료':'Review Done')+'</div>';
         } else if (pct > 0) {
-            statusHtml = '<span class="status-pend">'+(isKo?'🔄 진행 중':'🔄 In Progress')+'</span>';
+            statusHtml = '<div style="font-size:10px;color:#f59e0b;margin-top:3px">🔄 '+(isKo?'진행 중 ('+pct+'%)':'In Progress ('+pct+'%)')+'</div>';
         } else {
-            statusHtml = '<span class="status-pend">'+(isKo?'⚪ 시작 전':'⚪ Not Started')+'</span>';
+            statusHtml = '<div style="font-size:10px;color:#94a3b8;margin-top:3px">⚪ '+(isKo?'시작 전':'Not Started')+'</div>';
         }
         html+='<tr>';
-        html+='<td style="font-weight:600">'+esc(r.title)+'</td>';
-        html+='<td>'+statusHtml+'</td>';
-        html+='<td>'+esc(r.submitter||'-')+'</td>';
+        html+='<td><div style="font-weight:600;color:#1e40af">'+esc(r.title)+'</div>'+statusHtml+'</td>';
+        html+='<td>'+esc(_getSubmitterAFC(r))+'</td>';
         html+='<td>'+esc(r.reviewer)+'</td>';
-        html+='<td><span class="score '+scCls+'">'+r.score+'/'+r.maxScore+'</span></td>';
-        html+='<td><span class="bar-wrap"><span class="bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></span></span>'+pct+'%</td>';
-        html+='<td style="font-weight:700;color:'+prColor+'">'+passRate+'%</td>';
-        html+='<td><span class="gate '+gateCls+'">'+gateText+'</span></td>';
+        html+='<td style="text-align:center"><span class="score '+scCls+'">'+r.score+'/'+r.maxScore+'</span><div style="font-size:9px;color:#94a3b8;margin-top:2px">'+r.percentage+'%</div></td>';
+        html+='<td style="text-align:center"><span class="bar-wrap"><span class="bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></span></span> <span style="font-size:10px;color:'+pctColor+';font-weight:600">'+pct+'%</span></td>';
+        html+='<td style="text-align:center;font-weight:700;color:'+prColor+'">'+passRate+'%<div style="font-size:9px;color:#94a3b8;font-weight:400">'+yc+(isKo?'충족 / ':'Y / ')+nc+(isKo?'미충족':'N')+'</div></td>';
+        html+='<td style="text-align:center"><span class="gate '+gateCls+'">'+gateText+'</span></td>';
         html+='</tr>';
     });
     html+='</tbody></table>';
@@ -1691,6 +2135,12 @@ window.addEventListener('message', function(event){
         var d=event.data||{};
         if(d.type==='mop-reviews-sync'&&Array.isArray(d.payload)){
             d.payload.forEach(function(r){ if(r&&r.id!=null&&!reviews.find(function(x){return String(x.id)===String(r.id);}))reviews.push(r); });
+            if(typeof renderReviewCards==='function')renderReviewCards();
+            if(typeof renderDashboard==='function')renderDashboard();
+        }
+        // ★ FIX 2026-05-19: submissions 데이터 수신 — submitter backfill용
+        if(d.type==='mop-submissions-sync'&&Array.isArray(d.payload)){
+            submissionsForLookup = d.payload;
             if(typeof renderReviewCards==='function')renderReviewCards();
             if(typeof renderDashboard==='function')renderDashboard();
         }
