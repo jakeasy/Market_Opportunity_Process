@@ -1696,7 +1696,22 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             setTimeout(function(){ t.style.opacity = '0'; setTimeout(function(){ try { t.remove(); } catch(_){} }, 250); }, 1800);
         } catch(_){}
     }
+    // ★ NEW 2026-05-22: 파괴 작업 비밀번호 게이트 — 'medit2026'
+    function _destructiveAuthCheck() {
+        var isKo = currentLang === 'ko';
+        var pw = prompt(isKo
+            ? '⚠️ 이 작업은 위험합니다. 관리자 보호 비밀번호를 입력하세요:'
+            : '⚠️ This is a destructive action. Enter the admin protection password:');
+        if (pw === null) return false;  // 취소
+        if (String(pw).trim() !== 'medit2026') {
+            alert(isKo ? '❌ 비밀번호가 올바르지 않습니다. 작업이 취소되었습니다.' : '❌ Incorrect password. Operation cancelled.');
+            return false;
+        }
+        return true;
+    }
     function clearAllData() {
+        // ★ FIX 2026-05-22: 파괴 작업 보호 — 'medit2026' 비밀번호 요구
+        if (!_destructiveAuthCheck()) return;
         var isKo = currentLang === 'ko';
         console.log('[MOP] === clearAllData NUCLEAR MODE ===');
         var msg = isKo
@@ -1781,6 +1796,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
     // === Account 초기화 (Password 일괄 초기화) ===
     function resetAllAccountPasswords() {
+        // ★ FIX 2026-05-22: 파괴 작업 보호 — 'medit2026' 비밀번호 요구
+        if (!_destructiveAuthCheck()) return;
         var isKo = currentLang === 'ko';
         var msg = isKo
             ? '모든 Account의 Password를 초기화하시겠습니까?\n\n• Admin 본인 제외\n• Password가 1111로 변경됨\n• 다음 로그인 시 Password 변경 강제\n\n이 작업은 되돌릴 수 없습니다.'
@@ -6381,4 +6398,299 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     + '</table>'
                     + '</td></tr>'
                     + '<tr><td style="background:#f8fafc;padding:18px 32px;text-align:center;font-size:11px;color:#94a3b8;border-top:1px solid #e2e8f0;">MEDIT MOP System<br><span style="font-size:10px;color:#cbd5e1;">© 2026 MEDIT Corp. All rights reserved.</span></td></tr>'
-                    + '</table></td></tr></table></body></html>
+                    + '</table></td></tr></table></body></html>';
+
+                // Submitter(원래 Submitter) 정보 보강
+                var _submitterEmail = ep.submitterEmail || '';
+                var _submitterName = ep.submitter || '';
+                if (!_submitterEmail || _submitterEmail.indexOf('@') < 0) {
+                    try {
+                        var _origSub = mopSubmissions.find(function(s){ return String(s.id) === String(ep.submissionId || ep.id); });
+                        if (_origSub && _origSub.data) {
+                            _submitterEmail = _submitterEmail || _origSub.data.requestOwnerEmail || '';
+                            _submitterName = _submitterName || _origSub.data.requestOwner || '';
+                        }
+                    } catch(_){}
+                }
+                // Submitter용 HTML (간단 버전, AFC Result + 다음 절차)
+                // Submitter용 HTML — 간단 버전 (자주 잘려서 단순화)
+                var submitterHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:32px;background:#f4f6f8;font-family:Arial,sans-serif;">'
+                    + '<div style="max-width:600px;margin:0 auto;background:#fff;border-radius:14px;padding:32px;box-shadow:0 4px 12px rgba(0,0,0,0.08);">'
+                    + '<div style="text-align:center;margin-bottom:24px;"><div style="display:inline-block;background:rgba(59,130,246,0.15);border-radius:20px;padding:3px 14px;font-size:10px;letter-spacing:2px;color:#1e40af;font-weight:700;">FOR SUBMITTER</div></div>'
+                    + '<h2 style="margin:0 0 16px;color:' + _gateColor + ';">' + _gateEmoji + ' AFC ' + _gateLabel + '</h2>'
+                    + '<p><strong>' + _submitterName + '</strong>, MOP <strong>' + _title + '</strong>&apos;s AFC has been completed.</p>'
+                    + '<table style="width:100%;border-collapse:collapse;margin:16px 0;"><tr><td style="padding:8px;background:#f8fafc;font-weight:700;width:30%;">Final Decision</td><td style="padding:8px;color:' + _gateColor + ';font-weight:700;">' + _gateEmoji + ' ' + _gateLabel + '</td></tr>'
+                    + '<tr><td style="padding:8px;background:#f8fafc;font-weight:700;">Readiness</td><td style="padding:8px;">' + _pct + '</td></tr>'
+                    + '<tr><td style="padding:8px;background:#f8fafc;font-weight:700;">Reviewer</td><td style="padding:8px;">' + _reviewer + '</td></tr>'
+                    + '<tr><td style="padding:8px;background:#f8fafc;font-weight:700;">Completed</td><td style="padding:8px;">' + _date + '</td></tr></table>'
+                    + '<p style="font-size:12px;color:#94a3b8;">This is an automated email. Track progress in the MOP System.</p>'
+                    + '</div></body></html>';
+                if (_submitterEmail && _submitterEmail.indexOf('@') > 0) {
+                    try {
+                        var subPayload = {
+                            type: 'custom-email',
+                            to: _submitterEmail,
+                            subject: '[MOP][Submitter] AFC Result — ' + _title + ' (' + _gateEmoji + ' ' + _gateText + ')',
+                            htmlBody: _appendMopCta(submitterHtml),
+                            textBody: 'AFC Complete: ' + _title + ' — ' + _gateLabel
+                        };
+                        gasPost(getAppsScriptUrl(), subPayload,
+                            function(){ console.log('✓ AFC submitter email sent →', _submitterEmail); },
+                            function(err){ console.error('✗ AFC submitter email error:', err); });
+                    } catch(_){}
+                } else {
+                    console.warn('[MOP] AFC submitter email skipped — no submitter email');
+                }
+                // Reviewer + 관리자 메일 (기존)
+                var reviewerHtml = '<!DOCTYPE html><html><body style="font-family:Arial;padding:24px;"><h2 style="color:' + _gateColor + ';">' + _gateEmoji + ' AFC ' + _gateLabel + '</h2><p>Hi ' + _reviewer + ',</p><p>' + _gateMsg + '</p><p>Project: <strong>' + _title + '</strong><br>Pass Rate: ' + _pct + '<br>Date: ' + _date + '</p></body></html>';
+                var adminHtml = '<!DOCTYPE html><html><body style="font-family:Arial;padding:24px;"><h2>[ADMIN] AFC ' + _gateLabel + '</h2><p>Title: <strong>' + _title + '</strong></p><p>Reviewer: ' + _reviewer + '<br>Result: ' + _gateEmoji + ' ' + _gateLabel + '<br>Pass Rate: ' + _pct + '</p></body></html>';
+                var afcPayload = {
+                    type: 'custom-email',
+                    to: ep.reviewerEmail,
+                    subject: '[MOP][Reviewer] AFC Complete — ' + _title + ' (' + _gateEmoji + ' ' + _gateText + ')',
+                    htmlBody: _appendMopCta(reviewerHtml),
+                    textBody: 'Hi ' + _reviewer + ', AFC: ' + _gateLabel + ' | ' + _title,
+                    adminTo: getAdminEmailsStr(),
+                    adminSubject: '[MOP][Admin] AFC Complete — ' + _title + ' (' + _gateEmoji + ' ' + _gateText + ')',
+                    adminHtml: _appendMopCta(adminHtml),
+                    adminText: 'AFC ' + _gateLabel + ' by ' + _reviewer + ': ' + _title
+                };
+                gasPost(getAppsScriptUrl(), afcPayload,
+                    function(){ console.log('✓ AFC reviewer+admin email sent'); },
+                    function(err){ console.error('✗ AFC reviewer+admin email error:', err); });
+            }
+        }
+        // ★ FIX 2026-05-22: iframe이 user-info를 요청하면 즉시 응답
+        if (event.data && event.data.type === 'mop-request-user-info') {
+            try {
+                if (_currentUser && event.source) {
+                    event.source.postMessage({ type: 'mop-user-info', payload: { name: _currentUser.name || '', email: _currentUser.username || '', region: _currentUser.region || '', dept: _currentUser.dept || '', role: _currentUser.role || '' } }, '*');
+                }
+            } catch(_){}
+        }
+        // ★ FIX 2026-05-22: Submission Form에서 Draft 저장 통지 — cloud sync 트리거 (additive only)
+        if (event.data && event.data.type === 'mop-drafts-changed') {
+            try {
+                // localStorage drafts → cloudSaveDebounced 가 cloudSaveNow에서 drafts 필드 포함해 push
+                if (typeof cloudSaveDebounced === 'function') cloudSaveDebounced();
+                // Home Dashboard 가 열려있으면 재렌더 (My Tasks 갱신)
+                try {
+                    var dv = document.getElementById('dashboard-view');
+                    if (dv && dv.classList.contains('active') && typeof renderHomeDashboard === 'function') renderHomeDashboard();
+                } catch(_){}
+            } catch(_){}
+        }
+        // ★ FIX 2026-05-22: AFC 모달에서 첨부파일 재업로드 요청 (admin 전용)
+        if (event.data && event.data.type === 'mop-reupload-attachment') {
+            (function(){
+                var p = event.data.payload || {};
+                var src = event.source;
+                // 권한 확인 — admin only
+                if (!_currentUser || String(_currentUser.role||'').toLowerCase() !== 'admin') {
+                    try { src && src.postMessage({ type:'mop-evidenceFile-updated', payload:{ submissionId:p.submissionId, fileIndex:p.fileIndex, success:false, newFile:{ name:p.fileName }, reason:'not-admin' } }, '*'); } catch(_){}
+                    return;
+                }
+                // GAS upload-attachment 호출
+                try {
+                    var uploadPayload = {
+                        type: 'upload-attachment',
+                        token: (typeof MOP_API_TOKEN !== 'undefined' ? MOP_API_TOKEN : 'medit-mop-2026-04ab7c8d5e3f9201'),
+                        name: p.fileName || 'attachment',
+                        mimeType: p.fileType || 'application/octet-stream',
+                        dataBase64: p.dataBase64 || ''
+                    };
+                    fetch(getAppsScriptUrl(), {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: JSON.stringify(uploadPayload)
+                    }).then(function(res){ return res.json(); }).then(function(j){
+                        if (j && j.success && j.fileId) {
+                            var newFile = {
+                                name: p.fileName,
+                                type: p.fileType,
+                                size: p.fileSize,
+                                fileId: j.fileId,
+                                driveUrl: j.viewUrl || j.url,
+                                viewUrl: j.viewUrl,
+                                directUrl: j.url
+                            };
+                            // mopSubmissions 갱신
+                            try {
+                                if (!Array.isArray(mopSubmissions)) mopSubmissions = [];
+                                for (var i=0;i<mopSubmissions.length;i++){
+                                    if (String(mopSubmissions[i].id) === String(p.submissionId)){
+                                        var d = mopSubmissions[i].data || {};
+                                        if (!Array.isArray(d.evidenceFiles)) d.evidenceFiles = [];
+                                        if (typeof p.fileIndex === 'number' && p.fileIndex >= 0 && p.fileIndex < d.evidenceFiles.length) {
+                                            d.evidenceFiles[p.fileIndex] = newFile;
+                                        } else {
+                                            d.evidenceFiles.push(newFile);
+                                        }
+                                        mopSubmissions[i].data = d;
+                                        break;
+                                    }
+                                }
+                                // ★ FIX 2026-05-22: mopReviews 의 submissionData 도 동기화 (review는 snapshot 보유)
+                                if (!Array.isArray(mopReviews)) mopReviews = [];
+                                for (var k=0;k<mopReviews.length;k++){
+                                    var rv = mopReviews[k];
+                                    if (!rv) continue;
+                                    var rsid = rv.submissionId != null ? rv.submissionId : rv.id;
+                                    if (String(rsid) !== String(p.submissionId)) continue;
+                                    if (!rv.submissionData) rv.submissionData = {};
+                                    if (!Array.isArray(rv.submissionData.evidenceFiles)) rv.submissionData.evidenceFiles = [];
+                                    var rEf = rv.submissionData.evidenceFiles;
+                                    if (typeof p.fileIndex === 'number' && p.fileIndex >= 0 && p.fileIndex < rEf.length) {
+                                        rEf[p.fileIndex] = newFile;
+                                    } else {
+                                        rEf.push(newFile);
+                                    }
+                                }
+                                try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(_){}
+                                try { localStorage.setItem('mop_reviews', JSON.stringify(mopReviews)); } catch(_){}
+                                // ★★★ FIX 2026-05-22 (final): 영구 Drive URL 캐시 — 어떤 race 에도 보존
+                                try { _rememberDriveFile(p.submissionId, newFile, p.fileIndex); } catch(_){}
+                                // ★ race condition 방지 — 즉시 push
+                                try { window._mopReuploadProtectUntil = Date.now() + 30000; } catch(_){}
+                                try { cloudSaveNow(); } catch(_){
+                                    try { cloudSaveDebounced(); } catch(__){}
+                                }
+                            } catch(updErr) { try { __MOP_SEC.logErr('Gateway reupload update', updErr); } catch(_){} }
+                            // 모든 iframe에 갱신 통지 + submissions/reviews 재전송
+                            try {
+                                // ★★★ FIX 2026-05-22 (final): broadcast 전 캐시로 보충
+                                var _broadcastSubs = mopSubmissions.map(function(s){
+                                    if (s && s.data && Array.isArray(s.data.evidenceFiles)) {
+                                        var copy = JSON.parse(JSON.stringify(s));
+                                        copy.data.evidenceFiles = _augmentEvidenceFromCache(s.id, copy.data.evidenceFiles);
+                                        return copy;
+                                    }
+                                    return s;
+                                });
+                                var _broadcastRevs = (typeof _enrichReviewsWithSubmissionData==='function'?_enrichReviewsWithSubmissionData(mopReviews):mopReviews).map(function(rv){
+                                    if (rv && rv.submissionData && Array.isArray(rv.submissionData.evidenceFiles)) {
+                                        var copy = JSON.parse(JSON.stringify(rv));
+                                        var sid = rv.submissionId != null ? rv.submissionId : rv.id;
+                                        copy.submissionData.evidenceFiles = _augmentEvidenceFromCache(sid, copy.submissionData.evidenceFiles);
+                                        return copy;
+                                    }
+                                    return rv;
+                                });
+                                var ifrs = document.querySelectorAll('iframe');
+                                ifrs.forEach(function(_if){
+                                    if (!_if.contentWindow) return;
+                                    try {
+                                        __MOP_SEC.safePost(_if.contentWindow, { type:'mop-evidenceFile-updated', payload:{ submissionId:p.submissionId, fileIndex:p.fileIndex, success:true, newFile:newFile } });
+                                        __MOP_SEC.safePost(_if.contentWindow, { type:'mop-submissions-sync', payload: _broadcastSubs });
+                                        __MOP_SEC.safePost(_if.contentWindow, { type:'mop-reviews-sync', payload: _broadcastRevs });
+                                    } catch(_){}
+                                });
+                            } catch(_){}
+                            console.log('[MOP] reupload OK:', p.fileName, '→', j.fileId);
+                        } else {
+                            console.warn('[MOP] reupload failed:', p.fileName, j);
+
+                            try { src && src.postMessage({ type:'mop-evidenceFile-updated', payload:{ submissionId:p.submissionId, fileIndex:p.fileIndex, success:false, newFile:{ name:p.fileName }, reason:(j&&j.error)||'upload-failed' } }, '*'); } catch(_){}
+                        }
+                    }).catch(function(err){
+                        console.error('[MOP] reupload error:', err);
+                        try { src && src.postMessage({ type:'mop-evidenceFile-updated', payload:{ submissionId:p.submissionId, fileIndex:p.fileIndex, success:false, newFile:{ name:p.fileName }, reason:String(err) } }, '*'); } catch(_){}
+                    });
+                } catch(e) {
+                    console.error('[MOP] reupload exception:', e);
+                    try { src && src.postMessage({ type:'mop-evidenceFile-updated', payload:{ submissionId:p.submissionId, fileIndex:p.fileIndex, success:false, newFile:{ name:p.fileName }, reason:String(e) } }, '*'); } catch(_){}
+                }
+            })();
+        }
+        if (event.data && event.data.type === 'mop-afc-state-save') {
+            mopAfcState = event.data.payload;
+            try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
+            cloudSaveDebounced();
+            autoSyncAfcToPortfolio();
+            try {
+                var _allIfr = document.querySelectorAll('iframe');
+                _allIfr.forEach(function(_if) {
+                    if (_if.contentWindow && _if.contentWindow !== event.source) {
+                        __MOP_SEC.safePost(_if.contentWindow, { type: 'mop-afc-state-restore', payload: mopAfcState });
+                    }
+                });
+            } catch(e) { try { __MOP_SEC.logErr('Gateway afc broadcast', e); } catch(_){} }
+        }
+        if (event.data && event.data.type === 'mop-portfolio-state-save') {
+            mopPortfolioState = event.data.payload;
+            try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
+            cloudSaveDebounced();
+        }
+        if (event.data && event.data.type === 'mop-portfolio-ready') {
+            var iframe = document.getElementById('tool-iframe');
+            if (!mopPortfolioState) mopPortfolioState = { projects: [], nextId: 1 };
+            try {
+                if (iframe && iframe.contentWindow) {
+                    iframe.contentWindow.postMessage({ type: 'mop-portfolio-state-restore', payload: mopPortfolioState }, __MOP_SEC.targetOrigin());
+                }
+            } catch(e) { try { __MOP_SEC.logErr('Gateway portfolio auto-add', e); } catch(_){} }
+        }
+        if (event.data && event.data.type === 'mop-open-portfolio') {
+            console.log('[MOP] mop-open-portfolio received', event.data.payload);
+            try {
+                try { autoSyncAfcToPortfolio(); } catch(_){}
+                if (_currentUser && (_currentUser.role === 'admin' || _currentUser.role === 'manager')) {
+                    openPortfolio('board');
+                } else {
+                    openPortfolioGuest();
+                }
+            } catch(e) { try { __MOP_SEC.logErr('Gateway open-portfolio', e); } catch(_){} }
+        }
+    });
+
+    function autoSyncAfcToPortfolio() {
+        try {
+            if (!mopAfcState || !mopAfcState.checklistState) return;
+            if (!mopPortfolioState) mopPortfolioState = { projects: [], nextId: 1 };
+            var changed = false;
+            Object.keys(mopAfcState.checklistState).forEach(function(rid) {
+                var st = mopAfcState.checklistState[rid];
+                if (!st || !st.finalized) return;
+                if (st.gate !== 'go' && st.gate !== 'conditional') return;
+                var rev = (mopReviews || []).find(function(r){ return String(r.id) === String(rid); });
+                if (!rev) return;
+                var sd = rev.submissionData || {};
+                var alreadyExists = mopPortfolioState.projects.find(function(p){ return String(p.mopId) === String(rid); });
+                if (alreadyExists) return;
+                var proj = {
+                    id: mopPortfolioState.nextId,
+                    mopId: String(rid),
+                    title: rev.title || sd.opportunityTitle || ('MOP-' + rid),
+                    owner: rev.reviewer || sd.requestOwner || '',
+                    region: sd.division || '',
+                    score: rev.score || 0,
+                    maxScore: rev.maxScore || 0,
+                    percentage: rev.percentage || 0,
+                    gate: st.gate,
+                    afcDate: st.finalizedDate || '',
+                    submitter: sd.requestOwner || ''
+                };
+                mopPortfolioState.nextId = proj.id + 1;
+                mopPortfolioState.projects.push(proj);
+                changed = true;
+            });
+            if (changed) {
+                try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
+                cloudSaveDebounced();
+                try {
+                    var iframe = document.getElementById('tool-iframe');
+                    if (iframe && iframe.contentWindow) {
+                        iframe.contentWindow.postMessage({ type: 'mop-portfolio-state-restore', payload: mopPortfolioState }, __MOP_SEC.targetOrigin());
+                    }
+                } catch(e) { try { __MOP_SEC.logErr('Gateway portfolio auto-add', e); } catch(_){} }
+            }
+        } catch(e) { try { __MOP_SEC.logErr('Gateway autoSync', e); } catch(_){} }
+    }
+
+    setTimeout(function() {
+        try { if (typeof autoSyncAfcToPortfolio === 'function') autoSyncAfcToPortfolio(); } catch(_){}
+    }, 1500);
+
+    </script>
+</body>
+</html>
