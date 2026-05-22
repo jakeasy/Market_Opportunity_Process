@@ -677,28 +677,29 @@
         <span class="user-badge-role" id="userBadgeRole"></span>
         <button class="user-logout-btn" onclick="doLogout()" title="로그아웃">⏻</button>
     </div>
-    <!-- ★ FIX 2026-05-22: My Dashboard 트리거 — 다국어 토글 좌측에 배치 (로그인 시에만 표시) -->
-    <button id="homeDashBtn" onclick="openHomeDashboard()" title="My Dashboard"
-        style="position:fixed;top:20px;right:170px;z-index:9200;display:none;align-items:center;gap:6px;
-               padding:8px 14px;font-size:0.78rem;font-weight:600;font-family:'DM Sans',sans-serif;
-               background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
-               color:var(--text-muted);cursor:pointer;backdrop-filter:blur(12px);transition:all .25s;letter-spacing:.3px;"
-        onmouseover="this.style.background='rgba(59,130,246,0.18)';this.style.color='#60a5fa';this.style.borderColor='rgba(59,130,246,0.4)'"
-        onmouseout="this.style.background='var(--bg-card)';this.style.color='var(--text-muted)';this.style.borderColor='var(--border)'">
-        <span style="font-size:0.95rem;">📊</span>
-        <span id="homeDashBtnLabel">My Dashboard</span>
-    </button>
-    <!-- ★ NEW 2026-05-22: Approval Workflow 트리거 (My Dashboard 좌측에 배치, 로그인 시에만 표시) -->
-    <button id="approvalBtn" onclick="openApprovalView()" title="Approval Workflow"
-        style="position:fixed;top:20px;right:308px;z-index:9200;display:none;align-items:center;gap:6px;
-               padding:8px 14px;font-size:0.78rem;font-weight:600;font-family:'DM Sans',sans-serif;
-               background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
-               color:var(--text-muted);cursor:pointer;backdrop-filter:blur(12px);transition:all .25s;letter-spacing:.3px;"
-        onmouseover="this.style.background='rgba(168,85,247,0.18)';this.style.color='#c084fc';this.style.borderColor='rgba(168,85,247,0.4)'"
-        onmouseout="this.style.background='var(--bg-card)';this.style.color='var(--text-muted)';this.style.borderColor='var(--border)'">
-        <span style="font-size:0.95rem;">🏛️</span>
-        <span id="approvalBtnLabel">Approval</span>
-    </button>
+    <!-- ★ FIX 2026-05-22: 네비 버튼 wrapper — 영문 시 텍스트 길어져도 겹치지 않게 flex 컨테이너로 자동 정렬 -->
+    <div id="navBtns" style="position:fixed;top:20px;right:170px;z-index:9200;display:none;gap:8px;">
+        <button id="approvalBtn" onclick="openApprovalView()" title="Approval Workflow"
+            style="display:flex;align-items:center;gap:6px;
+                   padding:8px 14px;font-size:0.78rem;font-weight:600;font-family:'DM Sans',sans-serif;
+                   background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
+                   color:var(--text-muted);cursor:pointer;backdrop-filter:blur(12px);transition:all .25s;letter-spacing:.3px;white-space:nowrap;"
+            onmouseover="if(!this.classList.contains('nav-active')){this.style.background='rgba(168,85,247,0.18)';this.style.color='#c084fc';this.style.borderColor='rgba(168,85,247,0.4)';}"
+            onmouseout="if(!this.classList.contains('nav-active')){this.style.background='var(--bg-card)';this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';}">
+            <span style="font-size:0.95rem;">🏛️</span>
+            <span id="approvalBtnLabel">Approval</span>
+        </button>
+        <button id="homeDashBtn" onclick="openHomeDashboard()" title="My Dashboard"
+            style="display:flex;align-items:center;gap:6px;
+                   padding:8px 14px;font-size:0.78rem;font-weight:600;font-family:'DM Sans',sans-serif;
+                   background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
+                   color:var(--text-muted);cursor:pointer;backdrop-filter:blur(12px);transition:all .25s;letter-spacing:.3px;white-space:nowrap;"
+            onmouseover="if(!this.classList.contains('nav-active')){this.style.background='rgba(59,130,246,0.18)';this.style.color='#60a5fa';this.style.borderColor='rgba(59,130,246,0.4)';}"
+            onmouseout="if(!this.classList.contains('nav-active')){this.style.background='var(--bg-card)';this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';}">
+            <span style="font-size:0.95rem;">📊</span>
+            <span id="homeDashBtnLabel">My Dashboard</span>
+        </button>
+    </div>
     <div class="lang-toggle" id="langToggle">
         <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
         <button class="lang-btn" id="langKo" onclick="setLang('ko')">한국어</button>
@@ -1310,6 +1311,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         badge.style.color = '#fff';
         document.getElementById('gateway-view').style.display = 'none';
         document.getElementById('userBadge').style.display = 'none';
+        // ★ FIX 2026-05-22: Step 페이지 진입 시 nav 버튼 숨김 (iframe 위 floating 방지)
+        try { var nb = document.getElementById('navBtns'); if (nb) nb.style.display = 'none'; } catch(_){}
         document.getElementById('iframe-view').classList.add('active');
 
         function sendLangSync() {
@@ -1345,6 +1348,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         document.getElementById('iframe-view').classList.remove('active');
         document.getElementById('gateway-view').style.display = 'block';
         if (_currentUser) document.getElementById('userBadge').style.display = 'flex';
+        // ★ FIX 2026-05-22: Step 페이지 종료 시 nav 버튼 복원
+        if (_currentUser) { try { var nb = document.getElementById('navBtns'); if (nb) nb.style.display = 'flex'; } catch(_){} }
         // hash 정리 (push된 상태 회수)
         try {
             if (location.hash && location.hash !== '#') {
@@ -2247,9 +2252,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         document.getElementById('gateway-view').style.display = 'none';
         document.getElementById('userBadge').style.display = 'none';
         document.getElementById('settingsBtn').style.display = 'none';
-        // ★ FIX 2026-05-22: My Dashboard 트리거 숨김 + 열려있던 페이지뷰 닫기
-        try { var hd=document.getElementById('homeDashBtn'); if (hd) hd.style.display='none'; } catch(_){}
-        try { var ab=document.getElementById('approvalBtn'); if (ab) ab.style.display='none'; } catch(_){}
+        // ★ FIX 2026-05-22: navBtns wrapper 숨김 + 열려있던 페이지뷰 닫기 + active state 초기화
+        try { var nb = document.getElementById('navBtns'); if (nb) nb.style.display='none'; } catch(_){}
+        try { var hd=document.getElementById('homeDashBtn'); if (hd) hd.classList.remove('nav-active'); } catch(_){}
+        try { var ab=document.getElementById('approvalBtn'); if (ab) ab.classList.remove('nav-active'); } catch(_){}
         try { document.getElementById('dashboard-view').classList.remove('active'); } catch(_){}
         try { document.getElementById('approval-view').classList.remove('active'); } catch(_){}
         document.getElementById('loginOverlay').style.display = 'flex';
@@ -2273,12 +2279,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         roleEl.className = 'user-badge-role ' + _currentUser.role;
         // Settings: admin only
         document.getElementById('settingsBtn').style.display = _currentUser.role === 'admin' ? '' : 'none';
-        // ★ FIX 2026-05-22: My Dashboard 트리거 버튼 노출 (로그인 시에만)
-        var dashBtn = document.getElementById('homeDashBtn');
-        if (dashBtn) dashBtn.style.display = 'flex';
-        // ★ NEW 2026-05-22: Approval Workflow 트리거 버튼 노출 (로그인 시에만)
-        var apBtn = document.getElementById('approvalBtn');
-        if (apBtn) apBtn.style.display = 'flex';
+        // ★ FIX 2026-05-22: navBtns wrapper 노출 (로그인 시에만)
+        var navBtns = document.getElementById('navBtns');
+        if (navBtns) navBtns.style.display = 'flex';
         // i18n 라벨 적용 (모달은 열릴 때만 렌더)
         try { _applyHomeDashLabel(); } catch(_){}
         try { _applyApprovalLabel(); } catch(_){}
@@ -2312,12 +2315,14 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             // Step 페이지 진입과 동일하게 다른 메인 UI 숨김
             try { document.getElementById('gateway-view').style.display = 'none'; } catch(_){}
             try { document.getElementById('userBadge').style.display = 'none'; } catch(_){}
-            // ★ FIX 2026-05-22: 두 버튼 모두 노출 — 현재 페이지는 활성 상태로 표시 (위치 인지 + 자유 이동)
+            // ★ FIX 2026-05-22: navBtns wrapper 노출 + 현재 페이지(My Dashboard) active 표시
             try {
+                var nb = document.getElementById('navBtns');
+                if (nb) nb.style.display = 'flex';
                 var hb = document.getElementById('homeDashBtn');
                 var ab = document.getElementById('approvalBtn');
-                if (hb) { hb.style.display = 'flex'; hb.classList.add('nav-active'); }
-                if (ab) { ab.style.display = 'flex'; ab.classList.remove('nav-active'); }
+                if (hb) hb.classList.add('nav-active');
+                if (ab) ab.classList.remove('nav-active');
             } catch(_){}
             view.classList.add('active');
             // 진입 시 최신 데이터로 렌더 + cloudLoad 트리거
@@ -2334,10 +2339,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             document.getElementById('gateway-view').style.display = 'block';
             if (_currentUser) {
                 document.getElementById('userBadge').style.display = 'flex';
+                var nb = document.getElementById('navBtns');
+                if (nb) nb.style.display = 'flex';
                 var dashBtn = document.getElementById('homeDashBtn');
-                if (dashBtn) { dashBtn.style.display = 'flex'; dashBtn.classList.remove('nav-active'); }
+                if (dashBtn) dashBtn.classList.remove('nav-active');
                 var apBtn = document.getElementById('approvalBtn');
-                if (apBtn) { apBtn.style.display = 'flex'; apBtn.classList.remove('nav-active'); }
+                if (apBtn) apBtn.classList.remove('nav-active');
             }
         } catch(_){}
     };
@@ -2368,12 +2375,14 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             try { document.getElementById('dashboard-view').classList.remove('active'); } catch(_){}
             try { document.getElementById('gateway-view').style.display = 'none'; } catch(_){}
             try { document.getElementById('userBadge').style.display = 'none'; } catch(_){}
-            // ★ FIX 2026-05-22: 두 버튼 모두 노출 — 현재 페이지는 활성 상태로 표시
+            // ★ FIX 2026-05-22: navBtns wrapper 노출 + 현재 페이지(Approval) active 표시
             try {
+                var nb2 = document.getElementById('navBtns');
+                if (nb2) nb2.style.display = 'flex';
                 var hb2 = document.getElementById('homeDashBtn');
                 var ab2 = document.getElementById('approvalBtn');
-                if (hb2) { hb2.style.display = 'flex'; hb2.classList.remove('nav-active'); }
-                if (ab2) { ab2.style.display = 'flex'; ab2.classList.add('nav-active'); }
+                if (hb2) hb2.classList.remove('nav-active');
+                if (ab2) ab2.classList.add('nav-active');
             } catch(_){}
             view.classList.add('active');
             try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
@@ -2387,10 +2396,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             document.getElementById('gateway-view').style.display = 'block';
             if (_currentUser) {
                 document.getElementById('userBadge').style.display = 'flex';
+                var nb = document.getElementById('navBtns');
+                if (nb) nb.style.display = 'flex';
                 var dashBtn = document.getElementById('homeDashBtn');
-                if (dashBtn) { dashBtn.style.display = 'flex'; dashBtn.classList.remove('nav-active'); }
+                if (dashBtn) dashBtn.classList.remove('nav-active');
                 var apBtn = document.getElementById('approvalBtn');
-                if (apBtn) { apBtn.style.display = 'flex'; apBtn.classList.remove('nav-active'); }
+                if (apBtn) apBtn.classList.remove('nav-active');
             }
         } catch(_){}
     };
