@@ -1678,11 +1678,15 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails));
         // ★ FIX 2026-05-19: 명시적 settings 저장 → dirty flag set → cloudSaveNow가 push 포함
         _settingsDirty = true;
-        // ★ FIX 2026-05-22: grace period 시작 — 이후 10초간 cloudLoad는 settings/accounts 를 덮어쓰지 않음
-        //   증상: Setting 변경 후 3~5초 뒤 원복 — 옛 서버 응답이 로컬을 덮어쓰던 race 차단
+        // ★ FIX 2026-05-22 (BULLETPROOF): grace period 시작 (60초, 영구) + 다중 경로 강제 push
         try { if (typeof window._markLocalPush === 'function') { window._markLocalPush('settings'); window._markLocalPush('accounts'); } } catch(_){}
-        console.log('[MOP] saveSettings: _settingsDirty=true → cloudSaveNow가 서버에 push 예정 (grace period 활성)');
+        console.log('[MOP] saveSettings: _settingsDirty=true → 다중 경로 push 진행 (grace period 60초 활성)');
+        // Path 1: cloudSaveNow (type=all) — 기존 경로
         try { if (typeof cloudSaveNow === 'function') cloudSaveNow(); } catch(_){}
+        // Path 2: type='settings' POST — GAS 의 거부 룰 없음 (line 1027)
+        try { if (typeof _forceSettingsPush === 'function') _forceSettingsPush(); } catch(_){}
+        // Path 3: JSONP GET ?action=save&type=settings — fetch no-cors 우회, 응답 확인 가능 (작은 payload 한정)
+        try { if (typeof _settingsJsonpSave === 'function') _settingsJsonpSave(); } catch(_){}
         // ★ FIX 2026-05-22: Save 시 모달 자동 닫힘 제거 — 사용자가 Close 버튼으로만 닫음
         // 저장 성공 토스트 표시 (cloud badge "Saving... → Saved"가 자동 안내 역할)
         try {
@@ -5601,6 +5605,67 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (Object.keys(t).length === 0) return arr;
         return (arr || []).filter(function(item){ return !(item && item.id != null && t[String(item.id)]); });
     }
+    // ★ NEW 2026-05-22 (BULLETPROOF): Settings 강제 push (type='settings' 경로 — GAS의 거부 룰 없음)
+    function _buildSettingsSnapshot() {
+        return {
+            adminEmails: (_adminEmails || []).slice(),
+            pw: {
+                form:      localStorage.getItem('mop_pw_form')      || '1111',
+                scoring:   localStorage.getItem('mop_pw_scoring')   || '1111',
+                afc:       localStorage.getItem('mop_pw_afc')       || '1111',
+                portfolio: localStorage.getItem('mop_pw_portfolio') || '1111'
+            },
+            pwOn: {
+                form:      (localStorage.getItem('mop_pw_on_form')      || 'true') === 'true',
+                scoring:   (localStorage.getItem('mop_pw_on_scoring')   || 'true') === 'true',
+                afc:       (localStorage.getItem('mop_pw_on_afc')       || 'true') === 'true',
+                portfolio: (localStorage.getItem('mop_pw_on_portfolio') || 'true') === 'true'
+            },
+            _settingsTs: Date.now()
+        };
+    }
+    function _forceSettingsPush() {
+        var url = getAppsScriptUrl();
+        if (!url) return;
+        var snap = _buildSettingsSnapshot();
+        console.log('[MOP] _forceSettingsPush → type=settings (no rejection rule):', snap.pw);
+        try {
+            gasPost(url, { type: 'settings', payload: snap },
+                function(j){ console.log('[MOP] _forceSettingsPush ✓ sent'); },
+                function(e){ console.warn('[MOP] _forceSettingsPush ✗ err:', e); });
+        } catch(_){}
+    }
+    function _settingsJsonpSave() {
+        var url = getAppsScriptUrl();
+        if (!url) return;
+        try {
+            var snap = _buildSettingsSnapshot();
+            var encoded = encodeURIComponent(JSON.stringify(snap));
+            if (encoded.length > 6500) {
+                console.log('[MOP] _settingsJsonpSave: payload too large for URL, skipping JSONP backup');
+                return;
+            }
+            var cbName = '__mop_settings_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+            var sep = url.indexOf('?') >= 0 ? '&' : '?';
+            window[cbName] = function(resp) {
+                console.log('[MOP] _settingsJsonpSave ✓ server response:', resp);
+                try { delete window[cbName]; } catch(_) { window[cbName] = undefined; }
+                try { if (script && script.parentNode) script.parentNode.removeChild(script); } catch(_){}
+            };
+            // ★ AUTH: 토큰 포함 (다른 JSONP 호출과 동일)
+            var token = (typeof MOP_API_TOKEN !== 'undefined') ? MOP_API_TOKEN : '';
+            var fullUrl = url + sep + 'action=save&type=settings&data=' + encoded + '&callback=' + cbName + (token ? '&token=' + encodeURIComponent(token) : '');
+            var script = document.createElement('script');
+            script.src = fullUrl;
+            script.onerror = function(){ console.warn('[MOP] _settingsJsonpSave ✗ script load err'); try { delete window[cbName]; } catch(_){} try { script.remove(); } catch(_){} };
+            document.head.appendChild(script);
+            // safety timeout (10s)
+            setTimeout(function(){
+                if (window[cbName]) { console.warn('[MOP] _settingsJsonpSave ⏱ timeout (no callback)'); try { delete window[cbName]; } catch(_){} try { script.remove(); } catch(_){} }
+            }, 10000);
+        } catch(e) { console.warn('[MOP] _settingsJsonpSave exception:', e); }
+    }
+
     function cloudSaveNow() {
         var url = getAppsScriptUrl(); if (!url) return;
         // ★ FIX 2026-05-15: settings도 함께 동기화 (Chrome ↔ Edge 등 브라우저 간 동기화)
@@ -5705,16 +5770,24 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     // ★ FIX 2026-05-22: Settings/Accounts 푸시 보호 — 사용자가 직접 변경한 후 일정 시간 동안
     //   cloudLoad가 옛 서버 응답으로 로컬 값을 덮어쓰지 못하도록 grace period 적용.
     //   증상: Setting 변경 → 3~5초 후 원복 (cloudLoad의 응답이 POST보다 늦게 도착해 옛 값을 덮어씀)
-    var _localPushAt = { settings: 0, accounts: 0 };
-    var LOCAL_PUSH_GRACE_MS = 10000;  // 10초 — GAS POST + 서버 반영 + 다음 GET 응답 도착까지 충분한 여유
+    // ★ FIX 2026-05-22 (BULLETPROOF): localStorage에 grace 만료시각을 저장 → 새로고침/탭이동에도 보호 유지.
+    //   기간도 60초로 연장 — GAS 처리 + 시트 반영 + 향후 cloudLoad들에 충분한 여유.
+    var LOCAL_PUSH_GRACE_MS = 60000;  // 60초 (이전 10초 → 60초로 확대)
     window._markLocalPush = function(kind) {
         try {
-            _localPushAt[kind] = Date.now();
-            console.log('[MOP] _markLocalPush:', kind, '— grace period 시작 (' + LOCAL_PUSH_GRACE_MS + 'ms)');
+            var until = Date.now() + LOCAL_PUSH_GRACE_MS;
+            localStorage.setItem('__mop_grace_' + kind, String(until));
+            console.log('[MOP] _markLocalPush:', kind, '— grace period 시작 (만료=' + new Date(until).toISOString() + ')');
         } catch(_){}
     };
     window._isInLocalPushGrace = function(kind) {
-        try { return (Date.now() - (_localPushAt[kind] || 0)) < LOCAL_PUSH_GRACE_MS; } catch(_) { return false; }
+        try {
+            var until = parseInt(localStorage.getItem('__mop_grace_' + kind) || '0', 10);
+            return until > Date.now();
+        } catch(_) { return false; }
+    };
+    window._clearLocalPushGrace = function(kind) {
+        try { localStorage.removeItem('__mop_grace_' + kind); } catch(_){}
     };
 
     function cloudLoad() {
