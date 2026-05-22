@@ -432,6 +432,21 @@
         .ap-tl-note.nogo { background: rgba(239,68,68,0.08); border-left-color:#ef4444; color:#fca5a5; }
         .ap-tl-skipped { color:#475569; font-style:italic; font-size:0.78rem; }
         .ap-empty { text-align:center; padding:48px 24px; color:#64748b; font-size:0.9rem; }
+        /* ★ FIX 2026-05-22: 네비게이션 버튼 active 상태 — 현재 페이지 강조 */
+        #homeDashBtn.nav-active {
+            background: rgba(59,130,246,0.22) !important;
+            color: #60a5fa !important;
+            border-color: rgba(59,130,246,0.55) !important;
+            box-shadow: 0 0 0 1px rgba(59,130,246,0.35), 0 4px 12px rgba(59,130,246,0.18) !important;
+            cursor: default !important;
+        }
+        #approvalBtn.nav-active {
+            background: rgba(168,85,247,0.22) !important;
+            color: #c084fc !important;
+            border-color: rgba(168,85,247,0.55) !important;
+            box-shadow: 0 0 0 1px rgba(168,85,247,0.35), 0 4px 12px rgba(168,85,247,0.18) !important;
+            cursor: default !important;
+        }
         .iframe-topbar {
             background: var(--bg-card); border-bottom: 1px solid var(--border);
             padding: 10px 20px; display: flex; align-items: center; gap: 16px;
@@ -2297,9 +2312,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             // Step 페이지 진입과 동일하게 다른 메인 UI 숨김
             try { document.getElementById('gateway-view').style.display = 'none'; } catch(_){}
             try { document.getElementById('userBadge').style.display = 'none'; } catch(_){}
-            // ★ FIX 2026-05-22: 현재 페이지 버튼만 숨김, 반대 페이지 버튼은 cross-nav 위해 노출 유지
-            try { document.getElementById('homeDashBtn').style.display = 'none'; } catch(_){}
-            try { document.getElementById('approvalBtn').style.display = 'flex'; } catch(_){}
+            // ★ FIX 2026-05-22: 두 버튼 모두 노출 — 현재 페이지는 활성 상태로 표시 (위치 인지 + 자유 이동)
+            try {
+                var hb = document.getElementById('homeDashBtn');
+                var ab = document.getElementById('approvalBtn');
+                if (hb) { hb.style.display = 'flex'; hb.classList.add('nav-active'); }
+                if (ab) { ab.style.display = 'flex'; ab.classList.remove('nav-active'); }
+            } catch(_){}
             view.classList.add('active');
             // 진입 시 최신 데이터로 렌더 + cloudLoad 트리거
             try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
@@ -2316,9 +2335,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (_currentUser) {
                 document.getElementById('userBadge').style.display = 'flex';
                 var dashBtn = document.getElementById('homeDashBtn');
-                if (dashBtn) dashBtn.style.display = 'flex';
+                if (dashBtn) { dashBtn.style.display = 'flex'; dashBtn.classList.remove('nav-active'); }
                 var apBtn = document.getElementById('approvalBtn');
-                if (apBtn) apBtn.style.display = 'flex';
+                if (apBtn) { apBtn.style.display = 'flex'; apBtn.classList.remove('nav-active'); }
             }
         } catch(_){}
     };
@@ -2349,9 +2368,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             try { document.getElementById('dashboard-view').classList.remove('active'); } catch(_){}
             try { document.getElementById('gateway-view').style.display = 'none'; } catch(_){}
             try { document.getElementById('userBadge').style.display = 'none'; } catch(_){}
-            // ★ FIX 2026-05-22: 현재 페이지 버튼만 숨김, 반대 페이지 버튼은 cross-nav 위해 노출 유지
-            try { document.getElementById('homeDashBtn').style.display = 'flex'; } catch(_){}
-            try { document.getElementById('approvalBtn').style.display = 'none'; } catch(_){}
+            // ★ FIX 2026-05-22: 두 버튼 모두 노출 — 현재 페이지는 활성 상태로 표시
+            try {
+                var hb2 = document.getElementById('homeDashBtn');
+                var ab2 = document.getElementById('approvalBtn');
+                if (hb2) { hb2.style.display = 'flex'; hb2.classList.remove('nav-active'); }
+                if (ab2) { ab2.style.display = 'flex'; ab2.classList.add('nav-active'); }
+            } catch(_){}
             view.classList.add('active');
             try { if (typeof cloudLoad === 'function') cloudLoad(); } catch(_){}
             try { renderApprovalView(); } catch(e) { console.error('[renderApprovalView]', e); }
@@ -2365,9 +2388,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (_currentUser) {
                 document.getElementById('userBadge').style.display = 'flex';
                 var dashBtn = document.getElementById('homeDashBtn');
-                if (dashBtn) dashBtn.style.display = 'flex';
+                if (dashBtn) { dashBtn.style.display = 'flex'; dashBtn.classList.remove('nav-active'); }
                 var apBtn = document.getElementById('approvalBtn');
-                if (apBtn) apBtn.style.display = 'flex';
+                if (apBtn) { apBtn.style.display = 'flex'; apBtn.classList.remove('nav-active'); }
             }
         } catch(_){}
     };
