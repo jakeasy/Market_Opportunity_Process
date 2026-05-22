@@ -1678,7 +1678,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         localStorage.setItem('mop_admin_emails', JSON.stringify(_adminEmails));
         // ★ FIX 2026-05-19: 명시적 settings 저장 → dirty flag set → cloudSaveNow가 push 포함
         _settingsDirty = true;
-        console.log('[MOP] saveSettings: _settingsDirty=true → cloudSaveNow가 서버에 push 예정');
+        // ★ FIX 2026-05-22: grace period 시작 — 이후 10초간 cloudLoad는 settings/accounts 를 덮어쓰지 않음
+        //   증상: Setting 변경 후 3~5초 뒤 원복 — 옛 서버 응답이 로컬을 덮어쓰던 race 차단
+        try { if (typeof window._markLocalPush === 'function') { window._markLocalPush('settings'); window._markLocalPush('accounts'); } } catch(_){}
+        console.log('[MOP] saveSettings: _settingsDirty=true → cloudSaveNow가 서버에 push 예정 (grace period 활성)');
         try { if (typeof cloudSaveNow === 'function') cloudSaveNow(); } catch(_){}
         document.getElementById('settingsOverlay').classList.remove('active');
     }
@@ -1808,6 +1811,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
     function saveAccounts() {
         localStorage.setItem('mop_accounts', JSON.stringify(_accounts));
+        // ★ FIX 2026-05-22: accounts grace period 시작 — cloudLoad가 옛 서버 값으로 덮어쓰는 race 차단
+        try { if (typeof window._markLocalPush === 'function') window._markLocalPush('accounts'); } catch(_){}
         // ★★★ 서버 우선 — 3중 저장 경로 (어느 하나라도 성공하면 OK)
         var url = getAppsScriptUrl();
         if (url) {
@@ -4384,6 +4389,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 // 서버 삭제 성공 → 로컬 동기화
                 _accounts = _accounts.filter(function(a){ return a.id !== id; });
                 try { localStorage.setItem('mop_accounts', JSON.stringify(_accounts)); } catch(_){}
+                // ★ FIX 2026-05-22: grace period — 직후 cloudLoad가 삭제된 계정을 부활시키지 못하도록
+                try { if (typeof window._markLocalPush === 'function') window._markLocalPush('accounts'); } catch(_){}
                 console.log('[deleteAcc] ✅ 서버 삭제 완료. removed=' + (resp.removed||0) + ', total=' + (resp.total||0));
                 if (_currentUser && _currentUser.id === id) { doLogout(); return; }
                 renderAccList();
@@ -5640,6 +5647,22 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     var _lastServerVersion = '0';
     var _cloudLoadDone = true;
     var _pendingSaveAfterLoad = false;
+
+    // ★ FIX 2026-05-22: Settings/Accounts 푸시 보호 — 사용자가 직접 변경한 후 일정 시간 동안
+    //   cloudLoad가 옛 서버 응답으로 로컬 값을 덮어쓰지 못하도록 grace period 적용.
+    //   증상: Setting 변경 → 3~5초 후 원복 (cloudLoad의 응답이 POST보다 늦게 도착해 옛 값을 덮어씀)
+    var _localPushAt = { settings: 0, accounts: 0 };
+    var LOCAL_PUSH_GRACE_MS = 10000;  // 10초 — GAS POST + 서버 반영 + 다음 GET 응답 도착까지 충분한 여유
+    window._markLocalPush = function(kind) {
+        try {
+            _localPushAt[kind] = Date.now();
+            console.log('[MOP] _markLocalPush:', kind, '— grace period 시작 (' + LOCAL_PUSH_GRACE_MS + 'ms)');
+        } catch(_){}
+    };
+    window._isInLocalPushGrace = function(kind) {
+        try { return (Date.now() - (_localPushAt[kind] || 0)) < LOCAL_PUSH_GRACE_MS; } catch(_) { return false; }
+    };
+
     function cloudLoad() {
         var url = getAppsScriptUrl(); if (!url) return;
         showCloudBadge('loading');
@@ -5811,7 +5834,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     if (d.afcState) { mopAfcState = d.afcState; try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(_){} }
                     if (d.portfolio) { mopPortfolioState = d.portfolio; try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(_){} }
                     // ★ FIX 2026-05-15: settings 동기화 (Chrome ↔ Edge 등 브라우저 간 sync)
-                    if (d.settings && typeof d.settings === 'object') {
+                    // ★ FIX 2026-05-22: 사용자가 방금 settings 변경한 직후엔 서버 옛 값을 적용하지 않음 (race 방지)
+                    if (d.settings && typeof d.settings === 'object' && !window._isInLocalPushGrace('settings')) {
                         try {
                             var _s = d.settings;
                             // pw 객체 → localStorage 개별 키로 분배
@@ -5835,8 +5859,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                             }
                             console.log('[MOP] cloudLoad: settings applied — pwOn=', _s.pwOn);
                         } catch(_e){ console.warn('[MOP] settings apply error:', _e); }
+                    } else if (d.settings && typeof d.settings === 'object') {
+                        console.log('[MOP] cloudLoad: settings SKIPPED (grace period — 로컬 변경 보호중)');
                     }
-                    if (d.accounts && Array.isArray(d.accounts)) {
+                    // ★ FIX 2026-05-22: 사용자가 방금 accounts 변경한 직후엔 서버 옛 값을 적용하지 않음
+                    if (d.accounts && Array.isArray(d.accounts) && window._isInLocalPushGrace('accounts')) {
+                        console.log('[MOP] cloudLoad: accounts SKIPPED (grace period — 로컬 변경 보호중)');
+                    } else if (d.accounts && Array.isArray(d.accounts)) {
                         // ★ FIX 2026-05-18: tombstone 적용 — 서버측 삭제 마커가 있는 계정은 로컬에서 영구 제거
                         var _accTomb = _tomb.accounts || {};
                         _accounts = _accounts.filter(function(la){ return !(la && la.id != null && _accTomb[String(la.id)]); });
