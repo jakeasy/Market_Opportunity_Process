@@ -432,20 +432,34 @@
         .ap-tl-note.nogo { background: rgba(239,68,68,0.08); border-left-color:#ef4444; color:#fca5a5; }
         .ap-tl-skipped { color:#475569; font-style:italic; font-size:0.78rem; }
         .ap-empty { text-align:center; padding:48px 24px; color:#64748b; font-size:0.9rem; }
-        /* ★ FIX 2026-05-22: 네비게이션 버튼 active 상태 — 현재 페이지 강조 */
+        /* ★ FIX 2026-05-22: 네비게이션 버튼 — 기본/hover/active 상태를 CSS로 일관 관리
+           (inline onmouseover/out로 inline style 잔존하던 버그 차단) */
+        .nav-btn {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 14px;
+            font-size: 0.78rem; font-weight: 600; font-family: 'DM Sans', sans-serif;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
+            color: var(--text-muted); cursor: pointer;
+            backdrop-filter: blur(12px); transition: all .25s; letter-spacing: .3px;
+            white-space: nowrap;
+        }
+        .nav-btn-approval:hover:not(.nav-active) {
+            background: rgba(168,85,247,0.18); color: #c084fc; border-color: rgba(168,85,247,0.4);
+        }
+        .nav-btn-dash:hover:not(.nav-active) {
+            background: rgba(59,130,246,0.18); color: #60a5fa; border-color: rgba(59,130,246,0.4);
+        }
         #homeDashBtn.nav-active {
-            background: rgba(59,130,246,0.22) !important;
-            color: #60a5fa !important;
-            border-color: rgba(59,130,246,0.55) !important;
-            box-shadow: 0 0 0 1px rgba(59,130,246,0.35), 0 4px 12px rgba(59,130,246,0.18) !important;
-            cursor: default !important;
+            background: rgba(59,130,246,0.22); color: #60a5fa;
+            border-color: rgba(59,130,246,0.55);
+            box-shadow: 0 0 0 1px rgba(59,130,246,0.35), 0 4px 12px rgba(59,130,246,0.18);
+            cursor: default;
         }
         #approvalBtn.nav-active {
-            background: rgba(168,85,247,0.22) !important;
-            color: #c084fc !important;
-            border-color: rgba(168,85,247,0.55) !important;
-            box-shadow: 0 0 0 1px rgba(168,85,247,0.35), 0 4px 12px rgba(168,85,247,0.18) !important;
-            cursor: default !important;
+            background: rgba(168,85,247,0.22); color: #c084fc;
+            border-color: rgba(168,85,247,0.55);
+            box-shadow: 0 0 0 1px rgba(168,85,247,0.35), 0 4px 12px rgba(168,85,247,0.18);
+            cursor: default;
         }
         .iframe-topbar {
             background: var(--bg-card); border-bottom: 1px solid var(--border);
@@ -678,24 +692,13 @@
         <button class="user-logout-btn" onclick="doLogout()" title="로그아웃">⏻</button>
     </div>
     <!-- ★ FIX 2026-05-22: 네비 버튼 wrapper — 영문 시 텍스트 길어져도 겹치지 않게 flex 컨테이너로 자동 정렬 -->
+    <!--   인라인 onmouseover/out 대신 CSS :hover 사용 (nav-active 해제 후 inline 잔존 버그 차단) -->
     <div id="navBtns" style="position:fixed;top:20px;right:170px;z-index:9200;display:none;gap:8px;">
-        <button id="approvalBtn" onclick="openApprovalView()" title="Approval Workflow"
-            style="display:flex;align-items:center;gap:6px;
-                   padding:8px 14px;font-size:0.78rem;font-weight:600;font-family:'DM Sans',sans-serif;
-                   background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
-                   color:var(--text-muted);cursor:pointer;backdrop-filter:blur(12px);transition:all .25s;letter-spacing:.3px;white-space:nowrap;"
-            onmouseover="if(!this.classList.contains('nav-active')){this.style.background='rgba(168,85,247,0.18)';this.style.color='#c084fc';this.style.borderColor='rgba(168,85,247,0.4)';}"
-            onmouseout="if(!this.classList.contains('nav-active')){this.style.background='var(--bg-card)';this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';}">
+        <button id="approvalBtn" class="nav-btn nav-btn-approval" onclick="openApprovalView()" title="Approval Workflow">
             <span style="font-size:0.95rem;">🏛️</span>
             <span id="approvalBtnLabel">Approval</span>
         </button>
-        <button id="homeDashBtn" onclick="openHomeDashboard()" title="My Dashboard"
-            style="display:flex;align-items:center;gap:6px;
-                   padding:8px 14px;font-size:0.78rem;font-weight:600;font-family:'DM Sans',sans-serif;
-                   background:var(--bg-card);border:1px solid var(--border);border-radius:10px;
-                   color:var(--text-muted);cursor:pointer;backdrop-filter:blur(12px);transition:all .25s;letter-spacing:.3px;white-space:nowrap;"
-            onmouseover="if(!this.classList.contains('nav-active')){this.style.background='rgba(59,130,246,0.18)';this.style.color='#60a5fa';this.style.borderColor='rgba(59,130,246,0.4)';}"
-            onmouseout="if(!this.classList.contains('nav-active')){this.style.background='var(--bg-card)';this.style.color='var(--text-muted)';this.style.borderColor='var(--border)';}">
+        <button id="homeDashBtn" class="nav-btn nav-btn-dash" onclick="openHomeDashboard()" title="My Dashboard">
             <span style="font-size:0.95rem;">📊</span>
             <span id="homeDashBtnLabel">My Dashboard</span>
         </button>
