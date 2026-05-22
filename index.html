@@ -1853,14 +1853,24 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             // 2) 'all' debounced 500ms
             try { cloudSaveDebounced(); } catch(_){}
             // 3) GET ?action=save-accounts (no-cors fetch 실패 대비 — JSONP 우회)
+            // ★ FIX 2026-05-22: 콜백 함수를 미리 등록해서 GAS 응답이 ReferenceError 안 내게 함
             try {
                 var encoded = encodeURIComponent(JSON.stringify(_accounts));
                 if (encoded.length < 7000) {  // URL 길이 한계
+                    var cbName = '__mop_acc_cb_' + Date.now();
+                    window[cbName] = function(resp) {
+                        try { console.log('[saveAccounts JSONP] ✓ server response:', resp); } catch(_){}
+                        try { delete window[cbName]; } catch(_) { window[cbName] = undefined; }
+                    };
                     var s = document.createElement('script');
                     // ★ AUTH: 토큰 포함
-                    s.src = url + (url.indexOf('?')>=0?'&':'?') + 'action=save-accounts&data=' + encoded + '&callback=__mop_acc_cb_' + Date.now() + '&token=' + encodeURIComponent(MOP_API_TOKEN);
+                    s.src = url + (url.indexOf('?')>=0?'&':'?') + 'action=save-accounts&data=' + encoded + '&callback=' + cbName + '&token=' + encodeURIComponent(MOP_API_TOKEN);
+                    s.onerror = function(){ try { delete window[cbName]; } catch(_){} };
                     document.head.appendChild(s);
-                    setTimeout(function(){ try { s.parentNode && s.parentNode.removeChild(s); } catch(_){} }, 5000);
+                    setTimeout(function(){
+                        try { s.parentNode && s.parentNode.removeChild(s); } catch(_){}
+                        try { if (window[cbName]) delete window[cbName]; } catch(_){}
+                    }, 8000);
                 }
             } catch(_){}
         }
