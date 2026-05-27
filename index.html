@@ -5557,12 +5557,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         console.log('  - admin(adminTo):', getAdminEmailsStr(), ' [valid:', !!(getAdminEmailsStr() && getAdminEmailsStr().indexOf('@')>0), ']');
         console.log('  - title:', title);
         if (!submitterEmail || submitterEmail.indexOf('@') < 0) console.error('[MOP] ⚠️ submitter email MISSING — only admin will receive');
-        fetch(url, {
-            method: 'POST', mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-            body: JSON.stringify(payload)
-        }).then(function(){ console.log('✓ MOP score-complete email sent'); })
-          .catch(function(err){ console.error('✗ MOP score-complete email error:', err); });
+        // ★ FIX 2026-05-27: raw fetch → gasPostEmail 로 통합 (token 자동 주입 + keepalive + sendBeacon 폴백)
+        gasPostEmail(url, payload,
+            function(r){ console.log('✓ MOP score-complete email sent via', r && r.note ? r.note : 'unknown'); },
+            function(err){ console.error('✗ MOP score-complete email error:', err); });
     }
 
     function saveReviews() {
@@ -5585,6 +5583,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     //   후에도 최대 64KB 까지 전송을 끝까지 보장한다. 추가로 fetch 실패 시 sendBeacon 폴백.
     function gasPostEmail(url, data, onSuccess, onError) {
         try {
+            // ★ FIX 2026-05-27 (CRITICAL): server v3 의 _requireToken 검증을 위한 token 자동 주입.
+            //   기존 버그: 호출자가 깜빡 token 안 넣으면 서버가 unauthorized 반환. mode:'no-cors' 라
+            //   클라이언트는 응답 못 봐서 silent failure → 모든 메일이 거부됨. token 명시했으면 그대로 사용.
+            if (data && !data.token && typeof MOP_API_TOKEN !== 'undefined') {
+                data.token = MOP_API_TOKEN;
+            }
             var jsonStr = JSON.stringify(data);
             var sizeKb = (jsonStr.length/1024).toFixed(1);
             console.log('[MOP gasPostEmail] payload size:', sizeKb, 'KB');
@@ -5626,6 +5630,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
     function gasPost(url, data, onSuccess, onError) {
         try {
+            // ★ FIX 2026-05-27 (CRITICAL): server v3 의 _requireToken 검증을 위한 token 자동 주입.
+            //   cloudSaveNow / 데이터 동기화 / AFC 결과 메일 등 모든 doPost 호출에 token 필요.
+            //   호출자가 명시 안 했으면 자동 주입 (명시했으면 그대로 사용).
+            if (data && !data.token && typeof MOP_API_TOKEN !== 'undefined') {
+                data.token = MOP_API_TOKEN;
+            }
             var jsonStr = JSON.stringify(data);
             var sizeKb = (jsonStr.length / 1024).toFixed(1);
             console.log('[MOP gasPost] payload size:', sizeKb, 'KB');
