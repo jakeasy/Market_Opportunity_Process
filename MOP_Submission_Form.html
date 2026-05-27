@@ -1106,9 +1106,9 @@
             </div>
 
             <!-- Buttons -->
-            <div class="button-group" style="display:flex;gap:10px;align-items:center;">
-                <button type="button" class="btn-draft" id="saveDraftBtn" onclick="window._saveCurrentAsDraft()" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);color:#f59e0b;padding:14px 20px;font-size:14px;font-weight:600;cursor:pointer;border-radius:8px;font-family:inherit;transition:all .2s;" onmouseover="this.style.background='rgba(245,158,11,0.22)'" onmouseout="this.style.background='rgba(245,158,11,0.12)'">💾 <span id="saveDraftLabel">Save Draft</span></button>
-                <button type="submit" class="btn-submit" id="submitBtn" style="flex:1;">Submit</button>
+            <div class="button-group" style="gap:10px;align-items:center;">
+                <button type="button" class="btn-draft" id="saveDraftBtn" onclick="window._saveCurrentAsDraft()" style="background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.4);color:#f59e0b;padding:14px 20px;font-size:14px;font-weight:600;cursor:pointer;border-radius:8px;font-family:inherit;transition:all .2s;" onmouseover="this.style.background='rgba(245,158,11,0.22)'" onmouseout="this.style.background='rgba(245,158,11,0.12)'"><span id="saveDraftLabel">💾 Save Draft</span></button>
+                <button type="submit" class="btn-submit" id="submitBtn">Submit</button>
             </div>
         </form>
         </div><!-- /formPanelWrap -->
@@ -2155,8 +2155,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         try {
                             var isEmbedded = (window.parent && window.parent !== window);
                             if (!isEmbedded) {
+                                // ★ FIX 2026-05-27: token 추가 — v3 서버는 모든 doPost 에 MOP_API_TOKEN 요구.
+                                //   토큰 없으면 'unauthorized' 로 거부되어 standalone 메일 알림이 전부 끊김 (회귀).
+                                //   또한 keepalive:true 로 fetch 가 페이지 unload 중에도 끝까지 전송되도록 보장.
                                 var emailPayload = {
                                     type: 'email',
+                                    token: MOP_API_TOKEN,
                                     email: submissionData.requestOwnerEmail || '',
                                     submitter: submissionData.requestOwner || '',
                                     title: submissionData.opportunityTitle || '',
@@ -2168,7 +2172,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 fetch(APPS_SCRIPT_URL, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                                    body: JSON.stringify(emailPayload)
+                                    body: JSON.stringify(emailPayload),
+                                    keepalive: true
                                 }).catch(function(err) { console.log('[MOP] Email queued/sent (standalone path)'); });
                             } else {
                                 console.log('[MOP] Email handled by Gateway (embedded mode) — skipping direct fetch to avoid duplicate');
