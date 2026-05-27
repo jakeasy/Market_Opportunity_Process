@@ -5703,6 +5703,29 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
     window.cloudSaveDebounced = cloudSaveDebounced;
 
+    // ★ FIX 2026-05-27 (P0-2): beforeunload 시 pending save flush
+    //   _cloudSaveTimer 가 active (디바운스 대기 중) 인 상태로 페이지가 닫히면 setTimeout 이 취소되어
+    //   서버에 도달 못한 채 데이터 손실. unload 시점에 timer 즉시 flush.
+    //   gasPost 가 sendBeacon (≤60KB) / keepalive fetch 를 쓰기 때문에 unload 중에도 전송 보장.
+    //   한 번만 등록 (Gateway HTML 은 SPA 라 페이지 lifecycle 한 번뿐). pagehide 도 함께 등록 — iOS Safari 호환.
+    var _unloadFlushAttached = false;
+    function _attachUnloadFlush() {
+        if (_unloadFlushAttached) return;
+        _unloadFlushAttached = true;
+        var _flush = function(){
+            try {
+                if (_cloudSaveTimer) {
+                    clearTimeout(_cloudSaveTimer);
+                    _cloudSaveTimer = null;
+                    try { cloudSaveNow(); console.log('[MOP] unload flush — pending cloudSaveNow fired'); } catch(_){}
+                }
+            } catch(_){}
+        };
+        window.addEventListener('beforeunload', _flush);
+        window.addEventListener('pagehide', _flush);
+    }
+    try { _attachUnloadFlush(); } catch(_){}
+
     // ★★★ JSONP GET save — no-cors fetch 우회 (response 확인 가능)
     function _gasGetSave(type, data, onOk, onFail) {
         try {
@@ -6022,6 +6045,35 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 }
                             });
                         } catch(_){}
+                        // ★ FIX 2026-05-27 (P0-3): grace marker 보호 — 제출 직후 cloudLoad race 차단.
+                        //   로컬에 있고, 서버에는 없고, 최근 10분 내 제출 marker 가 있으면 보존.
+                        //   서버가 아직 commit 못한 in-flight 신규 항목이 view 에서 사라지지 않도록.
+                        try {
+                            var _grRaw = localStorage.getItem('__mop_recent_submissions') || '[]';
+                            var _gr = JSON.parse(_grRaw);
+                            if (Array.isArray(_gr) && _gr.length) {
+                                var GRACE_TTL2 = 10 * 60 * 1000;
+                                var nowTs = Date.now();
+                                var _grValid = _gr.filter(function(r){ return r && (nowTs - (r.at||0)) < GRACE_TTL2; });
+                                var _grIds = {};
+                                _grValid.forEach(function(r){ if (r && r.id != null) _grIds[String(r.id)] = true; });
+                                var _serverIds = {};
+                                _newSubs.forEach(function(s){ if (s && s.id != null) _serverIds[String(s.id)] = true; });
+                                var _preserved = (mopSubmissions || []).filter(function(s){
+                                    if (!s || s.id == null) return false;
+                                    if (_isTomb('submissions', s.id)) return false; // 삭제된 항목 부활 차단
+                                    return _grIds[String(s.id)] && !_serverIds[String(s.id)];
+                                });
+                                if (_preserved.length) {
+                                    _newSubs = _newSubs.concat(_preserved);
+                                    console.log('[cloudLoad] grace 보호:', _preserved.length, '건 in-flight 신규 submission 보존 (서버 미반영 상태)');
+                                }
+                                // TTL 만료 marker 정리
+                                if (_grValid.length !== _gr.length) {
+                                    localStorage.setItem('__mop_recent_submissions', JSON.stringify(_grValid));
+                                }
+                            }
+                        } catch(_){}
                         mopSubmissions = _newSubs;
                         try { localStorage.setItem('mop_submissions', JSON.stringify(mopSubmissions)); } catch(_){}
                     } else if (_tomb.submissions && Object.keys(_tomb.submissions).length) {
@@ -6269,6 +6321,28 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 mopSubmissions.push(payload);
                 saveSubmissions();
                 console.log('[MOP] gw saved submission — newTotal=', mopSubmissions.length);
+                // ★ FIX 2026-05-27 (P0-1): 2초 디바운스 race condition 차단 — 신규 제출은 즉시 서버 push.
+                //   기존 버그: cloudSaveDebounced 가 setTimeout 2000ms 대기 중 사용자가 페이지 닫으면
+                //   timer 가 cancel 되어 서버 도달 못함 → 데이터 손실. (2026-05-26 APAC 1건 사라짐 사례)
+                //   해결: 신규 submission 수신 즉시 cloudSaveNow 호출 + 디바운스 타이머 clear.
+                try {
+                    if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
+                    cloudSaveNow();
+                    console.log('[MOP] gw submission immediate cloudSaveNow triggered (bypass 2s debounce)');
+                } catch(e){ console.error('[MOP] gw immediate cloudSaveNow ERROR:', e); }
+                // ★ FIX 2026-05-27 (P0-3): cloudLoad race 로 view 에서 사라지지 않도록 grace marker
+                //   서버 도달 전에 cloudLoad 가 fire 되면 mopSubmissions = [server data] 로 replace 되어
+                //   신규 항목이 view 에서 일시적으로 사라짐. 10분 동안 cloudLoad 가 이 ID 를 보존하도록 표시.
+                try {
+                    var _recRaw = localStorage.getItem('__mop_recent_submissions') || '[]';
+                    var _rec = JSON.parse(_recRaw);
+                    if (!Array.isArray(_rec)) _rec = [];
+                    _rec.push({ id: payload.id, at: Date.now() });
+                    // TTL 정리 — 10분 초과 마커는 제거
+                    var GRACE_TTL = 10 * 60 * 1000;
+                    _rec = _rec.filter(function(r){ return r && (Date.now() - (r.at||0)) < GRACE_TTL; });
+                    localStorage.setItem('__mop_recent_submissions', JSON.stringify(_rec));
+                } catch(_){}
                 // 폼 iframe에 즉시 sync 회신 — "내 Submission"이 바로 보이도록
                 try {
                     var ifr0 = document.getElementById('tool-iframe');
