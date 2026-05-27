@@ -2123,6 +2123,17 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
     window.doSignup = doSignup;
     function doSignup() {
+        // ★ FIX 2026-05-27: 중복 호출 차단 (Enter+클릭 동시 / 더블 클릭으로 메일 2회 발사 방지).
+        //   회원가입 폼의 Submit 버튼 onclick + input 의 onkeydown Enter 가 같은 doSignup 을
+        //   거의 동시에 trigger 가능 → sendSignupEmails 2회 → 사용자/admin 메일 각 2통씩 발송됨.
+        //   3초 in-flight lock 으로 차단. 첫 호출만 처리, 이후 호출은 즉시 return.
+        if (window._mopSignupInFlight) {
+            console.warn('[MOP signup] 중복 호출 차단 (in-flight)');
+            return;
+        }
+        window._mopSignupInFlight = true;
+        setTimeout(function(){ window._mopSignupInFlight = false; }, 3000);
+
         var name   = (document.getElementById('regName').value || '').trim();
         var email  = (document.getElementById('regEmail').value || '').trim().toLowerCase();
         var dept   = (document.getElementById('regDept').value || '').trim();
@@ -2144,7 +2155,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (pw.length < 8) { showFieldErr('regPw', lt.regErrPwLen); hasErr = true; }
         if (pw && pw2 && pw !== pw2) { showFieldErr('regPwConfirm', lt.regErrPwMatch); hasErr = true; }
         else if (pw2 && pw.length < 8) { /* already flagged above */ }
-        if (hasErr) return;
+        if (hasErr) {
+            // validation 실패 시 즉시 lock 해제 — 사용자가 수정 후 바로 재시도 가능
+            window._mopSignupInFlight = false;
+            return;
+        }
         // ★ FIX: 타임스탬프 기반 id (브라우저 간 _accEditNextId 충돌 방지)
         //    Date.now()는 ms 단위 → 같은 브라우저에서도 1ms 이내 중복 가입은 거의 불가.
         //    혹시 모를 충돌 대비 random suffix 추가.
