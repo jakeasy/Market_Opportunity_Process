@@ -434,15 +434,51 @@
         .ap-empty { text-align:center; padding:48px 24px; color:#64748b; font-size:0.9rem; }
         /* ★ FIX 2026-05-22: 네비게이션 버튼 — 기본/hover/active 상태를 CSS로 일관 관리
            (inline onmouseover/out로 inline style 잔존하던 버그 차단) */
+        /* ★ FIX 2026-05-27 UX: top nav 컴팩트화 — 아이콘 only + hover tooltip
+           기존엔 4 버튼이 모두 "icon + 라벨 + (kbd hint)" 로 가로 공간을 잡아먹고
+           시각적 우선순위가 모호했음. Gmail / Linear 스타일 38px 아이콘 버튼으로 통일. */
         .nav-btn {
-            display: flex; align-items: center; gap: 6px;
-            padding: 8px 14px;
-            font-size: 0.78rem; font-weight: 600; font-family: 'DM Sans', sans-serif;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            width: 40px; height: 38px; padding: 0;
+            font-size: 1rem; font-weight: 600; font-family: 'DM Sans', sans-serif;
             background: var(--bg-card); border: 1px solid var(--border); border-radius: 10px;
             color: var(--text-muted); cursor: pointer;
-            backdrop-filter: blur(12px); transition: all .25s; letter-spacing: .3px;
+            backdrop-filter: blur(12px); transition: all .2s; letter-spacing: .3px;
             white-space: nowrap;
         }
+        /* 라벨/단축키 hint 숨김 — 툴팁으로 노출 */
+        #globalSearchBtnLabel, #notifBtnLabel, #approvalBtnLabel, #homeDashBtnLabel,
+        .nav-btn .kbd-hint {
+            display: none;
+        }
+        /* 커스텀 hover 툴팁 — title 속성 활용, 즉시 표시 */
+        .nav-btn::after {
+            content: attr(title);
+            position: absolute;
+            top: calc(100% + 8px);
+            left: 50%;
+            transform: translateX(-50%) translateY(-4px);
+            padding: 5px 10px;
+            background: #1e293b;
+            color: #e2e8f0;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 6px;
+            font-size: 0.7rem; font-weight: 500;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .15s ease, transform .15s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10002;
+        }
+        .nav-btn:hover::after {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            transition-delay: .25s; /* 살짝 지연 — 마우스 빠르게 스쳐 지나갈 때 안 뜨게 */
+        }
+        /* native title 툴팁 안 보이게 — 우리 ::after 만 사용. 단 a11y 위해 title attribute 는 유지.
+           브라우저별로 title native 도 뜰 수 있지만 일반적으로 ::after 가 즉시 먼저 보임. */
         .nav-btn-approval:hover:not(.nav-active) {
             background: rgba(168,85,247,0.18); color: #c084fc; border-color: rgba(168,85,247,0.4);
         }
