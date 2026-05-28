@@ -1268,6 +1268,7 @@
                 <button onclick="switchSettingsTab('general')" id="tabGeneral" data-i18n="setTabGeneral" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:#3b82f6;color:#fff;">⚙️ 일반</button>
                 <button onclick="switchSettingsTab('accounts')" id="tabAccounts" data-i18n="setTabAccounts" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">👥 Account 관리</button>
                 <button onclick="switchSettingsTab('emails')" id="tabEmails" data-i18n="setTabEmails" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">📧 메일 로그</button>
+                <button onclick="switchSettingsTab('audit')" id="tabAudit" data-i18n="setTabAudit" style="flex:1;padding:7px;border-radius:7px;border:none;font-size:0.78rem;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#64748b;">📜 변경 이력</button>
             </div>
             <!-- ★ FIX 2026-05-21: 탭 컨텐츠 영역 — 고정 높이 + 내부 스크롤 (모달 자체는 사이즈 불변) -->
             <div id="settingsContentArea" style="flex:1;overflow-y:auto;overflow-x:hidden;padding-right:6px;min-height:0;">
@@ -1415,6 +1416,42 @@
                     <div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">⏳ 새로고침 버튼을 눌러 로그를 불러오세요</div>
                 </div>
             </div><!-- /settingsTabEmails -->
+
+            <!-- ★ NEW 2026-05-28: Audit Log 탭 (변경 이력 — 의료기기 규제 대응) -->
+            <div id="settingsTabAudit" style="display:none;text-align:left;">
+                <div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.15);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:0.72rem;color:#c4b5fd;line-height:1.6;">
+                    <strong>📜</strong> <span id="audIntro" data-i18n="audIntro">의료기기 규제/감사 대응용. 누가 / 언제 / 어떤 데이터를 / 어떻게 변경했는지 추적. append-only 로 위변조 방지.</span>
+                </div>
+                <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
+                    <button onclick="loadAuditLog()" id="audRefreshBtn" style="padding:7px 14px;background:#a855f7;color:#fff;border:none;border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;">↻ <span data-i18n="audRefresh">새로고침</span></button>
+                    <input type="text" id="audFilterInput" placeholder="🔍 actor / target / field 검색..." oninput="renderAuditLog()" style="flex:1;min-width:160px;padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;" onfocus="this.style.borderColor='#a855f7'" onblur="this.style.borderColor='#2d3a4f'">
+                    <select id="audTypeFilter" onchange="renderAuditLog()" style="padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;">
+                        <option value="all">전체 종류</option>
+                        <option value="account">👤 Account</option>
+                        <option value="submission">📝 Submission</option>
+                        <option value="review">📊 Review</option>
+                        <option value="afc">✅ AFC</option>
+                        <option value="portfolio">🚀 Portfolio</option>
+                    </select>
+                    <select id="audActionFilter" onchange="renderAuditLog()" style="padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;">
+                        <option value="all">전체 액션</option>
+                        <option value="signup">signup</option>
+                        <option value="create">create</option>
+                        <option value="update">update</option>
+                        <option value="delete">delete</option>
+                        <option value="approve">approve</option>
+                        <option value="reject">reject</option>
+                        <option value="role-change">role-change</option>
+                        <option value="reset-pw">reset-pw</option>
+                        <option value="finalize">finalize</option>
+                        <option value="funding">funding</option>
+                    </select>
+                </div>
+                <div style="font-size:0.7rem;color:#64748b;margin-bottom:6px;" id="audFetchedAt">아직 로드되지 않음</div>
+                <div id="audLogContainer" style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:10px;">
+                    <div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">⏳ 새로고침 버튼을 눌러 변경 이력을 불러오세요</div>
+                </div>
+            </div><!-- /settingsTabAudit -->
 
             <!-- ★ FIX 2026-05-21: Dashboard / 통계 탭 -->
             <div id="settingsTabDashboard" style="display:none;text-align:left;">
@@ -3824,6 +3861,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         // ★ FIX 2026-05-21: Dashboard 탭
         var dashTab = document.getElementById('settingsTabDashboard');
         if (dashTab) dashTab.style.display = tab === 'dashboard' ? '' : 'none';
+        // ★ NEW 2026-05-28: 변경 이력 탭
+        var auditTab = document.getElementById('settingsTabAudit');
+        if (auditTab) auditTab.style.display = tab === 'audit' ? '' : 'none';
         document.getElementById('tabGeneral').style.background = tab === 'general' ? '#3b82f6' : 'transparent';
         document.getElementById('tabGeneral').style.color = tab === 'general' ? '#fff' : '#64748b';
         document.getElementById('tabAccounts').style.background = tab === 'accounts' ? '#3b82f6' : 'transparent';
@@ -3837,6 +3877,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (dashBtn) {
             dashBtn.style.background = tab === 'dashboard' ? '#3b82f6' : 'transparent';
             dashBtn.style.color = tab === 'dashboard' ? '#fff' : '#64748b';
+        }
+        var auditBtn = document.getElementById('tabAudit');
+        if (auditBtn) {
+            auditBtn.style.background = tab === 'audit' ? '#a855f7' : 'transparent';
+            auditBtn.style.color = tab === 'audit' ? '#fff' : '#64748b';
         }
         // ★ FIX 2026-05-21: 공통 하단 footer — Save 는 General 탭에서만 노출
         var saveBtn = document.getElementById('settingsFooterSaveBtn');
@@ -3855,6 +3900,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (tab === 'emails') {
             // 메일 로그 자동 로드
             try { loadEmailLog(); } catch(_){}
+        }
+        if (tab === 'audit') {
+            // ★ NEW 2026-05-28: 변경 이력 자동 로드
+            try { loadAuditLog(); } catch(_){}
         }
         if (tab === 'dashboard') {
             // Dashboard 자동 렌더링 + cloudLoad로 최신 데이터 반영
@@ -4141,6 +4190,127 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         } catch(e) {
             console.error('[renderDashboardStats] error:', e);
         }
+    };
+
+    // ★ NEW 2026-05-28: AuditLog 변경 이력 관리
+    var _auditLogCache = [];
+    var _auditLoadingUntil = 0;
+
+    window.loadAuditLog = function() {
+        var url = getAppsScriptUrl();
+        if (!url) { console.error('[loadAuditLog] no GAS URL'); return; }
+        if (_auditLoadingUntil > Date.now()) {
+            console.log('[loadAuditLog] already loading, skipping duplicate call');
+            return;
+        }
+        _auditLoadingUntil = Date.now() + 1000;
+        var fetchedEl = document.getElementById('audFetchedAt');
+        if (fetchedEl) fetchedEl.textContent = '⏳ 로딩 중...';
+        // JSONP 방식 — gasGet 헬퍼 사용 (응답 확인 가능)
+        var cb = '__audit_log_' + Date.now();
+        var sep = url.indexOf('?') >= 0 ? '&' : '?';
+        var fullUrl = url + sep + 'action=audit-log&limit=300&token=' + encodeURIComponent(MOP_API_TOKEN) + '&callback=' + cb;
+        window[cb] = function(j) {
+            try {
+                console.log('[loadAuditLog] response:', j);
+                if (j && j.success) {
+                    _auditLogCache = j.logs || [];
+                    var ts = j.fetched_at ? new Date(j.fetched_at).toLocaleString() : new Date().toLocaleString();
+                    if (fetchedEl) fetchedEl.textContent = 'Last fetched: ' + ts + ' · ' + _auditLogCache.length + ' rows';
+                    renderAuditLog();
+                } else {
+                    if (fetchedEl) fetchedEl.textContent = '❌ ' + (j && j.error || 'unknown error');
+                    document.getElementById('audLogContainer').innerHTML = '<div style="text-align:center;color:#ef4444;font-size:0.85rem;padding:40px 0;">❌ ' + (j && j.error || '로드 실패') + '</div>';
+                }
+            } catch(e) {
+                console.error('[loadAuditLog] callback error:', e);
+            }
+            try { delete window[cb]; } catch(_) { window[cb] = undefined; }
+            try { if (script && script.parentNode) script.parentNode.removeChild(script); } catch(_){}
+        };
+        var script = document.createElement('script');
+        script.src = fullUrl;
+        script.onerror = function(){
+            console.error('[loadAuditLog] script load error');
+            if (fetchedEl) fetchedEl.textContent = '❌ network error';
+            try { delete window[cb]; } catch(_){}
+        };
+        document.head.appendChild(script);
+        setTimeout(function(){
+            if (window[cb]) { console.warn('[loadAuditLog] timeout'); if (fetchedEl) fetchedEl.textContent = '⏱ timeout'; try { delete window[cb]; } catch(_){} try { script.remove(); } catch(_){} }
+        }, 15000);
+    };
+
+    window.renderAuditLog = function() {
+        var container = document.getElementById('audLogContainer');
+        if (!container) return;
+        var logs = _auditLogCache || [];
+        if (!logs.length) {
+            container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">📭 변경 이력이 없습니다</div>';
+            return;
+        }
+        var typeF   = (document.getElementById('audTypeFilter') || {}).value || 'all';
+        var actF    = (document.getElementById('audActionFilter') || {}).value || 'all';
+        var q       = ((document.getElementById('audFilterInput') || {}).value || '').toLowerCase().trim();
+        var filtered = logs.filter(function(e){
+            if (typeF !== 'all' && e.type !== typeF) return false;
+            if (actF !== 'all' && e.action !== actF) return false;
+            if (q) {
+                var hay = (e.actor + ' ' + e.actorEmail + ' ' + e.targetTitle + ' ' + e.targetId + ' ' + e.field + ' ' + e.oldValue + ' ' + e.newValue).toLowerCase();
+                if (hay.indexOf(q) < 0) return false;
+            }
+            return true;
+        });
+        if (!filtered.length) {
+            container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">🤔 일치하는 항목 없음 (' + logs.length + ' 건 중)</div>';
+            return;
+        }
+        var typeBadge = {
+            account:    '<span style="background:rgba(168,85,247,0.18);color:#c084fc;padding:1px 7px;border-radius:4px;font-size:0.65rem;font-weight:700;">👤 ACCOUNT</span>',
+            submission: '<span style="background:rgba(59,130,246,0.18);color:#60a5fa;padding:1px 7px;border-radius:4px;font-size:0.65rem;font-weight:700;">📝 SUB</span>',
+            review:     '<span style="background:rgba(139,92,246,0.18);color:#a78bfa;padding:1px 7px;border-radius:4px;font-size:0.65rem;font-weight:700;">📊 REV</span>',
+            afc:        '<span style="background:rgba(16,185,129,0.18);color:#34d399;padding:1px 7px;border-radius:4px;font-size:0.65rem;font-weight:700;">✅ AFC</span>',
+            portfolio:  '<span style="background:rgba(245,158,11,0.18);color:#fbbf24;padding:1px 7px;border-radius:4px;font-size:0.65rem;font-weight:700;">🚀 PORT</span>'
+        };
+        var actionColor = {
+            signup:        '#fbbf24',
+            create:        '#3b82f6',
+            update:        '#94a3b8',
+            'role-change': '#a855f7',
+            'reset-pw':    '#f59e0b',
+            approve:       '#22c55e',
+            reject:        '#ef4444',
+            delete:        '#ef4444',
+            finalize:      '#10b981',
+            funding:       '#fbbf24'
+        };
+        var esc = function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); };
+        var rows = filtered.map(function(e){
+            var ts = '';
+            try { ts = new Date(e.ts).toLocaleString(); } catch(_){ ts = e.ts; }
+            var actCol = actionColor[e.action] || '#94a3b8';
+            var changeStr = '';
+            if (e.field) {
+                changeStr = '<div style="font-size:0.72rem;color:#cbd5e1;margin-top:4px;">'
+                  + '<span style="color:#64748b;">' + esc(e.field) + ':</span> '
+                  + '<span style="background:rgba(239,68,68,0.12);color:#fca5a5;padding:1px 6px;border-radius:3px;font-family:monospace;">' + esc(e.oldValue || '∅') + '</span>'
+                  + ' <span style="color:#64748b;">→</span> '
+                  + '<span style="background:rgba(34,197,94,0.12);color:#86efac;padding:1px 6px;border-radius:3px;font-family:monospace;">' + esc(e.newValue || '∅') + '</span>'
+                  + '</div>';
+            }
+            return '<div style="padding:10px 12px;border-bottom:1px solid #1e293b;display:flex;gap:12px;align-items:flex-start;">'
+              + '<div style="min-width:140px;font-family:monospace;font-size:0.7rem;color:#64748b;">' + esc(ts) + '</div>'
+              + '<div style="min-width:90px;">' + (typeBadge[e.type] || ('<span style="color:#64748b;font-size:0.7rem;">' + esc(e.type) + '</span>')) + '</div>'
+              + '<div style="min-width:90px;color:' + actCol + ';font-weight:700;font-size:0.74rem;text-transform:uppercase;letter-spacing:0.5px;">' + esc(e.action) + '</div>'
+              + '<div style="flex:1;min-width:0;">'
+              +   '<div style="font-size:0.82rem;color:#e2e8f0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(e.targetTitle || e.targetId) + '</div>'
+              +   '<div style="font-size:0.7rem;color:#94a3b8;margin-top:2px;">👤 ' + esc(e.actor || 'system') + (e.actorEmail ? ' <span style="color:#64748b;">' + esc(e.actorEmail) + '</span>' : '') + (e.actorRole ? ' <span style="background:rgba(255,255,255,0.05);padding:1px 5px;border-radius:3px;color:#94a3b8;font-size:0.62rem;margin-left:4px;">' + esc(e.actorRole) + '</span>' : '') + '</div>'
+              +   changeStr
+              + '</div>'
+              + '</div>';
+        }).join('');
+        container.innerHTML = '<div style="font-size:0.7rem;color:#64748b;padding:0 4px 8px;letter-spacing:0.5px;">' + filtered.length + ' / ' + logs.length + ' 건 표시</div>'
+          + '<div style="background:#0a0e1a;border-radius:8px;overflow:hidden;">' + rows + '</div>';
     };
 
     // ★ FIX 2026-05-21: 메일 로그 관리
@@ -6000,6 +6170,15 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (data && !data.token && typeof MOP_API_TOKEN !== 'undefined') {
                 data.token = MOP_API_TOKEN;
             }
+            // ★ NEW 2026-05-28: AuditLog 용 actor 자동 주입 (gasPost 와 동일 패턴)
+            if (data && !data._actor && typeof _currentUser !== 'undefined' && _currentUser) {
+                data._actor = {
+                    id: _currentUser.id || '',
+                    username: _currentUser.username || '',
+                    name: _currentUser.name || '',
+                    role: _currentUser.role || ''
+                };
+            }
             var jsonStr = JSON.stringify(data);
             var sizeKb = (jsonStr.length/1024).toFixed(1);
             console.log('[MOP gasPostEmail] payload size:', sizeKb, 'KB');
@@ -6046,6 +6225,16 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             //   호출자가 명시 안 했으면 자동 주입 (명시했으면 그대로 사용).
             if (data && !data.token && typeof MOP_API_TOKEN !== 'undefined') {
                 data.token = MOP_API_TOKEN;
+            }
+            // ★ NEW 2026-05-28: AuditLog 용 actor 자동 주입 — 누가 이 변경을 일으켰는지 서버가 알 수 있게.
+            //   _currentUser 가 있고 호출자가 _actor 명시 안 했으면 자동 주입.
+            if (data && !data._actor && typeof _currentUser !== 'undefined' && _currentUser) {
+                data._actor = {
+                    id: _currentUser.id || '',
+                    username: _currentUser.username || '',
+                    name: _currentUser.name || '',
+                    role: _currentUser.role || ''
+                };
             }
             var jsonStr = JSON.stringify(data);
             var sizeKb = (jsonStr.length / 1024).toFixed(1);
