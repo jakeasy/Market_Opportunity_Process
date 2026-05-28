@@ -1424,17 +1424,17 @@
                 </div>
                 <div style="display:flex;gap:8px;margin-bottom:12px;align-items:center;flex-wrap:wrap;">
                     <button onclick="loadAuditLog()" id="audRefreshBtn" style="padding:7px 14px;background:#a855f7;color:#fff;border:none;border-radius:7px;font-size:0.8rem;font-weight:600;cursor:pointer;">↻ <span data-i18n="audRefresh">새로고침</span></button>
-                    <input type="text" id="audFilterInput" placeholder="🔍 actor / target / field 검색..." oninput="renderAuditLog()" style="flex:1;min-width:160px;padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;" onfocus="this.style.borderColor='#a855f7'" onblur="this.style.borderColor='#2d3a4f'">
+                    <input type="text" id="audFilterInput" data-i18n-ph="audSearchPh" placeholder="🔍 actor / target / field 검색..." oninput="renderAuditLog()" style="flex:1;min-width:160px;padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;" onfocus="this.style.borderColor='#a855f7'" onblur="this.style.borderColor='#2d3a4f'">
                     <select id="audTypeFilter" onchange="renderAuditLog()" style="padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;">
-                        <option value="all">전체 종류</option>
-                        <option value="account">👤 Account</option>
-                        <option value="submission">📝 Submission</option>
-                        <option value="review">📊 Review</option>
-                        <option value="afc">✅ AFC</option>
-                        <option value="portfolio">🚀 Portfolio</option>
+                        <option value="all" data-i18n="audTypeAll">전체 종류</option>
+                        <option value="account" data-i18n="audTypeAccount">👤 계정</option>
+                        <option value="submission" data-i18n="audTypeSubmission">📝 제출</option>
+                        <option value="review" data-i18n="audTypeReview">📊 리뷰</option>
+                        <option value="afc" data-i18n="audTypeAfc">✅ AFC</option>
+                        <option value="portfolio" data-i18n="audTypePortfolio">🚀 포트폴리오</option>
                     </select>
                     <select id="audActionFilter" onchange="renderAuditLog()" style="padding:6px 10px;background:#1a2235;border:1px solid #2d3a4f;border-radius:7px;color:#e2e8f0;font-size:0.78rem;outline:none;font-family:inherit;">
-                        <option value="all">전체 액션</option>
+                        <option value="all" data-i18n="audActionAll">전체 액션</option>
                         <option value="signup">signup</option>
                         <option value="create">create</option>
                         <option value="update">update</option>
@@ -1447,9 +1447,9 @@
                         <option value="funding">funding</option>
                     </select>
                 </div>
-                <div style="font-size:0.7rem;color:#64748b;margin-bottom:6px;" id="audFetchedAt">아직 로드되지 않음</div>
+                <div style="font-size:0.7rem;color:#64748b;margin-bottom:6px;" id="audFetchedAt" data-i18n="audNotLoaded">아직 로드되지 않음</div>
                 <div id="audLogContainer" style="background:#0f1525;border:1px solid #1e293b;border-radius:10px;padding:10px;">
-                    <div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">⏳ 새로고침 버튼을 눌러 변경 이력을 불러오세요</div>
+                    <div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;" data-i18n="audInitialMsg">⏳ 새로고침 버튼을 눌러 변경 이력을 불러오세요</div>
                 </div>
             </div><!-- /settingsTabAudit -->
 
@@ -3941,6 +3941,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var tkey = titleNodes[k].getAttribute('data-i18n-title');
                 if (tkey && t[tkey] != null) titleNodes[k].setAttribute('title', t[tkey]);
             }
+            // ★ NEW 2026-05-28: Audit Log 탭이 로드된 상태이면 렌더 갱신 (테이블 안의 단위/문구 다시 적용)
+            try {
+                var auditTabActive = (document.getElementById('settingsTabAudit') || {}).style.display !== 'none';
+                if (auditTabActive && typeof renderAuditLog === 'function' && _auditLogCache && _auditLogCache.length) {
+                    renderAuditLog();
+                }
+            } catch(_){}
         } catch (e) { try { console.error('[applySettingsI18n]', e); } catch(_){} }
     };
 
@@ -4204,8 +4211,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             return;
         }
         _auditLoadingUntil = Date.now() + 1000;
+        var _t = (typeof i18n !== 'undefined' ? (i18n[currentLang] || i18n.en) : {}) || {};
         var fetchedEl = document.getElementById('audFetchedAt');
-        if (fetchedEl) fetchedEl.textContent = '⏳ 로딩 중...';
+        if (fetchedEl) fetchedEl.textContent = _t.audLoading || '⏳ Loading…';
         // JSONP 방식 — gasGet 헬퍼 사용 (응답 확인 가능)
         var cb = '__audit_log_' + Date.now();
         var sep = url.indexOf('?') >= 0 ? '&' : '?';
@@ -4213,14 +4221,15 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         window[cb] = function(j) {
             try {
                 console.log('[loadAuditLog] response:', j);
+                var _t2 = (typeof i18n !== 'undefined' ? (i18n[currentLang] || i18n.en) : {}) || {};
                 if (j && j.success) {
                     _auditLogCache = j.logs || [];
                     var ts = j.fetched_at ? new Date(j.fetched_at).toLocaleString() : new Date().toLocaleString();
-                    if (fetchedEl) fetchedEl.textContent = 'Last fetched: ' + ts + ' · ' + _auditLogCache.length + ' rows';
+                    if (fetchedEl) fetchedEl.textContent = (_t2.audLastFetched || 'Last fetched') + ': ' + ts + ' · ' + _auditLogCache.length + ' ' + (_t2.audRowsLabel || 'rows');
                     renderAuditLog();
                 } else {
                     if (fetchedEl) fetchedEl.textContent = '❌ ' + (j && j.error || 'unknown error');
-                    document.getElementById('audLogContainer').innerHTML = '<div style="text-align:center;color:#ef4444;font-size:0.85rem;padding:40px 0;">❌ ' + (j && j.error || '로드 실패') + '</div>';
+                    document.getElementById('audLogContainer').innerHTML = '<div style="text-align:center;color:#ef4444;font-size:0.85rem;padding:40px 0;">❌ ' + (j && j.error || 'load failed') + '</div>';
                 }
             } catch(e) {
                 console.error('[loadAuditLog] callback error:', e);
@@ -4244,9 +4253,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     window.renderAuditLog = function() {
         var container = document.getElementById('audLogContainer');
         if (!container) return;
+        var _t = (typeof i18n !== 'undefined' ? (i18n[currentLang] || i18n.en) : {}) || {};
         var logs = _auditLogCache || [];
         if (!logs.length) {
-            container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">📭 변경 이력이 없습니다</div>';
+            container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">' + (_t.audEmpty || '📭 No audit entries') + '</div>';
             return;
         }
         var typeF   = (document.getElementById('audTypeFilter') || {}).value || 'all';
@@ -4262,7 +4272,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             return true;
         });
         if (!filtered.length) {
-            container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">🤔 일치하는 항목 없음 (' + logs.length + ' 건 중)</div>';
+            container.innerHTML = '<div style="text-align:center;color:#64748b;font-size:0.85rem;padding:40px 0;">' + (_t.audNoMatch || '🤔 No matches') + ' (' + logs.length + ' ' + (_t.audRowsLabel || 'rows') + ')</div>';
             return;
         }
         var typeBadge = {
@@ -4309,7 +4319,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
               + '</div>'
               + '</div>';
         }).join('');
-        container.innerHTML = '<div style="font-size:0.7rem;color:#64748b;padding:0 4px 8px;letter-spacing:0.5px;">' + filtered.length + ' / ' + logs.length + ' 건 표시</div>'
+        container.innerHTML = '<div style="font-size:0.7rem;color:#64748b;padding:0 4px 8px;letter-spacing:0.5px;">' + filtered.length + ' / ' + logs.length + ' ' + (_t.audShowingOf || 'showing of') + '</div>'
           + '<div style="background:#0a0e1a;border-radius:8px;overflow:hidden;">' + rows + '</div>';
     };
 
@@ -5280,6 +5290,25 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             setTabGeneral: '⚙️ General',
             setTabAccounts: '👥 Accounts',
             setTabEmails: '📧 Email Log',
+            setTabAudit: '📜 Audit Log',
+            audIntro: 'For medical-device regulatory & audit response. Tracks who / when / what data / how it was changed. Append-only — tamper-resistant.',
+            audRefresh: 'Refresh',
+            audSearchPh: '🔍 Search actor / target / field…',
+            audTypeAll: 'All types',
+            audTypeAccount: '👤 Account',
+            audTypeSubmission: '📝 Submission',
+            audTypeReview: '📊 Review',
+            audTypeAfc: '✅ AFC',
+            audTypePortfolio: '🚀 Portfolio',
+            audActionAll: 'All actions',
+            audNotLoaded: 'Not loaded yet',
+            audEmpty: '📭 No audit entries',
+            audLoading: '⏳ Loading…',
+            audNoMatch: '🤔 No matches',
+            audInitialMsg: '⏳ Click refresh to load audit log',
+            audRowsLabel: 'rows',
+            audShowingOf: 'showing of',
+            audLastFetched: 'Last fetched',
             setFullscreenTitle: 'Toggle fullscreen',
             setRefreshTitle: 'Refresh',
             setClose: 'Close',
@@ -5494,6 +5523,25 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             setTabGeneral: '⚙️ 일반',
             setTabAccounts: '👥 계정 관리',
             setTabEmails: '📧 메일 로그',
+            setTabAudit: '📜 변경 이력',
+            audIntro: '의료기기 규제/감사 대응용. 누가 / 언제 / 어떤 데이터를 / 어떻게 변경했는지 추적. append-only 로 위변조 방지.',
+            audRefresh: '새로고침',
+            audSearchPh: '🔍 actor / target / field 검색...',
+            audTypeAll: '전체 종류',
+            audTypeAccount: '👤 계정',
+            audTypeSubmission: '📝 제출',
+            audTypeReview: '📊 리뷰',
+            audTypeAfc: '✅ AFC',
+            audTypePortfolio: '🚀 포트폴리오',
+            audActionAll: '전체 액션',
+            audNotLoaded: '아직 로드되지 않음',
+            audEmpty: '📭 변경 이력이 없습니다',
+            audLoading: '⏳ 로딩 중...',
+            audNoMatch: '🤔 일치하는 항목 없음',
+            audInitialMsg: '⏳ 새로고침 버튼을 눌러 변경 이력을 불러오세요',
+            audRowsLabel: '건',
+            audShowingOf: '/ 표시',
+            audLastFetched: '마지막 조회',
             setFullscreenTitle: '전체화면 토글',
             setRefreshTitle: '새로고침',
             setClose: '닫기',
