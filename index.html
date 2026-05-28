@@ -581,6 +581,143 @@
             box-shadow: 0 0 0 1px rgba(59,130,246,0.35), 0 4px 12px rgba(59,130,246,0.18);
             cursor: default;
         }
+        /* ── Notifications Bell + Panel ── ★ NEW 2026-05-27 */
+        .nav-btn-notif {
+            position: relative;
+        }
+        .nav-btn-notif:hover:not(.nav-active) {
+            background: rgba(249,115,22,0.18); color: #fb923c; border-color: rgba(249,115,22,0.4);
+        }
+        .notif-badge {
+            position: absolute; top: -6px; right: -6px;
+            min-width: 18px; height: 18px; padding: 0 5px;
+            background: #ef4444; color: #fff;
+            border: 2px solid #0b0e16;
+            border-radius: 9px;
+            font-family: 'JetBrains Mono', monospace; font-size: 0.62rem; font-weight: 700;
+            display: none; align-items: center; justify-content: center;
+            box-shadow: 0 2px 8px rgba(239,68,68,0.4);
+            animation: notifPulse 2.5s ease-in-out infinite;
+        }
+        @keyframes notifPulse {
+            0%, 100% { box-shadow: 0 2px 8px rgba(239,68,68,0.4); }
+            50%      { box-shadow: 0 2px 14px rgba(239,68,68,0.7); }
+        }
+        .notif-panel {
+            position: fixed; top: 64px; right: 12px;
+            width: 400px; max-width: calc(100vw - 24px);
+            max-height: calc(100vh - 100px);
+            background: #0f172a;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04);
+            z-index: 10001;
+            display: none;
+            overflow: hidden;
+            animation: notifSlideIn .18s ease;
+        }
+        @keyframes notifSlideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .notif-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .notif-header-title { font-size: 0.95rem; font-weight: 700; color: #e2e8f0; letter-spacing: 0.2px; }
+        .notif-header-actions { display: flex; gap: 8px; align-items: center; }
+        .notif-action-btn {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+            color: #94a3b8; font-size: 0.7rem; font-weight: 600; font-family: 'DM Sans', sans-serif;
+            padding: 4px 10px; border-radius: 6px; cursor: pointer; transition: all .12s;
+        }
+        .notif-action-btn:hover { background: rgba(255,255,255,0.08); color: #cbd5e1; }
+        .notif-tabs {
+            display: flex; padding: 0 12px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            background: rgba(255,255,255,0.015);
+        }
+        .notif-tab {
+            flex: 1;
+            background: none; border: none; border-bottom: 2px solid transparent;
+            color: #64748b; font-size: 0.74rem; font-weight: 600; font-family: 'DM Sans', sans-serif;
+            padding: 10px 8px; cursor: pointer; transition: all .15s;
+            display: flex; align-items: center; justify-content: center; gap: 5px;
+            white-space: nowrap;
+        }
+        .notif-tab:hover { color: #cbd5e1; }
+        .notif-tab.active { color: #fb923c; border-bottom-color: #fb923c; }
+        .notif-tab .tab-count {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+            background: rgba(255,255,255,0.06); color: #94a3b8;
+            padding: 1px 6px; border-radius: 8px; min-width: 16px; text-align: center;
+        }
+        .notif-tab.active .tab-count { background: rgba(249,115,22,0.18); color: #fb923c; }
+        .notif-content {
+            flex: 1; overflow-y: auto;
+            max-height: calc(100vh - 240px);
+            padding: 4px 0;
+        }
+        .notif-content::-webkit-scrollbar { width: 8px; }
+        .notif-content::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+        .notif-empty {
+            padding: 60px 24px; text-align: center; color: #475569;
+            font-size: 0.86rem; line-height: 1.7;
+        }
+        .notif-item {
+            display: flex; gap: 12px; align-items: flex-start;
+            padding: 12px 16px;
+            cursor: pointer;
+            border-left: 3px solid #fb923c;
+            transition: all .12s;
+            background: rgba(249,115,22,0.03);
+        }
+        .notif-item:hover { background: rgba(249,115,22,0.08); }
+        .notif-item + .notif-item { border-top: 1px solid rgba(255,255,255,0.03); }
+        .notif-item.read {
+            border-left-color: transparent;
+            background: transparent;
+            opacity: 0.62;
+        }
+        .notif-item.read:hover { background: rgba(255,255,255,0.03); opacity: 0.85; }
+        .notif-item-icon {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            width: 32px; height: 32px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .notif-item-body { flex: 1; min-width: 0; }
+        .notif-item-title {
+            font-size: 0.84rem; font-weight: 600; color: #e2e8f0;
+            margin-bottom: 3px;
+        }
+        .notif-item-desc {
+            font-size: 0.74rem; color: #94a3b8; line-height: 1.5;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .notif-item-meta {
+            display: flex; flex-direction: column; align-items: flex-end;
+            gap: 4px; flex-shrink: 0;
+        }
+        .notif-age {
+            font-family: 'JetBrains Mono', monospace; font-size: 0.65rem;
+            background: rgba(255,255,255,0.05); color: #64748b;
+            padding: 2px 6px; border-radius: 4px;
+        }
+        .notif-age.stale {
+            background: rgba(249,115,22,0.18); color: #fb923c;
+        }
+        .notif-age.critical {
+            background: rgba(239,68,68,0.18); color: #ef4444;
+        }
+        .notif-footer {
+            padding: 8px 16px; border-top: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.68rem; color: #475569;
+            background: rgba(255,255,255,0.015);
+            text-align: center;
+        }
         #approvalBtn.nav-active {
             background: rgba(168,85,247,0.22); color: #c084fc;
             border-color: rgba(168,85,247,0.55);
@@ -825,6 +962,11 @@
             <span id="globalSearchBtnLabel">Search</span>
             <span class="kbd-hint">⌘K</span>
         </button>
+        <button id="notifBtn" class="nav-btn nav-btn-notif" onclick="toggleNotifications(event)" title="Notifications">
+            <span style="font-size:0.95rem;">🔔</span>
+            <span id="notifBtnLabel">Notifications</span>
+            <span id="notifBadge" class="notif-badge">0</span>
+        </button>
         <button id="approvalBtn" class="nav-btn nav-btn-approval" onclick="openApprovalView()" title="Approval Workflow">
             <span style="font-size:0.95rem;">🏛️</span>
             <span id="approvalBtnLabel">Approval</span>
@@ -833,6 +975,34 @@
             <span style="font-size:0.95rem;">📊</span>
             <span id="homeDashBtnLabel">My Dashboard</span>
         </button>
+    </div>
+    <!-- ★ NEW 2026-05-27: Notifications Panel -->
+    <div id="notifPanel" class="notif-panel" onclick="event.stopPropagation()">
+        <div class="notif-header">
+            <span class="notif-header-title" id="notifHeaderTitle">🔔 Notifications</span>
+            <div class="notif-header-actions">
+                <button class="notif-action-btn" onclick="markAllNotifRead()" id="notifMarkAllBtn">Mark all read</button>
+                <button class="notif-action-btn" onclick="closeNotifications()" title="Close">✕</button>
+            </div>
+        </div>
+        <div class="notif-tabs">
+            <button class="notif-tab active" data-notif-tab="action" onclick="switchNotifTab('action')">
+                <span>🚨</span><span id="notifTabActionLabel">Action</span>
+                <span class="tab-count" id="notifActionCount">0</span>
+            </button>
+            <button class="notif-tab" data-notif-tab="stale" onclick="switchNotifTab('stale')">
+                <span>⏰</span><span id="notifTabStaleLabel">Stale</span>
+                <span class="tab-count" id="notifStaleCount">0</span>
+            </button>
+            <button class="notif-tab" data-notif-tab="recent" onclick="switchNotifTab('recent')">
+                <span>📅</span><span id="notifTabRecentLabel">Recent</span>
+                <span class="tab-count" id="notifRecentCount">0</span>
+            </button>
+        </div>
+        <div id="notifContent" class="notif-content">
+            <div class="notif-empty">Loading…</div>
+        </div>
+        <div class="notif-footer" id="notifFooter">Auto-refresh every 5 min · localStorage read state</div>
     </div>
     <!-- ★ NEW 2026-05-27: Global Search Modal (Submissions + Portfolio 통합 검색) -->
     <div id="globalSearchOverlay" class="gsearch-overlay" onclick="if(event.target===this)closeGlobalSearch()">
@@ -2480,6 +2650,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         // i18n 라벨 적용 (모달은 열릴 때만 렌더)
         try { _applyHomeDashLabel(); } catch(_){}
         try { _applyApprovalLabel(); } catch(_){}
+        // ★ NEW 2026-05-27: 로그인 직후 알림 배지 즉시 계산
+        try { if (typeof updateNotifBadge === 'function') updateNotifBadge(); } catch(_){}
     }
 
     // ★ FIX 2026-05-22: My Dashboard 모달 트리거 라벨 다국어 적용
@@ -2498,6 +2670,25 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (sBtn) sBtn.setAttribute('title', isKo ? 'Submissions와 Portfolio 통합 검색 (Ctrl/Cmd+K)' : 'Search Submissions & Portfolio (Ctrl/Cmd+K)');
             var sInp = document.getElementById('globalSearchInput');
             if (sInp) sInp.setAttribute('placeholder', isKo ? '프로젝트 / owner / 키워드 / region 검색…' : 'Search projects, owners, keywords, region…');
+            // ★ NEW 2026-05-27: Notifications 버튼 + 패널 라벨 i18n
+            var nLbl = document.getElementById('notifBtnLabel');
+            if (nLbl) nLbl.textContent = isKo ? '알림' : 'Notifications';
+            var nBtn = document.getElementById('notifBtn');
+            if (nBtn) nBtn.setAttribute('title', isKo ? '알림 — 결재 요청 · 지연 · 변경' : 'Notifications — approvals, delays, updates');
+            var nHdr = document.getElementById('notifHeaderTitle');
+            if (nHdr) nHdr.textContent = isKo ? '🔔 알림 센터' : '🔔 Notifications';
+            var nMark = document.getElementById('notifMarkAllBtn');
+            if (nMark) nMark.textContent = isKo ? '모두 읽음' : 'Mark all read';
+            var nActLbl = document.getElementById('notifTabActionLabel');
+            if (nActLbl) nActLbl.textContent = isKo ? '결재 요청' : 'Action';
+            var nStLbl  = document.getElementById('notifTabStaleLabel');
+            if (nStLbl)  nStLbl.textContent  = isKo ? '지연' : 'Stale';
+            var nRcLbl  = document.getElementById('notifTabRecentLabel');
+            if (nRcLbl)  nRcLbl.textContent  = isKo ? '최근' : 'Recent';
+            var nFt     = document.getElementById('notifFooter');
+            if (nFt)     nFt.textContent     = isKo ? '5분마다 자동 갱신 · 읽음 상태는 브라우저에 저장' : 'Auto-refresh every 5 min · Read state per browser';
+            // 패널이 열려있으면 갱신
+            try { if (_notifPanelOpen) _renderNotifPanel(); } catch(_){}
         } catch(_){}
     }
 
@@ -6258,6 +6449,364 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }
     });
 
+    // ============================================================
+    // ★ NEW 2026-05-27: Notification Center
+    //   - 결재 요청 (Action Required): pending signup / scoring / AFC / funding
+    //   - 마감 임박 (Stale): pending > 7일 항목
+    //   - 상태 변경 (Recent): 최근 7일 내 finalized / scored 이벤트
+    //   - 권한 scope: admin=전체, manager=자기 region, general=자기 제출
+    //   - 읽음 상태 localStorage per-user 보관
+    //   - 5분마다 자동 배지 갱신
+    // ============================================================
+    var NOTIF_STALE_DAYS = 7;
+    var NOTIF_CRITICAL_DAYS = 14;
+    var NOTIF_RECENT_DAYS = 7;
+    var _notifTab = 'action';
+    var _notifPanelOpen = false;
+
+    function _notifAgeDays(dateStr) {
+        if (!dateStr) return 0;
+        try {
+            var t = new Date(dateStr).getTime();
+            if (isNaN(t)) return 0;
+            return (Date.now() - t) / (1000 * 60 * 60 * 24);
+        } catch(_) { return 0; }
+    }
+    function _notifAgeBadge(age) {
+        if (age >= NOTIF_CRITICAL_DAYS) return 'critical';
+        if (age >= NOTIF_STALE_DAYS) return 'stale';
+        return '';
+    }
+    function _notifAgeStr(age) {
+        if (age < 1) return '<1d';
+        return Math.floor(age) + 'd';
+    }
+
+    function _computeNotifications() {
+        var n = { action: [], stale: [], recent: [] };
+        if (!_currentUser) return n;
+        var role = String(_currentUser.role || '').toLowerCase();
+        var myEmail = String(_currentUser.username || '').toLowerCase();
+        var myRegion = String(_currentUser.region || '').toLowerCase();
+
+        // ── 1. Pending signups (admin only) ──
+        if (role === 'admin') {
+            (_accounts || []).forEach(function(a){
+                if (!a || a.approved !== false) return;
+                var age = _notifAgeDays(a.signupDate);
+                var item = {
+                    key: 'signup-' + a.id,
+                    icon: '👤',
+                    title: (currentLang==='ko' ? '계정 승인 대기' : 'Account approval pending'),
+                    desc: (a.name||'?') + ' · ' + (a.username||'') + ' · ' + (a.dept||'-') + ' / ' + (a.region||'-'),
+                    date: a.signupDate, age: age,
+                    action: 'approve-account', actionData: a.id
+                };
+                if (age >= NOTIF_STALE_DAYS) n.stale.push(item);
+                else n.action.push(item);
+            });
+        }
+
+        // ── 2. Submissions awaiting scoring ──
+        if (role === 'admin' || role === 'manager') {
+            (mopSubmissions || []).forEach(function(s){
+                if (!s || !s.data) return;
+                if (role === 'manager') {
+                    var sReg = String(s.data.division || '').toLowerCase();
+                    if (sReg !== myRegion) return;
+                }
+                var hasReview = (mopReviews || []).some(function(r){ return r && String(r.submissionId) === String(s.id); });
+                if (hasReview) return;
+                var age = _notifAgeDays(s.date || s.timestamp);
+                var item = {
+                    key: 'score-' + s.id,
+                    icon: '📊',
+                    title: (currentLang==='ko' ? '점수 산정 필요 (Step 2)' : 'Scoring needed (Step 2)'),
+                    desc: (s.data.opportunityTitle || '(Untitled)') + ' · ' + (s.data.requestOwner||'-') + ' / ' + (s.data.division||'-'),
+                    date: s.date, age: age,
+                    action: 'open-scoring', actionData: s.id
+                };
+                if (age >= NOTIF_STALE_DAYS) n.stale.push(item);
+                else n.action.push(item);
+            });
+        }
+
+        // ── 3. Reviews awaiting AFC finalize ──
+        if (role === 'admin' || role === 'manager') {
+            var afcSt = (mopAfcState && mopAfcState.checklistState) || {};
+            (mopReviews || []).forEach(function(r){
+                if (!r) return;
+                // recommended 또는 strong 만 AFC 대상으로 간주 (또는 sendToStep3=true)
+                var eligible = (r.sendToStep3 === true) || r.recKey === 'recommended' || r.recKey === 'strong';
+                if (!eligible) return;
+                if (role === 'manager') {
+                    var rReg = String((r.submissionData && r.submissionData.division) || '').toLowerCase();
+                    if (rReg && rReg !== myRegion) return;
+                }
+                var st = afcSt[r.id];
+                if (st && st.finalized) return;
+                var age = _notifAgeDays(r.date);
+                var item = {
+                    key: 'afc-' + r.id,
+                    icon: '✅',
+                    title: (currentLang==='ko' ? 'AFC finalize 필요 (Step 3)' : 'AFC finalize needed (Step 3)'),
+                    desc: (r.title || '(Untitled)') + ' · ' + (currentLang==='ko'?'리뷰어':'Reviewer') + ': ' + (r.reviewer||'-'),
+                    date: r.date, age: age,
+                    action: 'open-afc', actionData: r.id
+                };
+                if (age >= NOTIF_STALE_DAYS) n.stale.push(item);
+                else n.action.push(item);
+            });
+        }
+
+        // ── 4. Portfolio pending funding decision ──
+        if (role === 'admin' || role === 'manager') {
+            var ps = (mopPortfolioState && mopPortfolioState.projects) || [];
+            ps.forEach(function(p){
+                if (!p) return;
+                if (role === 'manager') {
+                    var pReg = String(p.region || '').toLowerCase();
+                    if (pReg && pReg !== myRegion) return;
+                }
+                if (p.funding && p.funding !== 'pending') return;
+                var age = _notifAgeDays(p.afcDate);
+                var item = {
+                    key: 'fund-' + p.id,
+                    icon: '💰',
+                    title: (currentLang==='ko' ? 'Funding 결정 대기' : 'Funding decision needed'),
+                    desc: (p.title || '(Untitled)') + ' · ' + (p.region||'-') + ' · Gate: ' + String(p.gate||'').toUpperCase(),
+                    date: p.afcDate, age: age,
+                    action: 'open-portfolio', actionData: p.id
+                };
+                if (age >= NOTIF_STALE_DAYS) n.stale.push(item);
+                else n.action.push(item);
+            });
+        }
+
+        // ── 5. Recent: AFC finalized in last 7 days ──
+        var afcSt2 = (mopAfcState && mopAfcState.checklistState) || {};
+        Object.keys(afcSt2).forEach(function(rid){
+            var st = afcSt2[rid];
+            if (!st || !st.finalized) return;
+            var rev = (mopReviews||[]).find(function(r){ return r && String(r.id) === String(rid); });
+            if (!rev) return;
+            var age = _notifAgeDays(st.finalizedDate);
+            if (age > NOTIF_RECENT_DAYS) return;
+            // 권한 scope
+            if (role === 'manager') {
+                var rReg2 = String((rev.submissionData && rev.submissionData.division) || '').toLowerCase();
+                if (rReg2 && rReg2 !== myRegion) return;
+            } else if (role === 'general') {
+                // general 은 자기 submission 만
+                var sub = (mopSubmissions||[]).find(function(s){ return s && String(s.id) === String(rev.submissionId); });
+                if (!sub || String(sub.data && sub.data.requestOwnerEmail || '').toLowerCase() !== myEmail) return;
+            }
+            var gateIcon = st.gate === 'go' ? '✅' : st.gate === 'conditional' ? '⚠️' : st.gate === 'nogo' ? '🚫' : '✅';
+            n.recent.push({
+                key: 'afc-fin-' + rid,
+                icon: gateIcon,
+                title: (currentLang==='ko' ? 'AFC 결정 완료' : 'AFC finalized') + ': ' + String(st.gate||'').toUpperCase(),
+                desc: (rev.title||'(Untitled)') + ' · ' + (currentLang==='ko'?'결정자':'by') + ' ' + (st.finalizer||'-'),
+                date: st.finalizedDate, age: age,
+                action: 'open-afc', actionData: rid
+            });
+        });
+
+        // ── 6. Recent: New reviews in last 7 days (for general 사용자는 자기 제출만) ──
+        (mopReviews||[]).forEach(function(r){
+            if (!r) return;
+            var age = _notifAgeDays(r.date);
+            if (age > NOTIF_RECENT_DAYS) return;
+            if (role === 'manager') {
+                var rReg3 = String((r.submissionData && r.submissionData.division) || '').toLowerCase();
+                if (rReg3 && rReg3 !== myRegion) return;
+            } else if (role === 'general') {
+                var sub2 = (mopSubmissions||[]).find(function(s){ return s && String(s.id) === String(r.submissionId); });
+                if (!sub2 || String(sub2.data && sub2.data.requestOwnerEmail || '').toLowerCase() !== myEmail) return;
+            }
+            n.recent.push({
+                key: 'rev-' + r.id,
+                icon: '📊',
+                title: (currentLang==='ko' ? '점수 산정 완료' : 'Scoring completed'),
+                desc: (r.title||'(Untitled)') + ' · ' + (r.score||0) + '/' + (r.maxScore||100) + ' (' + (r.recKey||'-') + ') · ' + (r.reviewer||'-'),
+                date: r.date, age: age,
+                action: 'open-scoring', actionData: r.submissionId
+            });
+        });
+
+        // sort each section
+        ['action','stale','recent'].forEach(function(k){
+            n[k].sort(function(a,b){ return b.age - a.age; });
+        });
+        return n;
+    }
+
+    function _notifReadMap() {
+        if (!_currentUser) return {};
+        var key = '__mop_notif_read_' + _currentUser.id;
+        try { return JSON.parse(localStorage.getItem(key) || '{}'); } catch(_) { return {}; }
+    }
+    function _saveNotifReadMap(m) {
+        if (!_currentUser) return;
+        var key = '__mop_notif_read_' + _currentUser.id;
+        try { localStorage.setItem(key, JSON.stringify(m)); } catch(_){}
+    }
+
+    function _getNotifUnreadCount() {
+        if (!_currentUser) return 0;
+        var n = _computeNotifications();
+        var read = _notifReadMap();
+        var cnt = 0;
+        // action + stale 만 카운트 (recent 는 정보성)
+        ['action','stale'].forEach(function(k){
+            n[k].forEach(function(it){ if (!read[it.key]) cnt++; });
+        });
+        return cnt;
+    }
+
+    window.updateNotifBadge = function() {
+        var badge = document.getElementById('notifBadge');
+        if (!badge) return;
+        if (!_currentUser) { badge.style.display = 'none'; return; }
+        var cnt = _getNotifUnreadCount();
+        if (cnt > 0) {
+            badge.textContent = cnt > 99 ? '99+' : String(cnt);
+            badge.style.display = 'flex';
+        } else {
+            badge.style.display = 'none';
+        }
+    };
+
+    function _renderNotifPanel() {
+        var n = _computeNotifications();
+        var read = _notifReadMap();
+        // counts
+        var cE = document.getElementById('notifActionCount'); if (cE) cE.textContent = n.action.length;
+        var sE = document.getElementById('notifStaleCount');  if (sE) sE.textContent = n.stale.length;
+        var rE = document.getElementById('notifRecentCount'); if (rE) rE.textContent = n.recent.length;
+        // tab active state
+        document.querySelectorAll('#notifPanel .notif-tab').forEach(function(el){
+            el.classList.toggle('active', el.getAttribute('data-notif-tab') === _notifTab);
+        });
+        var items = n[_notifTab] || [];
+        var contentEl = document.getElementById('notifContent');
+        if (!contentEl) return;
+        var isKo = currentLang === 'ko';
+        if (!items.length) {
+            var emptyMsg = (_notifTab === 'action')
+                ? '🎉 ' + (isKo ? '처리할 항목이 없습니다' : 'Nothing to act on')
+                : (_notifTab === 'stale')
+                ? '✅ ' + (isKo ? '지연된 항목이 없습니다' : 'Nothing stale (>' + NOTIF_STALE_DAYS + 'd)')
+                : '📭 ' + (isKo ? '최근 변경 사항 없음' : 'No recent activity');
+            contentEl.innerHTML = '<div class="notif-empty">' + emptyMsg + '</div>';
+            return;
+        }
+        var html = '';
+        items.forEach(function(it){
+            var isRead = !!read[it.key];
+            var ageStr = _notifAgeStr(it.age);
+            var ageCls = _notifAgeBadge(it.age);
+            var titleEsc = _gsEsc(it.title);
+            var descEsc  = _gsEsc(it.desc);
+            var keyEsc   = String(it.key).replace(/'/g, "\\'");
+            var actEsc   = String(it.action).replace(/'/g, "\\'");
+            var dataEsc  = String(it.actionData).replace(/'/g, "\\'");
+            html += '<div class="notif-item' + (isRead ? ' read' : '') + '" '
+                +    'onclick="clickNotif(\'' + keyEsc + '\',\'' + actEsc + '\',\'' + dataEsc + '\')">'
+                +    '<div class="notif-item-icon">' + it.icon + '</div>'
+                +    '<div class="notif-item-body">'
+                +      '<div class="notif-item-title">' + titleEsc + '</div>'
+                +      '<div class="notif-item-desc">' + descEsc + '</div>'
+                +    '</div>'
+                +    '<div class="notif-item-meta">'
+                +      '<span class="notif-age' + (ageCls ? ' ' + ageCls : '') + '">' + ageStr + '</span>'
+                +    '</div>'
+                +  '</div>';
+        });
+        contentEl.innerHTML = html;
+    }
+
+    window.toggleNotifications = function(e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        var panel = document.getElementById('notifPanel');
+        if (!panel) return;
+        if (_notifPanelOpen) {
+            panel.style.display = 'none';
+            _notifPanelOpen = false;
+        } else {
+            _renderNotifPanel();
+            panel.style.display = 'block';
+            _notifPanelOpen = true;
+        }
+    };
+    window.closeNotifications = function() {
+        var panel = document.getElementById('notifPanel');
+        if (panel) panel.style.display = 'none';
+        _notifPanelOpen = false;
+    };
+    window.switchNotifTab = function(tab) {
+        _notifTab = tab;
+        _renderNotifPanel();
+    };
+    window.markAllNotifRead = function() {
+        var n = _computeNotifications();
+        var read = _notifReadMap();
+        ['action','stale','recent'].forEach(function(k){
+            n[k].forEach(function(it){ read[it.key] = Date.now(); });
+        });
+        _saveNotifReadMap(read);
+        updateNotifBadge();
+        _renderNotifPanel();
+    };
+    window.clickNotif = function(key, action, data) {
+        // mark as read
+        var read = _notifReadMap();
+        read[key] = Date.now();
+        _saveNotifReadMap(read);
+        closeNotifications();
+        updateNotifBadge();
+        // navigate
+        try {
+            if (action === 'approve-account') {
+                if (typeof openSettings === 'function') openSettings();
+                setTimeout(function(){
+                    try {
+                        var accTab = document.querySelector('[data-settings-tab="accounts"]') || document.getElementById('settingsAccountsTab');
+                        if (accTab) accTab.click();
+                    } catch(_){}
+                }, 200);
+            } else if (action === 'open-scoring') {
+                if (typeof openToolWithSync === 'function') {
+                    openToolWithSync('scoring', 'MOP Scoring Tool', 'Step 2', '#8b5cf6');
+                }
+            } else if (action === 'open-afc') {
+                if (typeof openAFC === 'function') openAFC();
+            } else if (action === 'open-portfolio') {
+                if (typeof openPortfolio === 'function') openPortfolio('board');
+                else if (typeof openPortfolioGuest === 'function') openPortfolioGuest();
+            }
+        } catch(navErr) { console.error('[notif] navigate error:', navErr); }
+    };
+
+    // Click outside to close panel
+    document.addEventListener('click', function(e){
+        if (!_notifPanelOpen) return;
+        var panel = document.getElementById('notifPanel');
+        var btn = document.getElementById('notifBtn');
+        if (!panel) return;
+        if (panel.contains(e.target)) return;
+        if (btn && btn.contains(e.target)) return;
+        closeNotifications();
+    });
+    // Esc to close
+    document.addEventListener('keydown', function(e){
+        if (e.key === 'Escape' && _notifPanelOpen) {
+            closeNotifications();
+        }
+    });
+    // Periodic refresh — every 5 minutes
+    setInterval(function(){ try { updateNotifBadge(); } catch(_){} }, 5 * 60 * 1000);
+
     var _cloudSaveTimer = null;
     function cloudSaveDebounced() {
         var url = getAppsScriptUrl(); if (!url) return;
@@ -6809,6 +7358,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         });
                     } catch(_){}
                     showCloudBadge('loaded');
+                    // ★ NEW 2026-05-27: cloud 데이터 새로고침 후 알림 배지 자동 갱신
+                    try { if (typeof updateNotifBadge === 'function') updateNotifBadge(); } catch(_){}
                 } else { showCloudBadge('empty'); }
             },
             function() { showCloudBadge('error'); }
