@@ -6762,6 +6762,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     var NOTIF_RECENT_DAYS = 7;
     var _notifTab = 'action';
     var _notifPanelOpen = false;
+    var _notifShowRead = false;  // ★ NEW 2026-05-28: 읽은 항목 기본 숨김 (Show read 토글로 표시)
 
     function _notifAgeDays(dateStr) {
         if (!dateStr) return 0;
@@ -6979,28 +6980,56 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     function _renderNotifPanel() {
         var n = _computeNotifications();
         var read = _notifReadMap();
-        // counts
-        var cE = document.getElementById('notifActionCount'); if (cE) cE.textContent = n.action.length;
-        var sE = document.getElementById('notifStaleCount');  if (sE) sE.textContent = n.stale.length;
-        var rE = document.getElementById('notifRecentCount'); if (rE) rE.textContent = n.recent.length;
+        var isKo = currentLang === 'ko';
+        // ★ NEW 2026-05-28: 각 탭의 unread 개수만 배지로 표시 (Mark all read 후 즉시 0)
+        var unreadCount = function(arr){ return arr.filter(function(it){ return !read[it.key]; }).length; };
+        var cE = document.getElementById('notifActionCount'); if (cE) cE.textContent = unreadCount(n.action);
+        var sE = document.getElementById('notifStaleCount');  if (sE) sE.textContent = unreadCount(n.stale);
+        var rE = document.getElementById('notifRecentCount'); if (rE) rE.textContent = unreadCount(n.recent);
         // tab active state
         document.querySelectorAll('#notifPanel .notif-tab').forEach(function(el){
             el.classList.toggle('active', el.getAttribute('data-notif-tab') === _notifTab);
         });
-        var items = n[_notifTab] || [];
+        var allItems = n[_notifTab] || [];
+        var unreadItems = allItems.filter(function(it){ return !read[it.key]; });
+        var readItemsCount = allItems.length - unreadItems.length;
+        // ★ NEW: 기본은 unread 만, 토글 시 전체
+        var items = _notifShowRead ? allItems : unreadItems;
         var contentEl = document.getElementById('notifContent');
         if (!contentEl) return;
-        var isKo = currentLang === 'ko';
+
+        // 상단 컨트롤 — 읽은 항목 토글
+        var topBar = '';
+        if (readItemsCount > 0) {
+            var toggleLabel = _notifShowRead
+                ? (isKo ? '읽은 항목 숨기기' : 'Hide read')
+                : (isKo ? '읽은 항목 ' + readItemsCount + '개 보기' : 'Show ' + readItemsCount + ' read');
+            topBar = '<div style="padding:8px 16px;font-size:0.7rem;color:#64748b;border-bottom:1px solid rgba(255,255,255,0.03);background:rgba(255,255,255,0.01);text-align:right;">'
+                +    '<button onclick="toggleNotifShowRead()" style="background:none;border:none;color:#94a3b8;font-size:0.7rem;cursor:pointer;font-family:inherit;padding:2px 6px;border-radius:4px;text-decoration:underline;text-decoration-style:dotted;">'
+                +      toggleLabel
+                +    '</button>'
+                +  '</div>';
+        }
+
         if (!items.length) {
-            var emptyMsg = (_notifTab === 'action')
-                ? '🎉 ' + (isKo ? '처리할 항목이 없습니다' : 'Nothing to act on')
-                : (_notifTab === 'stale')
-                ? '✅ ' + (isKo ? '지연된 항목이 없습니다' : 'Nothing stale (>' + NOTIF_STALE_DAYS + 'd)')
-                : '📭 ' + (isKo ? '최근 변경 사항 없음' : 'No recent activity');
-            contentEl.innerHTML = '<div class="notif-empty">' + emptyMsg + '</div>';
+            var emptyMsg;
+            if (_notifShowRead || readItemsCount === 0) {
+                // 전체 보기 모드인데도 비었거나, 읽은 것도 없는데 비어있음 → 정말 아무것도 없음
+                emptyMsg = (_notifTab === 'action')
+                    ? '🎉 ' + (isKo ? '처리할 항목이 없습니다' : 'Nothing to act on')
+                    : (_notifTab === 'stale')
+                    ? '✅ ' + (isKo ? '지연된 항목이 없습니다' : 'Nothing stale (>' + NOTIF_STALE_DAYS + 'd)')
+                    : '📭 ' + (isKo ? '최근 변경 사항 없음' : 'No recent activity');
+            } else {
+                // 읽지 않은 게 0개지만 읽은 항목은 있음 → 깨끗이 정리됨 메시지
+                emptyMsg = '✨ ' + (isKo
+                    ? '모두 확인했습니다 · ' + readItemsCount + '건 읽음'
+                    : 'All caught up · ' + readItemsCount + ' read');
+            }
+            contentEl.innerHTML = topBar + '<div class="notif-empty">' + emptyMsg + '</div>';
             return;
         }
-        var html = '';
+        var html = topBar;
         items.forEach(function(it){
             var isRead = !!read[it.key];
             var ageStr = _notifAgeStr(it.age);
@@ -7024,6 +7053,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         });
         contentEl.innerHTML = html;
     }
+
+    // ★ NEW 2026-05-28: 읽은 항목 표시 토글
+    window.toggleNotifShowRead = function() {
+        _notifShowRead = !_notifShowRead;
+        _renderNotifPanel();
+    };
 
     window.toggleNotifications = function(e) {
         if (e && e.stopPropagation) e.stopPropagation();
