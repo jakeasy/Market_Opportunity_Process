@@ -6039,7 +6039,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
     // ★ 모든 메일 본문에 MOP 바로가기 CTA 버튼 자동 첨부
     // 위치 규칙: 본문 흰색 카드 안 마지막 위치 (Footer 행 직전의 body 행 닫힘 위치)
-    var _MOP_PUBLIC_URL = 'https://jakeasy.github.io/Market_Opportunity_Process';
+    // ★ FIX 2026-05-28: 도메인 변경 — 이메일 CTA 버튼이 신규 도메인으로 향하도록
+    var _MOP_PUBLIC_URL = 'https://mop.medit.com';
     function _appendMopCta(htmlBody) {
         if (!htmlBody) return htmlBody;
         var cta = '<table width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 8px;"><tr><td align="center">'
