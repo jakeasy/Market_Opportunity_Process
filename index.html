@@ -1346,6 +1346,15 @@
                         </label>
                         <input type="text" id="settingsPwPortfolio" class="pw-input" style="letter-spacing:2px;font-size:0.85rem;text-align:center;flex:1;" placeholder="1111" />
                     </div>
+                    <!-- ★ NEW 2026-06-02: Audit Log 비밀번호 (의료기기 규제 강화 — admin 중 일부만 접근) -->
+                    <div style="display:flex;align-items:center;gap:10px;background:#0f1525;border:1px solid rgba(168,85,247,0.25);border-radius:8px;padding:10px 14px;">
+                        <span style="font-size:0.75rem;font-weight:600;color:#a855f7;min-width:52px;">📜 Audit</span>
+                        <label style="display:flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
+                            <input type="checkbox" id="pwOnAudit" autocomplete="off" onchange="togglePwInput('Audit',this.checked)" style="width:15px;height:15px;cursor:pointer;" />
+                            <span id="pwOnAuditLabel" style="font-size:0.72rem;color:#64748b;min-width:22px;"></span>
+                        </label>
+                        <input type="text" id="settingsPwAudit" class="pw-input" style="letter-spacing:2px;font-size:0.85rem;text-align:center;flex:1;" placeholder="1111" />
+                    </div>
                 </div>
             </div>
             <!-- ★ FIX 2026-05-19: 위험 기능은 평소 숨김. 톱니바퀴 클릭 시에만 펼침 (admin 전용) -->
@@ -1963,11 +1972,17 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     var TOOL_PW_SCORING  = localStorage.getItem('mop_pw_scoring')  || '1111';
     var TOOL_PW_AFC      = localStorage.getItem('mop_pw_afc')      || '1111';
     var TOOL_PW_PORTFOLIO= localStorage.getItem('mop_pw_portfolio')|| '1111';
+    // ★ NEW 2026-06-02: Audit Log 비밀번호 (의료기기 규제 강화)
+    var TOOL_PW_AUDIT    = localStorage.getItem('mop_pw_audit')    || '1111';
     var PW_ON_FORM       = localStorage.getItem('mop_pw_on_form')      !== 'false';
     var PW_ON_SCORING    = localStorage.getItem('mop_pw_on_scoring')   !== 'false';
     var PW_ON_AFC        = localStorage.getItem('mop_pw_on_afc')       !== 'false';
     var PW_ON_PORTFOLIO  = localStorage.getItem('mop_pw_on_portfolio') !== 'false';
+    // ★ NEW 2026-06-02: Audit pw 는 기본 ON (보안 우선)
+    var PW_ON_AUDIT      = localStorage.getItem('mop_pw_on_audit')     !== 'false';
     var pwPending = null; // stores which tool to open after auth
+    // ★ NEW 2026-06-02: Audit unlock 상태 — Settings 닫히면 reset
+    var _auditUnlocked = false;
 
     var SETTINGS_PW = localStorage.getItem('mop_settings_pw') || 'medit2026';
     var _adminEmails = (function() {
@@ -2025,17 +2040,24 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         document.getElementById('settingsPwScoring').value = TOOL_PW_SCORING;
         document.getElementById('settingsPwAfc').value = TOOL_PW_AFC;
         document.getElementById('settingsPwPortfolio').value = TOOL_PW_PORTFOLIO;
+        // ★ NEW 2026-06-02
+        var _spAudit = document.getElementById('settingsPwAudit');
+        if (_spAudit) _spAudit.value = TOOL_PW_AUDIT;
+        // 매번 Settings 열 때 audit unlock 초기화 (재인증 강제)
+        _auditUnlocked = false;
         // ★ FIX 2026-05-18: 브라우저 autocomplete/restoration 방어 — 명시적 force-set
         // ★ FIX 2026-05-19: window.로 노출하여 reloadAccounts에서도 호출 가능
         window._applyPwOn = function(k) {
             // localStorage가 진짜 소스 — 글로벌이 race로 오염될 수 있어 다시 읽음
-            var ls = localStorage.getItem('mop_pw_on_' + (k==='Form'?'form':k==='Scoring'?'scoring':k==='Afc'?'afc':'portfolio'));
+            var lsKey = (k==='Form'?'form':k==='Scoring'?'scoring':k==='Afc'?'afc':k==='Portfolio'?'portfolio':'audit');
+            var ls = localStorage.getItem('mop_pw_on_' + lsKey);
             var on = (ls === null) ? true : (ls !== 'false');
             // 글로벌도 동기화
             if (k==='Form') PW_ON_FORM = on;
             else if (k==='Scoring') PW_ON_SCORING = on;
             else if (k==='Afc') PW_ON_AFC = on;
             else if (k==='Portfolio') PW_ON_PORTFOLIO = on;
+            else if (k==='Audit') PW_ON_AUDIT = on;
             var cb = document.getElementById('pwOn'+k);
             var lbl = document.getElementById('pwOn'+k+'Label');
             var inp = document.getElementById('settingsPw'+k);
@@ -2046,12 +2068,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if(inp) inp.style.opacity = on ? '1' : '0.35';
             return on;
         };
-        ['Form','Scoring','Afc','Portfolio'].forEach(function(k){ window._applyPwOn(k); });
+        ['Form','Scoring','Afc','Portfolio','Audit'].forEach(function(k){ window._applyPwOn(k); });
         // 모달 렌더 후 한 번 더 적용 (브라우저가 autocomplete으로 재설정해도 덮어씀)
         setTimeout(function(){
-            ['Form','Scoring','Afc','Portfolio'].forEach(function(k){ window._applyPwOn(k); });
+            ['Form','Scoring','Afc','Portfolio','Audit'].forEach(function(k){ window._applyPwOn(k); });
             console.log('[MOP] Settings opened — pwOn states:', {
-                form: PW_ON_FORM, scoring: PW_ON_SCORING, afc: PW_ON_AFC, portfolio: PW_ON_PORTFOLIO
+                form: PW_ON_FORM, scoring: PW_ON_SCORING, afc: PW_ON_AFC, portfolio: PW_ON_PORTFOLIO, audit: PW_ON_AUDIT
             });
         }, 50);
         renderAdminEmailList();
@@ -2074,7 +2096,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         try { applySettingsI18n(); } catch(_){}
         document.getElementById('settingsOverlay').classList.add('active');
     }
-    function closeSettings() { document.getElementById('settingsOverlay').classList.remove('active'); }
+    function closeSettings() {
+        document.getElementById('settingsOverlay').classList.remove('active');
+        // ★ NEW 2026-06-02: Settings 닫히면 audit unlock 해제 (다음 진입 시 재인증 필수)
+        _auditUnlocked = false;
+    }
 
     // ★ FIX 2026-05-21: Settings 전체화면 토글 — admin 이 통계/로그를 큰 화면으로 보고 싶을 때
     var _settingsFullscreen = false;
@@ -2108,20 +2134,26 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         var pw2 = document.getElementById('settingsPwScoring').value.trim() || '1111';
         var pw3 = document.getElementById('settingsPwAfc').value.trim() || '1111';
         var pw4 = document.getElementById('settingsPwPortfolio').value.trim() || '1111';
+        // ★ NEW 2026-06-02: Audit Log pw
+        var pw5 = (document.getElementById('settingsPwAudit')||{}).value;
+        pw5 = (pw5 ? pw5.trim() : '') || '1111';
         var on1 = document.getElementById('pwOnForm').checked;
         var on2 = document.getElementById('pwOnScoring').checked;
         var on3 = document.getElementById('pwOnAfc').checked;
         var on4 = document.getElementById('pwOnPortfolio').checked;
+        var on5 = (document.getElementById('pwOnAudit')||{}).checked;
         localStorage.setItem('mop_pw_form', pw1);
         localStorage.setItem('mop_pw_scoring', pw2);
         localStorage.setItem('mop_pw_afc', pw3);
         localStorage.setItem('mop_pw_portfolio', pw4);
+        localStorage.setItem('mop_pw_audit', pw5);
         localStorage.setItem('mop_pw_on_form', on1);
         localStorage.setItem('mop_pw_on_scoring', on2);
         localStorage.setItem('mop_pw_on_afc', on3);
         localStorage.setItem('mop_pw_on_portfolio', on4);
-        TOOL_PW_FORM=pw1; TOOL_PW_SCORING=pw2; TOOL_PW_AFC=pw3; TOOL_PW_PORTFOLIO=pw4;
-        PW_ON_FORM=on1; PW_ON_SCORING=on2; PW_ON_AFC=on3; PW_ON_PORTFOLIO=on4;
+        localStorage.setItem('mop_pw_on_audit', on5);
+        TOOL_PW_FORM=pw1; TOOL_PW_SCORING=pw2; TOOL_PW_AFC=pw3; TOOL_PW_PORTFOLIO=pw4; TOOL_PW_AUDIT=pw5;
+        PW_ON_FORM=on1; PW_ON_SCORING=on2; PW_ON_AFC=on3; PW_ON_PORTFOLIO=on4; PW_ON_AUDIT=on5;
         // Settings Password 저장
         var newSPw = (document.getElementById('settingsAccessPw') || {}).value;
         if (newSPw && newSPw.trim()) { SETTINGS_PW = newSPw.trim(); localStorage.setItem('mop_settings_pw', SETTINGS_PW); }
@@ -3926,8 +3958,15 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             try { loadEmailLog(); } catch(_){}
         }
         if (tab === 'audit') {
-            // ★ NEW 2026-05-28: 변경 이력 자동 로드
-            try { loadAuditLog(); } catch(_){}
+            // ★ NEW 2026-06-02: pw gate — PW_ON_AUDIT 이고 아직 unlock 안 했으면 잠금화면 표시
+            try {
+                if (PW_ON_AUDIT && !_auditUnlocked) {
+                    _renderAuditLockScreen();
+                } else {
+                    // unlock 됐거나 pw OFF → 정상 로드
+                    loadAuditLog();
+                }
+            } catch(_){ try { loadAuditLog(); } catch(__){} }
         }
         if (tab === 'dashboard') {
             // Dashboard 자동 렌더링 + cloudLoad로 최신 데이터 반영
@@ -4226,6 +4265,63 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     // ★ NEW 2026-05-28: AuditLog 변경 이력 관리
     var _auditLogCache = [];
     var _auditLoadingUntil = 0;
+
+    // ★ NEW 2026-06-02: Audit Log 비밀번호 잠금 화면
+    function _renderAuditLockScreen() {
+        var container = document.getElementById('audLogContainer');
+        if (!container) return;
+        var isKo = currentLang === 'ko';
+        var titleTxt   = isKo ? '🔒 변경 이력 잠금' : '🔒 Audit Log Locked';
+        var hintTxt    = isKo
+            ? '의료기기 규제 대응 데이터입니다. 접근 권한이 있는 admin 만 열람 가능합니다.'
+            : 'Medical-device regulatory data. Only authorized admins may view.';
+        var phTxt      = isKo ? '비밀번호 입력' : 'Enter password';
+        var btnTxt     = isKo ? '잠금 해제' : 'Unlock';
+        var errSlot    = '<div id="audLockErr" style="font-size:0.72rem;color:#ef4444;min-height:1em;margin-top:8px;"></div>';
+        container.innerHTML = '<div style="padding:40px 24px;text-align:center;">'
+            + '<div style="font-size:2.4rem;margin-bottom:14px;">🔒</div>'
+            + '<div style="font-size:1.05rem;font-weight:700;color:#e2e8f0;margin-bottom:8px;">' + titleTxt + '</div>'
+            + '<div style="font-size:0.78rem;color:#94a3b8;line-height:1.6;margin-bottom:22px;max-width:380px;margin-left:auto;margin-right:auto;">' + hintTxt + '</div>'
+            + '<div style="display:flex;gap:8px;max-width:320px;margin:0 auto;align-items:center;justify-content:center;">'
+            +   '<input type="password" id="audUnlockPw" placeholder="' + phTxt + '" autocomplete="off" '
+            +     'onkeydown="if(event.key===\'Enter\')_unlockAudit()" '
+            +     'style="flex:1;padding:9px 12px;background:#1a2235;border:1px solid rgba(168,85,247,0.4);border-radius:7px;color:#e2e8f0;font-size:0.88rem;outline:none;font-family:inherit;text-align:center;letter-spacing:2px;" />'
+            +   '<button onclick="_unlockAudit()" '
+            +     'style="padding:9px 18px;background:#a855f7;color:#fff;border:none;border-radius:7px;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;">' + btnTxt + '</button>'
+            + '</div>'
+            + errSlot
+            + '</div>';
+        // 포커스 — 즉시 입력 가능
+        setTimeout(function(){
+            var el = document.getElementById('audUnlockPw');
+            if (el) el.focus();
+        }, 80);
+        // fetched-at 영역도 숨김 처리 (잠긴 상태에서 의미 없음)
+        var fa = document.getElementById('audFetchedAt');
+        if (fa) fa.textContent = '🔒 ' + (isKo ? '잠금됨' : 'Locked');
+    }
+
+    window._unlockAudit = function() {
+        var isKo = currentLang === 'ko';
+        var inp = document.getElementById('audUnlockPw');
+        var errEl = document.getElementById('audLockErr');
+        var entered = inp ? (inp.value || '').trim() : '';
+        if (!entered) {
+            if (errEl) errEl.textContent = isKo ? '비밀번호를 입력하세요' : 'Enter password';
+            return;
+        }
+        // localStorage 의 최신 pw 와 비교 (sync race 방지)
+        var current = localStorage.getItem('mop_pw_audit') || TOOL_PW_AUDIT || '1111';
+        if (entered === current) {
+            _auditUnlocked = true;
+            console.log('[MOP audit] unlocked by', _currentUser && _currentUser.username);
+            try { loadAuditLog(); } catch(_){}
+        } else {
+            if (errEl) errEl.textContent = isKo ? '❌ 비밀번호 불일치' : '❌ Password incorrect';
+            if (inp) { inp.value = ''; inp.focus(); }
+            console.warn('[MOP audit] unlock attempt FAILED by', _currentUser && _currentUser.username);
+        }
+    };
 
     window.loadAuditLog = function() {
         var url = getAppsScriptUrl();
@@ -7289,13 +7385,15 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         form:      localStorage.getItem('mop_pw_form')      || '1111',
                         scoring:   localStorage.getItem('mop_pw_scoring')   || '1111',
                         afc:       localStorage.getItem('mop_pw_afc')       || '1111',
-                        portfolio: localStorage.getItem('mop_pw_portfolio') || '1111'
+                        portfolio: localStorage.getItem('mop_pw_portfolio') || '1111',
+                        audit:     localStorage.getItem('mop_pw_audit')     || '1111'
                     },
                     pwOn: {
                         form:      (localStorage.getItem('mop_pw_on_form')      || 'true') === 'true',
                         scoring:   (localStorage.getItem('mop_pw_on_scoring')   || 'true') === 'true',
                         afc:       (localStorage.getItem('mop_pw_on_afc')       || 'true') === 'true',
-                        portfolio: (localStorage.getItem('mop_pw_on_portfolio') || 'true') === 'true'
+                        portfolio: (localStorage.getItem('mop_pw_on_portfolio') || 'true') === 'true',
+                        audit:     (localStorage.getItem('mop_pw_on_audit')     || 'true') === 'true'
                     },
                     // ★ GAS가 명시적 변경으로 인식하는 마커
                     _settingsTs: Date.now()
@@ -7607,6 +7705,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 if (_s.pw.scoring   != null) { localStorage.setItem('mop_pw_scoring',   String(_s.pw.scoring));   try { TOOL_PW_SCORING   = String(_s.pw.scoring);   } catch(_){} }
                                 if (_s.pw.afc       != null) { localStorage.setItem('mop_pw_afc',       String(_s.pw.afc));       try { TOOL_PW_AFC       = String(_s.pw.afc);       } catch(_){} }
                                 if (_s.pw.portfolio != null) { localStorage.setItem('mop_pw_portfolio', String(_s.pw.portfolio)); try { TOOL_PW_PORTFOLIO = String(_s.pw.portfolio); } catch(_){} }
+                                // ★ NEW 2026-06-02: audit pw 동기화
+                                if (_s.pw.audit     != null) { localStorage.setItem('mop_pw_audit',     String(_s.pw.audit));     try { TOOL_PW_AUDIT     = String(_s.pw.audit);     } catch(_){} }
                             }
                             // pwOn 객체 → localStorage + 전역 변수 갱신
                             if (_s.pwOn && typeof _s.pwOn === 'object') {
@@ -7614,6 +7714,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 if (_s.pwOn.scoring   != null) { localStorage.setItem('mop_pw_on_scoring',   String(!!_s.pwOn.scoring));   try { PW_ON_SCORING   = !!_s.pwOn.scoring;   } catch(_){} }
                                 if (_s.pwOn.afc       != null) { localStorage.setItem('mop_pw_on_afc',       String(!!_s.pwOn.afc));       try { PW_ON_AFC       = !!_s.pwOn.afc;       } catch(_){} }
                                 if (_s.pwOn.portfolio != null) { localStorage.setItem('mop_pw_on_portfolio', String(!!_s.pwOn.portfolio)); try { PW_ON_PORTFOLIO = !!_s.pwOn.portfolio; } catch(_){} }
+                                // ★ NEW 2026-06-02: audit pwOn 동기화
+                                if (_s.pwOn.audit     != null) { localStorage.setItem('mop_pw_on_audit',     String(!!_s.pwOn.audit));     try { PW_ON_AUDIT     = !!_s.pwOn.audit;     } catch(_){} }
                             }
                             // adminEmails 동기화
                             if (Array.isArray(_s.adminEmails)) {
