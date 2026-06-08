@@ -2493,21 +2493,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }, function(r){
             console.log('[MOP signup] email request OK:', r);
         }, function(e){
-            console.error('[MOP signup] email request FAILED:', e);
-            // 1회 retry (2초 후)
-            setTimeout(function(){
-                console.log('[MOP signup] retrying email send...');
-                try { gasPostEmail(url, {
-                    type: 'custom-email', to: acc.username,
-                    subject: '[MOP][Submitter] Sign-up Request Received — Pending Approval',
-                    htmlBody: _appendMopCta(userHtml),
-                    textBody: 'Hi ' + acc.name + ', your MOP System account request has been received.',
-                    adminTo: _adminToCsv,
-                    adminSubject: '[MOP Admin] New Account Approval Request — ' + acc.name + ' (' + acc.username + ')',
-                    adminHtml: _appendMopCta(adminHtml),
-                    adminText: 'New signup: ' + acc.name + ' (' + acc.username + ') — Please approve in MOP Settings.'
-                }); } catch(_){}
-            }, 2000);
+            // ★ FIX 2026-06-02: setTimeout retry 제거 — gasPostEmail 이 이미 keepalive + sendBeacon 폴백으로
+            //   자체 재시도/도달 보장. 명시 retry 가 onError 발화 시 중복 메일 전송 유발 (admin 2회 수신).
+            //   특히 mode='no-cors' 라 fetch promise 가 reject 돼도 실제 요청은 서버 도달한 케이스에서
+            //   sendBeacon + setTimeout retry 가 합쳐져 같은 메일이 2~3번 발송되는 사건 다수 발생.
+            console.error('[MOP signup] email request FAILED:', e, '— 별도 retry 안 함 (gasPostEmail 자체 폴백에 위임)');
         });
     }
 
