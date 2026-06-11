@@ -1660,10 +1660,26 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         //   기존 버그: base64 dataUrl을 localStorage/시트에 저장하려고 했으나 quota/크기 한계로 stripped
         //          → Step 2/3/4 + 다른 사용자에게 첨부파일이 안 보이는 문제
         //   해결: Drive에 업로드 후 공유 URL을 저장
-        function _uploadAttachmentToDrive(file) {
+        // ★ FIX 2026-06-11: silent fail 제거 — timeout(45s) + retry 3회 + 명시적 _uploadFailed flag
+        //   원인: 단일 fetch + silent catch → 네트워크 글리치 한 번이면 fileId 없이 제출됨
+        //   증상: Chanouk 의 Intraoral Camera.png 가 9일째 "Not persisted" 표시
+        function _uploadAttachmentToDrive(file, attemptIdx) {
+            attemptIdx = attemptIdx || 1;
+            var MAX_ATTEMPTS = 3;
+            var TIMEOUT_MS  = 45000;
             return new Promise(function(resolve) {
                 try {
-                    if (!file || !file.dataUrl) { resolve(file); return; }
+                    if (!file || !file.dataUrl) {
+                        console.warn('[MOP] upload skipped — no dataUrl:', file && file.name);
+                        resolve({
+                            name: (file && file.name) || 'unknown',
+                            type: (file && file.type) || 'application/octet-stream',
+                            size: (file && file.size) || 0,
+                            _uploadFailed: true,
+                            _error: 'no-dataurl'
+                        });
+                        return;
+                    }
                     var payload = {
                         type: 'upload-attachment',
                         token: MOP_API_TOKEN,
@@ -1671,13 +1687,25 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         mimeType: file.type || 'application/octet-stream',
                         dataBase64: file.dataUrl
                     };
-                    fetch(APPS_SCRIPT_URL, {
+                    var ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+                    var timedOut = false;
+                    var timer = setTimeout(function(){
+                        timedOut = true;
+                        try { if (ctrl) ctrl.abort(); } catch(_){}
+                    }, TIMEOUT_MS);
+                    var fetchOpts = {
                         method: 'POST',
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify(payload)
-                    }).then(function(res){ return res.json(); }).then(function(j){
+                    };
+                    if (ctrl) fetchOpts.signal = ctrl.signal;
+                    fetch(APPS_SCRIPT_URL, fetchOpts).then(function(res){
+                        clearTimeout(timer);
+                        if (!res.ok) throw new Error('HTTP ' + res.status);
+                        return res.json();
+                    }).then(function(j){
                         if (j && j.success && j.fileId) {
-                            console.log('[MOP] uploaded to Drive:', file.name, '→', j.fileId);
+                            console.log('[MOP] uploaded to Drive (attempt '+attemptIdx+'):', file.name, '→', j.fileId);
                             resolve({
                                 name: file.name,
                                 type: file.type,
@@ -1686,19 +1714,40 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 driveUrl: j.viewUrl || j.url,
                                 viewUrl: j.viewUrl,
                                 directUrl: j.url
-                                // dataUrl은 제거 — Drive URL로 대체
                             });
                         } else {
-                            console.warn('[MOP] Drive upload failed for', file.name, j);
-                            resolve(file); // 실패 시 dataUrl 그대로 (메모리 fallback)
+                            throw new Error((j && j.error) || 'no-fileid');
                         }
                     }).catch(function(err){
-                        console.error('[MOP] Drive upload error for', file.name, err);
-                        resolve(file); // 실패 시 dataUrl 그대로
+                        clearTimeout(timer);
+                        var reason = timedOut ? 'timeout' : (err && err.message) || 'unknown';
+                        console.warn('[MOP] upload attempt '+attemptIdx+'/'+MAX_ATTEMPTS+' FAILED for', file.name, '—', reason);
+                        if (attemptIdx < MAX_ATTEMPTS) {
+                            var backoff = Math.pow(2, attemptIdx - 1) * 1000;
+                            console.log('[MOP] retrying in ' + backoff + 'ms...');
+                            setTimeout(function(){
+                                _uploadAttachmentToDrive(file, attemptIdx + 1).then(resolve);
+                            }, backoff);
+                        } else {
+                            console.error('[MOP] upload PERMANENTLY FAILED after '+MAX_ATTEMPTS+' attempts:', file.name);
+                            resolve({
+                                name: file.name,
+                                type: file.type,
+                                size: file.size,
+                                _uploadFailed: true,
+                                _error: reason
+                            });
+                        }
                     });
                 } catch(e) {
                     console.error('[MOP] upload exception:', e);
-                    resolve(file);
+                    resolve({
+                        name: (file && file.name) || 'unknown',
+                        type: (file && file.type) || 'application/octet-stream',
+                        size: (file && file.size) || 0,
+                        _uploadFailed: true,
+                        _error: (e && e.message) || 'exception'
+                    });
                 }
             });
         }
@@ -2044,28 +2093,40 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         formData.forEach(function(value, key) { submissionData[key] = value; });
 
                         // ★ FIX 2026-05-19: 첨부파일을 Drive에 먼저 업로드 → driveUrl 획득 후 제출
+                        // ★ FIX 2026-06-11: 업로드 실패 시 silent 통과 금지 — 사용자에게 경고 + 제출 차단
                         var _uploadPromise;
                         if (evidenceAttachments.length) {
                             submitBtn.textContent = '📤 ' + (currentLang==='ko'?'첨부파일 업로드 중...':'Uploading attachments...');
                             _uploadPromise = _uploadAllAttachments(evidenceAttachments).then(function(uploaded){
+                                var failed = uploaded.filter(function(f){ return f && f._uploadFailed; });
+                                if (failed.length > 0) {
+                                    var names = failed.map(function(f){ return f.name + ' ('+(f._error||'')+')'; }).join('\n  • ');
+                                    var msg = (currentLang === 'ko')
+                                        ? '⚠️ 첨부파일 업로드 실패\n\n다음 파일이 Drive 에 업로드되지 않았습니다:\n  • ' + names + '\n\n네트워크 연결을 확인하고 다시 제출해 주세요.\n(자동 재시도 3회 모두 실패)'
+                                        : '⚠️ Attachment upload failed\n\nThe following files could not be uploaded to Drive:\n  • ' + names + '\n\nPlease check your network and resubmit.\n(All 3 auto-retries failed)';
+                                    try { submitBtn.textContent = originalText; submitBtn.disabled = false; } catch(_){}
+                                    try { window.__MOP_SUBMITTING = false; } catch(_){}
+                                    try { alert(msg); } catch(_){ console.error(msg); }
+                                    throw new Error('__MOP_UPLOAD_FAILED__');
+                                }
                                 submissionData.evidenceFiles = uploaded.map(function(f){
-                                    // Drive 업로드 성공 시 dataUrl 제외하고 driveUrl 저장. 실패 시 dataUrl 유지 (메모리만)
-                                    if (f && f.driveUrl) {
-                                        return { name: f.name, type: f.type, size: f.size, fileId: f.fileId, driveUrl: f.driveUrl, viewUrl: f.viewUrl, directUrl: f.directUrl };
-                                    } else if (f && f.dataUrl) {
-                                        return { name: f.name, type: f.type, size: f.size, dataUrl: f.dataUrl }; // 실패 시 dataUrl fallback
-                                    }
-                                    return { name: f.name, type: f.type, size: f.size };
+                                    return { name: f.name, type: f.type, size: f.size, fileId: f.fileId, driveUrl: f.driveUrl, viewUrl: f.viewUrl, directUrl: f.directUrl };
                                 });
-                                console.log('[MOP] attachments processed:', submissionData.evidenceFiles.length, 'with Drive URLs:', submissionData.evidenceFiles.filter(function(x){return x.driveUrl;}).length);
+                                console.log('[MOP] attachments OK:', submissionData.evidenceFiles.length, 'all with Drive URLs');
                             });
                         } else {
                             _uploadPromise = Promise.resolve();
                         }
 
                         _uploadPromise.then(function(){ _continueSubmit(submissionData); }).catch(function(err){
-                            console.error('[MOP] upload chain error:', err);
-                            _continueSubmit(submissionData); // 업로드 실패해도 제출은 진행
+                            if (err && String(err.message||'').indexOf('__MOP_UPLOAD_FAILED__') >= 0) {
+                                console.warn('[MOP] submission aborted — upload failed (user notified)');
+                                return;
+                            }
+                            console.error('[MOP] upload chain unexpected error:', err);
+                            try { submitBtn.textContent = originalText; submitBtn.disabled = false; } catch(_){}
+                            try { window.__MOP_SUBMITTING = false; } catch(_){}
+                            try { _attachToast(currentLang==='ko'?'제출 처리 중 오류. 다시 시도해 주세요.':'Submission error. Please try again.', '#ef4444'); } catch(_){}
                         });
                         return; // 아래 코드는 _continueSubmit 안으로 이동
                     } catch(_eOuter) {
