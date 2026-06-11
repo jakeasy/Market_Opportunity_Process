@@ -7497,11 +7497,16 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     //   원인 추정: cloudSaveNow → gasPost 가 success 응답 받았어도 GAS sheet 커밋 단계에서 silent fail,
     //             또는 다른 브라우저의 stale cloudLoad 가 직후 Anna 의 리뷰를 덮어쓰기.
     //   해결: cloudSaveNow 직후 4초 후 GET → 서버에서 본인 review ID 검색 → 없으면 3회까지 재시도 → 최종 실패 시 alert.
-    function _verifyReviewPersisted(reviewId, attempt) {
+    function _verifyReviewPersisted(reviewId, attempt, onSuccess, onFailure) {
         attempt = attempt || 1;
         var MAX_ATTEMPTS = 3;
         var url = getAppsScriptUrl();
-        if (!url || !reviewId) { console.warn('[MOP verify] skip — no url or reviewId'); return; }
+        if (!url || !reviewId) {
+            console.warn('[MOP verify] skip — no url or reviewId');
+            // verify 자체가 불가하면 onFailure 호출하여 메일 발송 차단 (데이터 무결성 우선)
+            try { if (typeof onFailure === 'function') onFailure('no-url-or-id'); } catch(_){}
+            return;
+        }
         var delay = attempt === 1 ? 4000 : 6000;
         console.log('[MOP verify] scheduled (attempt ' + attempt + '/' + MAX_ATTEMPTS + ') id=' + reviewId + ' in ' + delay + 'ms');
         setTimeout(function(){
@@ -7512,6 +7517,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         var found = serverReviews.some(function(r){ return r && String(r.id) === String(reviewId); });
                         if (found) {
                             console.log('[MOP verify] ✅ confirmed on server (attempt ' + attempt + ') — id=' + reviewId);
+                            // ★ 데이터 저장 확인됨 — 이제 메일 발송 등 후속 작업 trigger
+                            try { if (typeof onSuccess === 'function') onSuccess(); } catch(cbErr){ console.error('[MOP verify] onSuccess callback error:', cbErr); }
                             return;
                         }
                         console.warn('[MOP verify] ⚠️ NOT FOUND on server (attempt ' + attempt + ') — id=' + reviewId + ', serverReviewCount=' + serverReviews.length);
@@ -7522,14 +7529,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 cloudSaveNow();
                                 console.log('[MOP verify] retry cloudSaveNow triggered (attempt ' + (attempt+1) + ' 예약)');
                             } catch(e){ console.error('[MOP verify] retry cloudSaveNow error:', e); }
-                            _verifyReviewPersisted(reviewId, attempt + 1);
+                            _verifyReviewPersisted(reviewId, attempt + 1, onSuccess, onFailure);
                         } else {
-                            // 최종 실패 — 진단 정보 콘솔 + 사용자 알림
-                            console.error('[MOP verify] ❌ FINAL FAILURE — review missing after ' + MAX_ATTEMPTS + ' attempts. id=' + reviewId);
+                            // 최종 실패 — 진단 정보 콘솔 + 사용자 알림 + 메일 발송 차단
+                            console.error('[MOP verify] ❌ FINAL FAILURE — review missing after ' + MAX_ATTEMPTS + ' attempts. id=' + reviewId + ' — 메일 발송 차단');
                             try {
-                                alert('⚠️ 리뷰가 클라우드에 저장되지 않았습니다.\n\n점수는 화면에 보이지만 서버에 반영되지 않았어요.\n페이지를 새로고침한 후 다시 점수를 입력해주세요.\n문제가 지속되면 jake@medit.com 으로 문의 바랍니다.\n\n(Review ID: ' + reviewId + ')');
+                                alert('⚠️ 리뷰가 클라우드에 저장되지 않았습니다.\n\n점수는 화면에 보이지만 서버에 반영되지 않았어요.\n페이지를 새로고침한 후 다시 점수를 입력해주세요.\n문제가 지속되면 jake@medit.com 으로 문의 바랍니다.\n\n(Review ID: ' + reviewId + ')\n\n※ 데이터 미저장으로 인해 알림 메일 발송도 중단되었습니다.');
                             } catch(_){}
-                            // iframe에도 toast 알림 (우측 상단)
                             try {
                                 var ifr = document.getElementById('tool-iframe');
                                 if (ifr && ifr.contentWindow) {
@@ -7539,24 +7545,109 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                     }, __MOP_SEC.targetOrigin());
                                 }
                             } catch(_){}
+                            // ★ 메일 발송 차단 — onFailure 호출
+                            try { if (typeof onFailure === 'function') onFailure('verify-timeout'); } catch(cbErr){ console.error('[MOP verify] onFailure callback error:', cbErr); }
                         }
                     } catch(e) {
                         console.error('[MOP verify] response parse error:', e);
+                        if (attempt < MAX_ATTEMPTS) {
+                            _verifyReviewPersisted(reviewId, attempt + 1, onSuccess, onFailure);
+                        } else {
+                            try { if (typeof onFailure === 'function') onFailure('parse-error'); } catch(_){}
+                        }
                     }
                 }, function(err){
                     console.warn('[MOP verify] GET error (attempt ' + attempt + '):', err);
                     if (attempt < MAX_ATTEMPTS) {
-                        _verifyReviewPersisted(reviewId, attempt + 1);
+                        _verifyReviewPersisted(reviewId, attempt + 1, onSuccess, onFailure);
                     } else {
-                        console.error('[MOP verify] ❌ FINAL — GET keeps failing. Cannot verify. id=' + reviewId);
+                        console.error('[MOP verify] ❌ FINAL — GET keeps failing. Cannot verify. id=' + reviewId + ' — 메일 발송 차단');
+                        // GET 자체가 안 되면 검증 불가 → 메일 발송 차단 (안전 우선)
+                        try { if (typeof onFailure === 'function') onFailure('get-network-error'); } catch(_){}
                     }
                 });
             } catch(e) {
                 console.error('[MOP verify] outer error:', e);
+                try { if (typeof onFailure === 'function') onFailure('outer-error'); } catch(_){}
             }
         }, delay);
     }
     window._verifyReviewPersisted = _verifyReviewPersisted;
+
+    // ★ FIX 2026-06-11 (P0-CRITICAL — DATA INTEGRITY):
+    //   Submission 도 같은 verify-then-email 패턴 적용.
+    //   mop-send-email 가 submission 직후 발송될 때 cloudSaveNow 가 silent fail 하면
+    //   "Submission Received" 메일은 갔는데 시트엔 데이터 없음 — 동일한 문제.
+    function _verifySubmissionPersisted(submissionId, attempt, onSuccess, onFailure) {
+        attempt = attempt || 1;
+        var MAX_ATTEMPTS = 3;
+        var url = getAppsScriptUrl();
+        if (!url || !submissionId) {
+            console.warn('[MOP verify-sub] skip — no url or submissionId');
+            try { if (typeof onFailure === 'function') onFailure('no-url-or-id'); } catch(_){}
+            return;
+        }
+        var delay = attempt === 1 ? 4000 : 6000;
+        console.log('[MOP verify-sub] scheduled (attempt ' + attempt + '/' + MAX_ATTEMPTS + ') id=' + submissionId + ' in ' + delay + 'ms');
+        setTimeout(function(){
+            try {
+                gasGet(url, function(j){
+                    try {
+                        var serverSubs = (j && j.success && j.data && Array.isArray(j.data.submissions)) ? j.data.submissions : [];
+                        var found = serverSubs.some(function(s){ return s && String(s.id) === String(submissionId); });
+                        if (found) {
+                            console.log('[MOP verify-sub] ✅ confirmed on server (attempt ' + attempt + ') — id=' + submissionId);
+                            try { if (typeof onSuccess === 'function') onSuccess(); } catch(cbErr){ console.error('[MOP verify-sub] onSuccess cb error:', cbErr); }
+                            return;
+                        }
+                        console.warn('[MOP verify-sub] ⚠️ NOT FOUND on server (attempt ' + attempt + ') — id=' + submissionId + ', serverSubCount=' + serverSubs.length);
+                        if (attempt < MAX_ATTEMPTS) {
+                            try {
+                                if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
+                                cloudSaveNow();
+                                console.log('[MOP verify-sub] retry cloudSaveNow triggered');
+                            } catch(e){ console.error('[MOP verify-sub] retry cloudSaveNow error:', e); }
+                            _verifySubmissionPersisted(submissionId, attempt + 1, onSuccess, onFailure);
+                        } else {
+                            console.error('[MOP verify-sub] ❌ FINAL FAILURE — submission missing after ' + MAX_ATTEMPTS + ' attempts. id=' + submissionId + ' — 메일 발송 차단');
+                            try {
+                                alert('⚠️ 제출물이 클라우드에 저장되지 않았습니다.\n\n화면에 보이지만 서버에 반영되지 않았어요.\n페이지를 새로고침한 후 다시 제출해주세요.\n문제가 지속되면 jake@medit.com 으로 문의 바랍니다.\n\n(Submission ID: ' + submissionId + ')\n\n※ 데이터 미저장으로 인해 알림 메일 발송도 중단되었습니다.');
+                            } catch(_){}
+                            try {
+                                var ifr = document.getElementById('tool-iframe');
+                                if (ifr && ifr.contentWindow) {
+                                    ifr.contentWindow.postMessage({
+                                        type: 'mop-show-error',
+                                        payload: { title: '⚠️ 제출 저장 실패', message: '클라우드 저장 검증 실패. 새로고침 후 재시도 필요. (ID: ' + submissionId + ')' }
+                                    }, __MOP_SEC.targetOrigin());
+                                }
+                            } catch(_){}
+                            try { if (typeof onFailure === 'function') onFailure('verify-timeout'); } catch(_){}
+                        }
+                    } catch(e) {
+                        console.error('[MOP verify-sub] response parse error:', e);
+                        if (attempt < MAX_ATTEMPTS) {
+                            _verifySubmissionPersisted(submissionId, attempt + 1, onSuccess, onFailure);
+                        } else {
+                            try { if (typeof onFailure === 'function') onFailure('parse-error'); } catch(_){}
+                        }
+                    }
+                }, function(err){
+                    console.warn('[MOP verify-sub] GET error (attempt ' + attempt + '):', err);
+                    if (attempt < MAX_ATTEMPTS) {
+                        _verifySubmissionPersisted(submissionId, attempt + 1, onSuccess, onFailure);
+                    } else {
+                        console.error('[MOP verify-sub] ❌ FINAL — GET keeps failing — 메일 발송 차단');
+                        try { if (typeof onFailure === 'function') onFailure('get-network-error'); } catch(_){}
+                    }
+                });
+            } catch(e) {
+                console.error('[MOP verify-sub] outer error:', e);
+                try { if (typeof onFailure === 'function') onFailure('outer-error'); } catch(_){}
+            }
+        }, delay);
+    }
+    window._verifySubmissionPersisted = _verifySubmissionPersisted;
 
     var _lastServerSyncTs = 0;
     var _lastServerVersion = '0';
@@ -8101,10 +8192,27 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     // ★ FIX 2026-06-11 (P0-CRITICAL): grace period mark + 서버 반영 검증
                     //   stale cloudLoad가 방금 저장한 리뷰를 덮어쓰지 못하도록 60초 보호.
                     try { if (typeof window._markLocalPush === 'function') window._markLocalPush('reviews'); } catch(_){}
-                    try { _verifyReviewPersisted(payload.id); } catch(verErr){ console.error('[MOP] verify schedule error:', verErr); }
+                    // ★ 이전 위치의 _verifyReviewPersisted(payload.id) 는 메일 발송과 통합되어 아래로 이동됨
                 } catch(e){ console.error('[MOP] gw review immediate cloudSaveNow ERROR:', e); }
-                // Score Complete 메일: Submitter + 관리자 (Reviewer 본인은 제외)
-                try { _sendScoreCompleteEmail(payload); } catch(emErr) { console.error('[MOP] score email error:', emErr); }
+                // ★ FIX 2026-06-11 (P0-CRITICAL — DATA INTEGRITY):
+                //   Score Complete 메일은 데이터 저장 검증 후에만 발송한다.
+                //   기존 버그: cloudSaveNow 발사 직후 _sendScoreCompleteEmail 즉시 호출 →
+                //              cloudSaveNow 가 silent fail 해도 메일은 이미 발송됨 → 메일 받은 사람은
+                //              "저장됨" 으로 인지하지만 실제 시트엔 데이터 없음. (Anna i900 Essential 사례)
+                //   해결: verify 성공 콜백 안에서만 메일 발송. verify 실패 시 메일 발송 중단 + alert.
+                try {
+                    _verifyReviewPersisted(payload.id, 1,
+                        function _scoreEmailOnVerified() {
+                            try {
+                                _sendScoreCompleteEmail(payload);
+                                console.log('[MOP] ✅ Score Complete 메일 발송 — verify 통과 후 — id=' + payload.id);
+                            } catch(emErr) { console.error('[MOP] score email error:', emErr); }
+                        },
+                        function _scoreEmailBlocked(reason) {
+                            console.error('[MOP] ❌ Score Complete 메일 발송 차단 — reason=' + reason + ', id=' + payload.id);
+                        }
+                    );
+                } catch(verErr){ console.error('[MOP] verify-then-email schedule error:', verErr); }
             } else if (payload && false) {
                 // ★ FIX 2026-06-11 (REGRESSION REVERT): 이 else-if 분기 DISABLED.
                 //   iframe Submissions 가 window.top + window.parent 로 같은 메시지 2번 post 함.
@@ -8259,11 +8367,32 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 console.log('  - title:', _title);
                 console.log('  - payload keys:', Object.keys(newSubPayload));
                 if (!_email || _email.indexOf('@') < 0) console.error('[MOP] ⚠️ submitter email MISSING/INVALID — only admin will receive');
-                // gasPost 사용 (sendBeacon 우선, fetch fallback) — CORS 안전
-                gasPostEmail(url, newSubPayload,
-                    function(res){ console.log('✓ MOP dual-email sent via', res && res.note ? res.note : 'unknown'); },
-                    function(err){ console.error('✗ MOP email error:', err); }
-                );
+
+                // ★ FIX 2026-06-11 (P0-CRITICAL — DATA INTEGRITY):
+                //   submissionId 가 있으면 verify 후 발송. 없으면(signup 등) 그대로 발송.
+                //   "Submission Received" 이메일도 cloudSaveNow silent fail 시 데이터-없이-메일만-가는 문제 차단.
+                var _verifySubId = (src && src.submissionId) ? String(src.submissionId) : null;
+                var _doSendDualEmail = function() {
+                    gasPostEmail(url, newSubPayload,
+                        function(res){ console.log('✓ MOP dual-email sent via', res && res.note ? res.note : 'unknown'); },
+                        function(err){ console.error('✗ MOP email error:', err); }
+                    );
+                };
+                if (_verifySubId && _verifySubId !== '-' && _verifySubId !== 'null' && _verifySubId !== 'undefined') {
+                    console.log('[MOP] mop-send-email: submissionId 감지 — verify 후 발송. id=' + _verifySubId);
+                    _verifySubmissionPersisted(_verifySubId, 1,
+                        function _submitEmailOnVerified() {
+                            console.log('[MOP] ✅ Submission Received 메일 발송 — verify 통과 후 — id=' + _verifySubId);
+                            _doSendDualEmail();
+                        },
+                        function _submitEmailBlocked(reason) {
+                            console.error('[MOP] ❌ Submission Received 메일 발송 차단 — reason=' + reason + ', id=' + _verifySubId);
+                        }
+                    );
+                } else {
+                    console.log('[MOP] mop-send-email: submissionId 없음 — 즉시 발송 (signup/custom 등)');
+                    _doSendDualEmail();
+                }
             } else {
                 console.error('[MOP] Email send failed: Missing URL or payload');
             }
