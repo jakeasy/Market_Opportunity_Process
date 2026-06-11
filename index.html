@@ -7981,9 +7981,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 } catch(e){ console.error('[MOP] gw review immediate cloudSaveNow ERROR:', e); }
                 // Score Complete 메일: Submitter + 관리자 (Reviewer 본인은 제외)
                 try { _sendScoreCompleteEmail(payload); } catch(emErr) { console.error('[MOP] score email error:', emErr); }
-            } else if (payload) {
-                // ★ FIX 2026-06-11: id 충돌로 push 가 skip 된 경우 — 기존 review 가 있어도 update 시도.
-                //   이전엔 silent drop 됐는데, find 일치 케이스에서 새 점수가 통째로 무시되어 데이터 손실 가능.
+            } else if (payload && false) {
+                // ★ FIX 2026-06-11 (REGRESSION REVERT): 이 else-if 분기 DISABLED.
+                //   iframe Submissions 가 window.top + window.parent 로 같은 메시지 2번 post 함.
+                //   same-origin 환경에선 같은 parent 에 2번 도달 → 핸들러 2회 실행.
+                //   2번째 실행에서 이 분기가 mopReviews 의 기존 항목과 id 일치 → 메일 또 발송.
+                //   2026-06-11 04:43 UTC EmailLog 에 user/admin 메일 4쌍 (8통) 발생 사건.
+                //   원본 silent skip 동작 복원: iframe 가 reviews.push 했으니 데이터 손실 없음.
                 var _existIdx = mopReviews.findIndex(function(r){ return r.id === payload.id; });
                 if (_existIdx >= 0) {
                     var _exist = mopReviews[_existIdx];
