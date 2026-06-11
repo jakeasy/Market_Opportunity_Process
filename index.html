@@ -7957,8 +7957,40 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             var payload = event.data.payload;
             if (payload && !mopReviews.find(function(r){ return r.id === payload.id; })) {
                 mopReviews.push(payload); saveReviews();
+                // ★ FIX 2026-06-11 (P0-CRITICAL): saveReviews 의 cloudSaveDebounced 2초 race 차단.
+                //   기존 버그: 점수 제출 → saveReviews → cloudSaveDebounced(2000ms) → 메일은 즉시 발송됨.
+                //   리뷰어가 2초 안에 탭/도구 닫으면 setTimeout 취소 → cloud 도달 X → 다른 사용자는 미평가로 봄.
+                //   (2026-06-10 i900 Essential Anna Heidecker 리뷰 사라짐 사례)
+                //   해결: submission 처리와 동일하게 즉시 cloudSaveNow 호출.
+                try {
+                    if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
+                    cloudSaveNow();
+                    console.log('[MOP] gw review immediate cloudSaveNow triggered (bypass 2s debounce) — id=' + payload.id);
+                } catch(e){ console.error('[MOP] gw review immediate cloudSaveNow ERROR:', e); }
                 // Score Complete 메일: Submitter + 관리자 (Reviewer 본인은 제외)
                 try { _sendScoreCompleteEmail(payload); } catch(emErr) { console.error('[MOP] score email error:', emErr); }
+            } else if (payload) {
+                // ★ FIX 2026-06-11: id 충돌로 push 가 skip 된 경우 — 기존 review 가 있어도 update 시도.
+                //   이전엔 silent drop 됐는데, find 일치 케이스에서 새 점수가 통째로 무시되어 데이터 손실 가능.
+                var _existIdx = mopReviews.findIndex(function(r){ return r.id === payload.id; });
+                if (_existIdx >= 0) {
+                    var _exist = mopReviews[_existIdx];
+                    // 더 최신 timestamp 우선 — payload 가 새로우면 교체
+                    var _existTs = _exist && (_exist.completedAt || _exist.updatedAt || _exist.createdAt) || 0;
+                    var _newTs = payload.completedAt || payload.updatedAt || payload.createdAt || Date.now();
+                    if (new Date(_newTs).getTime() >= new Date(_existTs).getTime()) {
+                        mopReviews[_existIdx] = payload;
+                        saveReviews();
+                        try {
+                            if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
+                            cloudSaveNow();
+                            console.log('[MOP] gw review UPDATED (id collision, newer ts) immediate cloudSaveNow — id=' + payload.id);
+                        } catch(e){ console.error('[MOP] gw review update cloudSaveNow ERROR:', e); }
+                        try { _sendScoreCompleteEmail(payload); } catch(emErr) { console.error('[MOP] score email error:', emErr); }
+                    } else {
+                        console.warn('[MOP] gw review payload older than existing — skip (no data loss, just stale) id=' + payload.id);
+                    }
+                }
             }
         }
         if (event.data && event.data.type === 'mop-send-email') {
@@ -8102,12 +8134,25 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var idx = mopReviews.findIndex(function(r){ return r.id === payload.id; });
                 if (idx >= 0) { mopReviews[idx] = payload; } else { mopReviews.push(payload); }
                 saveReviews();
-                            }
+                // ★ FIX 2026-06-11 (P0-CRITICAL): review-update 도 동일하게 즉시 cloud push
+                //   (mop-review-data 와 같은 race 차단 — 2초 디바운스 race)
+                try {
+                    if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
+                    cloudSaveNow();
+                    console.log('[MOP] gw review-update immediate cloudSaveNow — id=' + payload.id);
+                } catch(e){ console.error('[MOP] gw review-update cloudSaveNow ERROR:', e); }
+            }
         }
         if (event.data && event.data.type === 'mop-reviews-full-sync') {
             mopReviews = event.data.payload || [];
             saveReviews();
-                    }
+            // ★ FIX 2026-06-11 (P0-CRITICAL): full-sync 도 즉시 cloud push (전체 교체 손실 방지)
+            try {
+                if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
+                cloudSaveNow();
+                console.log('[MOP] gw reviews-full-sync immediate cloudSaveNow — count=' + mopReviews.length);
+            } catch(e){ console.error('[MOP] gw reviews-full-sync cloudSaveNow ERROR:', e); }
+        }
         if (event.data && event.data.type === 'mop-afc-finalize-email') {
             var url = getAppsScriptUrl();
             var ep = event.data.payload;
