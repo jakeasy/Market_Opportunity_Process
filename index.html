@@ -7918,6 +7918,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     } else {
                         mopSubmissions[idx] = p;
                         saveSubmissions();
+                        // ★ FIX 2026-06-11 (P0-CRITICAL): 2초 디바운스 race 차단 — 수정 직후 탭 닫혀도 cloud 도달 보장
+                        try {
+                            if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
+                            cloudSaveNow();
+                            console.log('[MOP] gw submission-update immediate cloudSaveNow — id=' + p.id);
+                        } catch(e){ console.error('[MOP] gw submission-update cloudSaveNow ERROR:', e); }
                         // 폼 iframe에 갱신 송신
                         try {
                             var ifr = document.getElementById('tool-iframe');
@@ -7941,6 +7947,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     mopSubmissions = mopSubmissions.filter(function(s){ return String(s.id) !== String(dp.id); });
                     if (mopSubmissions.length !== beforeLen) {
                         saveSubmissions();
+                        // ★ FIX 2026-06-11 (P0-CRITICAL): 자진 철회도 즉시 cloud push — 의도 미반영 (고스트 데이터) 차단
+                        try {
+                            if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
+                            cloudSaveNow();
+                            console.log('[MOP] gw submission-delete immediate cloudSaveNow — id=' + dp.id);
+                        } catch(e){ console.error('[MOP] gw submission-delete cloudSaveNow ERROR:', e); }
                         // 폼 iframe에 갱신 송신
                         try {
                             var ifrD = document.getElementById('tool-iframe');
@@ -8475,7 +8487,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (event.data && event.data.type === 'mop-afc-state-save') {
             mopAfcState = event.data.payload;
             try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
-            cloudSaveDebounced();
+            // ★ FIX 2026-06-11 (P0-CRITICAL): AFC 체크리스트 작업은 부서장 다수 항목 작업이라
+            //   2초 race 로 손실되면 임팩트 큼 — 즉시 cloud push 로 보장
+            try {
+                if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
+                cloudSaveNow();
+                console.log('[MOP] gw afc-state-save immediate cloudSaveNow');
+            } catch(e){ console.error('[MOP] gw afc-state-save cloudSaveNow ERROR:', e); }
             autoSyncAfcToPortfolio();
             try {
                 var _allIfr = document.querySelectorAll('iframe');
@@ -8489,7 +8507,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         if (event.data && event.data.type === 'mop-portfolio-state-save') {
             mopPortfolioState = event.data.payload;
             try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(e) { try { __MOP_SEC.logErr('Gateway', e); } catch(_){} }
-            cloudSaveDebounced();
+            // ★ FIX 2026-06-11 (P0-CRITICAL): 포트폴리오 상태 변경도 즉시 cloud push
+            try {
+                if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
+                cloudSaveNow();
+                console.log('[MOP] gw portfolio-state-save immediate cloudSaveNow');
+            } catch(e){ console.error('[MOP] gw portfolio-state-save cloudSaveNow ERROR:', e); }
         }
         if (event.data && event.data.type === 'mop-portfolio-ready') {
             var iframe = document.getElementById('tool-iframe');
