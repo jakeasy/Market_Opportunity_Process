@@ -7649,6 +7649,72 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
     window._verifySubmissionPersisted = _verifySubmissionPersisted;
 
+    // ★ FIX 2026-06-11 (P0-CRITICAL — DATA INTEGRITY):
+    //   AFC checklistState 의 item-level merge (로컬 우선).
+    //   구조: { checklistState: { [reviewId]: { items: { [itemKey]: {checked, status, memo, ...} }, memos, gate, finalized, ... } } }
+    //   merge 룰:
+    //     1) 서버에만 있는 reviewId → 그대로 로드
+    //     2) 로컬에만 있는 reviewId → 그대로 보존
+    //     3) 양쪽에 있는 reviewId → items / memos 키 union, 같은 키는 로컬 우선
+    //     4) gate / finalized 는 로컬 우선 (사용자가 방금 결정한 값 보호)
+    //     5) finalized=true 인 reviewId 는 잠금 — 다른 한쪽이 finalized 면 그쪽 우선
+    function _mergeAfcStateLocalFirst(local, server) {
+        try {
+            var lcs = (local && local.checklistState) || {};
+            var scs = (server && server.checklistState) || {};
+            var merged = {};
+            // 1) 서버의 모든 reviewId 를 우선 등록 (deep copy)
+            Object.keys(scs).forEach(function(rid){
+                try { merged[rid] = JSON.parse(JSON.stringify(scs[rid])); } catch(_){ merged[rid] = scs[rid]; }
+            });
+            // 2) 로컬의 reviewId 별 merge
+            Object.keys(lcs).forEach(function(rid){
+                var locR = lcs[rid] || {};
+                if (!merged[rid]) {
+                    try { merged[rid] = JSON.parse(JSON.stringify(locR)); } catch(_){ merged[rid] = locR; }
+                    return;
+                }
+                var srvR = merged[rid];
+                // finalized 우선 — 한쪽이 finalized 면 그쪽이 진실
+                if (srvR.finalized && !locR.finalized) {
+                    // 서버 finalized — 서버 우선 (로컬 임시 변경 무시)
+                    return;
+                }
+                if (locR.finalized && !srvR.finalized) {
+                    // 로컬 finalized — 로컬 우선 (방금 finalize 한 것 보호)
+                    try { merged[rid] = JSON.parse(JSON.stringify(locR)); } catch(_){ merged[rid] = locR; }
+                    return;
+                }
+                // items key 별 merge — 로컬 우선
+                var locItems = locR.items || {};
+                var srvItems = srvR.items || {};
+                var mergedItems = {};
+                Object.keys(srvItems).forEach(function(k){ mergedItems[k] = srvItems[k]; });
+                Object.keys(locItems).forEach(function(k){ mergedItems[k] = locItems[k]; });  // 로컬 우선
+                srvR.items = mergedItems;
+                // memos merge — 로컬 우선
+                if (locR.memos) {
+                    srvR.memos = srvR.memos || {};
+                    Object.keys(locR.memos).forEach(function(k){ srvR.memos[k] = locR.memos[k]; });
+                }
+                // gate — 로컬 값 있으면 로컬 우선
+                if (typeof locR.gate !== 'undefined' && locR.gate) srvR.gate = locR.gate;
+                // 기타 단순 필드 — 로컬 우선
+                Object.keys(locR).forEach(function(k){
+                    if (['items','memos','gate','finalized'].indexOf(k) < 0) {
+                        srvR[k] = locR[k];
+                    }
+                });
+            });
+            return { checklistState: merged };
+        } catch(e) {
+            console.error('[MOP] _mergeAfcStateLocalFirst error:', e);
+            // merge 실패 시 로컬 우선 보존 (서버 덮어쓰기 방지)
+            return local || { checklistState: {} };
+        }
+    }
+    window._mergeAfcStateLocalFirst = _mergeAfcStateLocalFirst;
+
     var _lastServerSyncTs = 0;
     var _lastServerVersion = '0';
     var _cloudLoadDone = true;
@@ -7893,8 +7959,32 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                             }
                         } catch(_){}
                     }
-                    if (d.afcState) { mopAfcState = d.afcState; try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(_){} }
-                    if (d.portfolio) { mopPortfolioState = d.portfolio; try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(_){} }
+                    // ★ FIX 2026-06-11 (P0-CRITICAL): AFC checklist 의 grace 보호 + item-level merge.
+                    //   증상: 한 팀(예: CX)이 체크 입력 → cloudSaveNow → 다른 팀의 cloudLoad 가 GAS commit 전 도착 →
+                    //         서버는 옛 데이터(CX 입력 없음) → mopAfcState 덮어쓰기 → CX 입력 사라짐.
+                    //   해결: grace(60s) 안이면 서버 데이터를 로컬과 item 단위로 merge — 로컬 입력 우선 보존.
+                    if (d.afcState) {
+                        if (window._isInLocalPushGrace && window._isInLocalPushGrace('afc')) {
+                            try {
+                                mopAfcState = _mergeAfcStateLocalFirst(mopAfcState, d.afcState);
+                                console.log('[cloudLoad] afc grace 보호: item-level merge 적용 (로컬 입력 우선)');
+                            } catch(mergeErr) {
+                                console.error('[cloudLoad] afc merge error:', mergeErr);
+                                // merge 실패 시 — 로컬 보존 (서버 덮어쓰기 방지)
+                            }
+                        } else {
+                            mopAfcState = d.afcState;
+                        }
+                        try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(_){}
+                    }
+                    if (d.portfolio) {
+                        if (window._isInLocalPushGrace && window._isInLocalPushGrace('portfolio')) {
+                            console.log('[cloudLoad] portfolio grace 보호: 서버 응답 무시 (로컬 변경 보존)');
+                        } else {
+                            mopPortfolioState = d.portfolio;
+                            try { localStorage.setItem('mop_portfolio_state', JSON.stringify(mopPortfolioState)); } catch(_){}
+                        }
+                    }
                     // ★ FIX 2026-05-15: settings 동기화 (Chrome ↔ Edge 등 브라우저 간 sync)
                     // ★ FIX 2026-05-22: 사용자가 방금 settings 변경한 직후엔 서버 옛 값을 적용하지 않음 (race 방지)
                     if (d.settings && typeof d.settings === 'object' && !window._isInLocalPushGrace('settings')) {
@@ -8751,6 +8841,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 cloudSaveNow();
                 console.log('[MOP] gw afc-state-save immediate cloudSaveNow');
             } catch(e){ console.error('[MOP] gw afc-state-save cloudSaveNow ERROR:', e); }
+            // ★ FIX 2026-06-11 (P0-CRITICAL — DATA INTEGRITY):
+            //   grace marker 등록 → cloudLoad 가 60초 동안 서버 응답으로 로컬을 덮어쓰지 못함.
+            //   증상 대응: CX팀이 체크 → cloudSaveNow 발사 → GAS commit 전 다른 사용자의 cloudLoad 도착 →
+            //              서버는 옛 데이터(CX 체크 없음) → mopAfcState 덮어쓰기 → CX 체크 사라짐.
+            try { if (typeof window._markLocalPush === 'function') window._markLocalPush('afc'); } catch(_){}
             autoSyncAfcToPortfolio();
             try {
                 var _allIfr = document.querySelectorAll('iframe');
@@ -8770,6 +8865,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 cloudSaveNow();
                 console.log('[MOP] gw portfolio-state-save immediate cloudSaveNow');
             } catch(e){ console.error('[MOP] gw portfolio-state-save cloudSaveNow ERROR:', e); }
+            // ★ FIX 2026-06-11: portfolio 도 grace marker — stale cloudLoad 덮어쓰기 차단
+            try { if (typeof window._markLocalPush === 'function') window._markLocalPush('portfolio'); } catch(_){}
         }
         if (event.data && event.data.type === 'mop-portfolio-ready') {
             var iframe = document.getElementById('tool-iframe');
