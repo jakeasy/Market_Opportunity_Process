@@ -4922,6 +4922,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
     // ★ FIX 2026-05-21: 멱등성 — 이미 승인된 계정 중복 처리 방지 (중복 메일 발송 차단)
     function approveAcc(id) {
+        if (!_currentUser || _currentUser.role !== 'admin') return;
         var acc = _accounts.find(function(a){ return a.id === id; });
         if (!acc) return;
         // 이미 승인된 계정은 토스트만 표시하고 종료 (메일 재발송 X)
@@ -4941,6 +4942,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
     // ★ FIX 2026-05-21: 멱등성 — 이미 거절된 계정 중복 처리 방지
     function rejectAcc(id) {
+        if (!_currentUser || _currentUser.role !== 'admin') return;
         var acc = _accounts.find(function(a){ return a.id === id; });
         if (!acc) return;
         if (acc.approved === 'rejected') {
@@ -5163,6 +5165,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
 
     function saveAccEdit() {
+        if (!_currentUser || _currentUser.role !== 'admin') return;
         var id    = document.getElementById('accEditId').value;
         var name  = document.getElementById('accEditName').value.trim();
         var uname = document.getElementById('accEditUsername').value.trim().toLowerCase();
@@ -5197,6 +5200,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     }
 
     function deleteAcc(id) {
+        if (!_currentUser || _currentUser.role !== 'admin') return;
         if (!confirm('이 Account을 삭제하시겠습니까?')) return;
 
         // ★ FIX 2026-05-15: 서버측 머지가 적용되어 있어서 단순 saveAccounts는 삭제를 보존하지 못함.
@@ -6788,6 +6792,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     window._gsClickResult = function(type, id) {
         closeGlobalSearch();
         if (type === 'sub') {
+            // ★ FIX 2026-06-17: general(scoring 권한 없음)이 검색결과 클릭으로 Step2를 여는 우회 차단
+            if (typeof hasPerm === 'function' && !hasPerm('scoring')) { try { _toast && _toast('🔒 권한이 없습니다 (Step 2 Scoring)', '#64748b'); } catch(_){}; return; }
             // Submission 상세 — Step 2 Scoring 도구 열어서 해당 ID 로 스크롤
             try {
                 if (typeof openToolWithSync === 'function') {
@@ -6806,7 +6812,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         } else if (type === 'port') {
             // Portfolio 상세 — Step 4 도구 열어서 해당 ID 로 스크롤
             try {
-                if (typeof openPortfolio === 'function') {
+                // ★ FIX 2026-06-17: general은 편집형 board가 아니라 게스트(읽기전용) 뷰로 라우팅 (다른 진입점과 일관)
+                var _pfIsEditor = (_currentUser && (_currentUser.role === 'admin' || _currentUser.role === 'manager'));
+                if (!_pfIsEditor && typeof openPortfolioGuest === 'function') {
+                    openPortfolioGuest();
+                } else if (typeof openPortfolio === 'function') {
                     openPortfolio('board');
                     setTimeout(function(){
                         try {
