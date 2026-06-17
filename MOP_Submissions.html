@@ -1680,7 +1680,16 @@
         <div class="container">
             <div class="submissions-toolbar">
                 <h2 data-i18n="pendingSubmissions">Pending Submissions</h2>
-                <div style="display:flex;gap:8px;">
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <label for="sortBySelect" id="sortByLabel" style="font-size:0.82rem;color:rgba(255,255,255,0.55);font-weight:600;">정렬</label>
+                    <select id="sortBySelect" onchange="setSortBy(this.value)"
+                        style="background:rgba(15,23,42,0.85);color:#e2e8f0;border:1px solid rgba(99,102,241,0.3);border-radius:8px;padding:7px 14px;font-size:0.85rem;font-weight:600;cursor:pointer;outline:none;font-family:inherit;min-width:170px;">
+                        <option value="newest"     data-i18n-sort="newest">등록순 (최신)</option>
+                        <option value="oldest"     data-i18n-sort="oldest">등록순 (오래된)</option>
+                        <option value="reviewed"   data-i18n-sort="reviewed">리뷰순 (최근 리뷰)</option>
+                        <option value="score-desc" data-i18n-sort="scoreDesc">점수 높은 순</option>
+                        <option value="score-asc"  data-i18n-sort="scoreAsc">점수 낮은 순</option>
+                    </select>
                 </div>
             </div>
             <!-- Region Filters -->
@@ -2724,8 +2733,14 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 if (sub) submissionData = sub.data || null;
             }
 
-            const review = {
-                id: Date.now(),
+            // ★ FIX 2026-06-17: Submission당 리뷰 1개로 upsert — 재평가/다중 PC 중복 생성 방지.
+            //   기존 리뷰 있으면 그 id 재사용(연결된 AFC 체크리스트 reviewId 보존), 없으면 submissionId 기반 결정적 id.
+            //   결정적 id 덕분에 두 PC가 동시에 신규 생성해도 동일 id → 서버 머지에서 한 건으로 수렴.
+            var _hasSid = (currentSubmissionId !== null && currentSubmissionId !== undefined && String(currentSubmissionId) !== '');
+            var _existingReview = _hasSid ? reviews.find(function(r){ return r && String(r.submissionId) === String(currentSubmissionId); }) : null;
+            var _reviewId = _existingReview ? _existingReview.id : (_hasSid ? ('rev_' + currentSubmissionId) : Date.now());
+            var review = Object.assign({}, _existingReview || {}, {
+                id: _reviewId,
                 submissionId: currentSubmissionId,
                 submissionData: submissionData,
                 title: title,
@@ -2738,9 +2753,10 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 recClass: recClass,
                 criteriaScores: { ...scores },
                 date: new Date().toLocaleString()
-            };
+            });
 
-            reviews.push(review);
+            var _revIdx = _hasSid ? reviews.findIndex(function(r){ return r && String(r.submissionId) === String(currentSubmissionId); }) : -1;
+            if (_revIdx >= 0) reviews[_revIdx] = review; else reviews.push(review);
             showToast(texts.reviewSaved);
 
             // Send review data to parent (Gateway) for persistence
@@ -2778,10 +2794,35 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
         var currentRegionFilter = 'all';
         var currentStatusFilter = 'all';
+        // ★ NEW 2026-06-11: 정렬 필터 (localStorage persist)
+        var currentSortBy = (function(){
+            try { return localStorage.getItem('mopSubmissionsSortBy') || 'newest'; }
+            catch(_){ return 'newest'; }
+        })();
+        function setSortBy(v) {
+            currentSortBy = v || 'newest';
+            try { localStorage.setItem('mopSubmissionsSortBy', currentSortBy); } catch(_){}
+            renderSubmissionsList();
+        }
+        window.setSortBy = setSortBy;
 
         function renderSubmissionsList() {
             const texts = translations[currentLanguage];
             const isKo = currentLanguage === 'ko';
+            // ★ NEW 2026-06-11: sort dropdown 다국어 라벨 갱신
+            try {
+                var _sLbl = document.getElementById('sortByLabel');
+                if (_sLbl) _sLbl.textContent = isKo ? '정렬' : 'Sort';
+                var _sSel = document.getElementById('sortBySelect');
+                if (_sSel) {
+                    var labels = isKo
+                        ? { 'newest':'등록순 (최신)', 'oldest':'등록순 (오래된)', 'reviewed':'리뷰순 (최근 리뷰)', 'score-desc':'점수 높은 순', 'score-asc':'점수 낮은 순' }
+                        : { 'newest':'By date (newest)', 'oldest':'By date (oldest)', 'reviewed':'By review (recent)', 'score-desc':'By score (high → low)', 'score-asc':'By score (low → high)' };
+                    Array.prototype.forEach.call(_sSel.options, function(o){
+                        if (labels[o.value]) o.textContent = labels[o.value];
+                    });
+                }
+            } catch(_){}
             const listEl = document.getElementById('submissionsList');
             const emptyEl = document.getElementById('submissionsEmpty');
             const regionFilterEl = document.getElementById('regionFilters');
@@ -2796,10 +2837,20 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             }
             if (emptyEl) emptyEl.classList.add('hidden');
 
+            // ★ FIX 2026-06-11 (P0-CRITICAL): submissionId 매칭 타입 안전 헬퍼.
+            //   기존 버그: reviews.find(r => r.submissionId === sub.id) — strict equality.
+            //   submissions 가 cloud sync 받으면 Object.assign 으로 id 타입이 number→string 으로 바뀌는데
+            //   review.submissionId 는 selectSubmission 시점 raw 타입 그대로 → 매칭 실패 → 평가 후에도 "Pending" 표시.
+            //   해결: 모든 매칭을 String() 비교로 통일.
+            function _findReviewBySubId(subId) {
+                if (subId == null) return null;
+                var s = String(subId);
+                return reviews.find(function(r){ return r && String(r.submissionId) === s; });
+            }
             // Build status counts
             const statusCounts = { all: submissions.length, reviewed: 0, pending: 0 };
             submissions.forEach(sub => {
-                const review = reviews.find(r => r.submissionId === sub.id);
+                const review = _findReviewBySubId(sub.id);
                 if (review) {
                     statusCounts.reviewed++;
                 } else {
@@ -2810,7 +2861,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             // Step 3 카운트
             var step3InCount = 0, step3OutCount = 0;
             submissions.forEach(function(sub){
-                var review = reviews.find(function(r){ return r.submissionId === sub.id; });
+                var review = _findReviewBySubId(sub.id);
                 if (review) {
                     if (review.sendToStep3) step3InCount++;
                     else step3OutCount++;
@@ -2862,30 +2913,82 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             // Filter submissions by status
             if (currentStatusFilter === 'reviewed') {
                 filtered = filtered.filter(sub => {
-                    const review = reviews.find(r => r.submissionId === sub.id);
+                    const review = _findReviewBySubId(sub.id);
                     return !!review;
                 });
             } else if (currentStatusFilter === 'pending') {
                 filtered = filtered.filter(sub => {
-                    const review = reviews.find(r => r.submissionId === sub.id);
+                    const review = _findReviewBySubId(sub.id);
                     return !review;
                 });
             } else if (currentStatusFilter === 'inStep3') {
                 filtered = filtered.filter(sub => {
-                    const review = reviews.find(r => r.submissionId === sub.id);
+                    const review = _findReviewBySubId(sub.id);
                     return review && review.sendToStep3 === true;
                 });
             } else if (currentStatusFilter === 'notStep3') {
                 filtered = filtered.filter(sub => {
-                    const review = reviews.find(r => r.submissionId === sub.id);
+                    const review = _findReviewBySubId(sub.id);
                     return review && review.sendToStep3 !== true;
                 });
             }
 
+            // ★ NEW 2026-06-11: 정렬 적용
+            (function _applySort(){
+                try {
+                    var sel = document.getElementById('sortBySelect');
+                    if (sel && sel.value !== currentSortBy) sel.value = currentSortBy;
+                } catch(_){}
+            })();
+            function _subTs(s) {
+                if (!s) return 0;
+                if (s.timestamp) { var t = Date.parse(s.timestamp); if (!isNaN(t)) return t; }
+                if (typeof s.id === 'number') return s.id;
+                return 0;
+            }
+            function _revTs(r) {
+                if (!r) return 0;
+                if (r.date) { var t = Date.parse(r.date); if (!isNaN(t)) return t; }
+                if (typeof r.id === 'number') return r.id;
+                return 0;
+            }
+            var _sorted;
+            if (currentSortBy === 'oldest') {
+                _sorted = filtered.slice().sort(function(a,b){ return _subTs(a) - _subTs(b); });
+            } else if (currentSortBy === 'reviewed') {
+                // 최근 리뷰된 항목 먼저, 미리뷰는 맨 아래 (등록순)
+                _sorted = filtered.slice().sort(function(a,b){
+                    var ra = _findReviewBySubId(a.id), rb = _findReviewBySubId(b.id);
+                    if (ra && !rb) return -1;
+                    if (!ra && rb) return 1;
+                    if (!ra && !rb) return _subTs(b) - _subTs(a);
+                    return _revTs(rb) - _revTs(ra);
+                });
+            } else if (currentSortBy === 'score-desc') {
+                _sorted = filtered.slice().sort(function(a,b){
+                    var ra = _findReviewBySubId(a.id), rb = _findReviewBySubId(b.id);
+                    if (ra && !rb) return -1;
+                    if (!ra && rb) return 1;
+                    if (!ra && !rb) return _subTs(b) - _subTs(a);
+                    return (rb.percentage||0) - (ra.percentage||0);
+                });
+            } else if (currentSortBy === 'score-asc') {
+                _sorted = filtered.slice().sort(function(a,b){
+                    var ra = _findReviewBySubId(a.id), rb = _findReviewBySubId(b.id);
+                    if (ra && !rb) return -1;
+                    if (!ra && rb) return 1;
+                    if (!ra && !rb) return _subTs(b) - _subTs(a);
+                    return (ra.percentage||0) - (rb.percentage||0);
+                });
+            } else {
+                // 'newest' 기본값 — 기존 동작 (insertion order reverse)
+                _sorted = filtered.slice().reverse();
+            }
+
             if (listEl) {
-                listEl.innerHTML = filtered.slice().reverse().map(sub => {
+                listEl.innerHTML = _sorted.map(sub => {
                 const d = sub.data || {};
-                const review = reviews.find(r => r.submissionId === sub.id);
+                const review = _findReviewBySubId(sub.id);
                 const isReviewed = !!review;
                 const badgeClass = isReviewed ? 'badge-reviewed' : 'badge-pending';
                 const badgeText = isReviewed ? texts.badgeReviewed : texts.badgePending;
@@ -3153,10 +3256,12 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 reviews[idx].sendToStep3 = !reviews[idx].sendToStep3;
                 _refreshStep3Toggle();
                 // 부모(Gateway)에 갱신 송신
+                // ★ FIX 2026-06-12 (race fix 2차): full-sync 제거 — per-field PUT 으로 충분
+                //   sendToStep3 만 바뀌므로 review-field-update endpoint 가 atomic 으로 처리.
+                //   full-sync 는 다른 사용자의 review 변경을 덮어쓸 race 일으킴.
                 try {
                     if (window.parent !== window) {
-                        window.parent.postMessage({ type: 'mop-review-update', payload: reviews[idx] }, __MOP_SEC.targetOrigin());
-                        window.parent.postMessage({ type: 'mop-reviews-full-sync', payload: reviews }, __MOP_SEC.targetOrigin());
+                        window.parent.postMessage({ type: 'mop-review-update', _field: 'sendToStep3', payload: reviews[idx] }, __MOP_SEC.targetOrigin());
                     }
                 } catch(_){}
                 // 목록 화면이 열려 있으면 카드 재렌더 (Step 3 표시 갱신)
@@ -3167,11 +3272,13 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         function viewReviewedSubmission(subId) {
             const isKo = currentLanguage === 'ko';
             const texts = translations[currentLanguage];
-            const review = reviews.find(r => r.submissionId === subId);
+            // ★ FIX 2026-06-11: type-safe lookup (cf. _findReviewBySubId in renderSubmissionsList scope)
+            var _sidStr = String(subId);
+            const review = reviews.find(r => r && String(r.submissionId) === _sidStr);
             if (!review) return;
             _currentPreviewReviewId = review.id;
 
-            const sub = submissions.find(s => s.id === subId);
+            const sub = submissions.find(s => String(s.id) === _sidStr);
             const d = (sub && sub.data) ? sub.data : (review.submissionData || {});
             const savedScores = review.criteriaScores || review.scores || {};
             const criteria = texts.criteria;
@@ -3357,6 +3464,36 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 }
                 // ★ FIX 2026-05-22: HQ list 도 submissionData 를 참조하므로 함께 갱신
                 try { if (!document.getElementById('hqListPage').classList.contains('hidden')) renderHqList(); } catch(_){}
+            }
+            // ★ NEW 2026-06-11: 알림에서 특정 submission detail 을 직접 열기
+            if (e.data && e.data.type === 'mop-open-detail' && (!e.data.tool || e.data.tool === 'scoring')) {
+                try {
+                    var _tid = e.data.targetId;
+                    if (!_tid) return;
+                    var _open = function() {
+                        var _sub = submissions.find(function(s){ return s && String(s.id) === String(_tid); });
+                        if (!_sub) {
+                            console.warn('[MOP Step2] mop-open-detail: submission not yet loaded, will retry —', _tid);
+                            return false;
+                        }
+                        var _rev = reviews.find(function(r){ return r && String(r.submissionId) === String(_sub.id); });
+                        try {
+                            if (_rev && typeof viewReviewedSubmission === 'function') {
+                                viewReviewedSubmission(_sub.id);
+                            } else if (typeof selectSubmission === 'function') {
+                                selectSubmission(_sub.id);
+                            }
+                            console.log('[MOP Step2] opened detail for submission', _sub.id, _rev ? '(reviewed)' : '(pending)');
+                        } catch(opErr) { console.error('[MOP Step2] open-detail error:', opErr); }
+                        return true;
+                    };
+                    // 데이터가 아직 도착 안 했을 수 있음 — 즉시 + 300ms/800ms retry
+                    if (!_open()) {
+                        setTimeout(_open, 300);
+                        setTimeout(_open, 800);
+                        setTimeout(_open, 1500);
+                    }
+                } catch(_){}
             }
             // ★ FIX 2026-05-22: AFC에서 admin이 재업로드한 첨부파일 즉시 반영
             if (e.data && e.data.type === 'mop-evidenceFile-updated') {
@@ -3718,10 +3855,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (decision !== undefined && decision !== null) {
                 r.decision = decision;
             }
-            // Sync to Gateway
+            // ★ FIX 2026-06-12 (race fix 2차): per-field PUT — decision 만 atomic 갱신
+            //   다른 사용자가 같은 review 의 다른 field 만지더라도 충돌 없음.
             try {
                 if (window.parent !== window) {
-                    window.parent.postMessage({ type: 'mop-reviews-full-sync', payload: reviews }, __MOP_SEC.targetOrigin());
+                    window.parent.postMessage({ type: 'mop-review-update', _field: 'decision', payload: r }, __MOP_SEC.targetOrigin());
                 }
             } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
             delete pendingDecisions[id];
@@ -4458,7 +4596,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
 
             // Sync to Gateway
             try {
-                window.top.postMessage({ type: 'mop-review-update', payload: r }, __MOP_SEC.targetOrigin());
+                window.top.postMessage({ type: 'mop-review-update', _field: 'memos', payload: r }, __MOP_SEC.targetOrigin());
                 window.parent.postMessage({ type: 'mop-review-update', payload: r }, __MOP_SEC.targetOrigin());
             } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
 
@@ -4471,7 +4609,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             if (!r || !r.memos) return;
             r.memos.splice(idx, 1);
             try {
-                window.top.postMessage({ type: 'mop-review-update', payload: r }, __MOP_SEC.targetOrigin());
+                window.top.postMessage({ type: 'mop-review-update', _field: 'memos', payload: r }, __MOP_SEC.targetOrigin());
                 window.parent.postMessage({ type: 'mop-review-update', payload: r }, __MOP_SEC.targetOrigin());
             } catch(e) { try { __MOP_SEC.logErr('Submissions', e); } catch(_){} }
             renderHqMemos(r);
@@ -4724,4 +4862,56 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 var role = String((_userInfoStep2 && _userInfoStep2.role) || '').trim().toLowerCase();
                 var myRegion = String((_userInfoStep2 && _userInfoStep2.region) || '').trim();
                 // ★ dedup: 같은 (lang, role, region, filter) 조합이면 텍스트 재기록 건너뛰고 권한만 보장
-                var key = (ko?'ko':'en') + '|' + ro
+                var key = (ko?'ko':'en') + '|' + role + '|' + myRegion + '|' + (_mineFilter || 'all');
+                if (key === _lastLabelKey) {
+                    try { _enforceRoleScope(); } catch(_){}
+                    return;
+                }
+                _lastLabelKey = key;
+                // ★ FIX 2026-05-19: admin도 region 기반으로 통일
+                var isRegionBased = (role === 'manager' || role === 'admin') && !!myRegion;
+                var isPrivileged = (role === 'manager' || role === 'admin');
+                if (allBtn) allBtn.textContent = ko ? '전체' : 'All';
+                if (myBtn) {
+                    if (isRegionBased) {
+                        myBtn.innerHTML = (ko ? '내 Region (' : 'My Region (') + myRegion + ')' +
+                            ' <span id="mineMyCount" style="opacity:0.7;font-size:0.85em;"></span>';
+                    } else {
+                        myBtn.innerHTML = (ko ? '내 제출' : 'My submissions') +
+                            ' <span id="mineMyCount" style="opacity:0.7;font-size:0.85em;"></span>';
+                    }
+                    _updateMineCount();
+                }
+                if (hint) {
+                    if (isRegionBased) {
+                        hint.textContent = ko ? '※ 내 Region(' + myRegion + ') 의 모든 제출 (점수 부여 가능)' : '※ All submissions in my region (' + myRegion + ') — scoring enabled';
+                    } else if (isPrivileged) {
+                        // manager/admin인데 region이 없는 비정상 케이스
+                        hint.textContent = ko ? '※ Region 정보가 없어 표시할 수 없습니다' : '※ No region assigned';
+                    } else {
+                        hint.textContent = ko ? '※ 본인 제출은 조회 전용' : '※ Read-only for own submissions';
+                    }
+                    // hint는 mine 필터 활성 시만 표시 (역할 무관)
+                    hint.style.display = (_mineFilter === 'mine') ? '' : 'none';
+                }
+                if (banner) {
+                    if (isRegionBased) {
+                        banner.textContent = ko ? '📍 내 Region(' + myRegion + ') 제출 표시 중 — 점수 부여 가능' : '📍 Showing submissions in my region (' + myRegion + ') — scoring enabled';
+                    } else if (isPrivileged) {
+                        banner.textContent = ko ? '⚠ Region 정보가 없습니다' : '⚠ No region assigned';
+                    } else {
+                        banner.textContent = ko ? '📖 본인이 제출한 건만 표시 중입니다 (조회 전용)' : '📖 Showing only your own submissions (read-only)';
+                    }
+                }
+                // ★ FIX 2026-05-19: 라벨 갱신 후 권한 범위 강제 적용
+                try { _enforceRoleScope(); } catch(_){}
+            } catch(_){}
+        }
+        if (typeof setLanguage !== 'undefined') {
+            var _origSetLang = setLanguage;
+            setLanguage = function(lang) { _origSetLang.apply(this, arguments); _refreshMineLabels(); };
+        }
+        try { setTimeout(_refreshMineLabels, 200); } catch(_){}
+    </script>
+</body>
+</html>
