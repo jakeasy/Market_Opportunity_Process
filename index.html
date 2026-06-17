@@ -8452,8 +8452,19 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }
         if (event.data && event.data.type === 'mop-review-data') {
             var payload = event.data.payload;
-            if (payload && !mopReviews.find(function(r){ return r.id === payload.id; })) {
-                mopReviews.push(payload); saveReviews();
+            if (payload) {
+                // ★ FIX 2026-06-17: submissionId 기준 upsert — 같은 submission 중복 리뷰 방지.
+                //   기존 리뷰(같은 submissionId) 있으면 그 id 보존하고 교체, 없으면 신규 push.
+                var _rIdx = (payload.submissionId != null)
+                    ? mopReviews.findIndex(function(r){ return r && String(r.submissionId) === String(payload.submissionId); })
+                    : mopReviews.findIndex(function(r){ return r && String(r.id) === String(payload.id); });
+                if (_rIdx >= 0) {
+                    payload.id = mopReviews[_rIdx].id;
+                    mopReviews[_rIdx] = payload;
+                } else {
+                    mopReviews.push(payload);
+                }
+                saveReviews();
                 // ★ FIX 2026-06-11 (P0-CRITICAL): saveReviews 의 cloudSaveDebounced 2초 race 차단.
                 //   기존 버그: 점수 제출 → saveReviews → cloudSaveDebounced(2000ms) → 메일은 즉시 발송됨.
                 //   리뷰어가 2초 안에 탭/도구 닫으면 setTimeout 취소 → cloud 도달 X → 다른 사용자는 미평가로 봄.
