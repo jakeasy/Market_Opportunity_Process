@@ -2295,20 +2295,16 @@ function renderDashboard(){
         var gateClass=gate==='go'?'gate-badge-go':gate==='conditional'?'gate-badge-conditional':gate==='nogo'?'gate-badge-nogo':'gate-badge-none';
         var gateText=gate==='go'?'GO':gate==='conditional'?'COND':gate==='nogo'?'NO GO':t('gateNone');
         var pctColor=pct>=80?'#22a861':pct>=50?'#f59e0b':'#ef4444';
-        // ★ FIX 2026-05-22: 상태 표시 — Decision Pending 은 finalized 이후에만, 그 전엔 Review Done/In Progress 유지
-        var statusText;
-        if (finalized) {
-            statusText = '<span style="color:#22a861;font-weight:600;font-size:0.78rem">✅ '+t('dFinalized')+'</span>';
-        } else if (pct >= 100) {
-            statusText = '<span style="color:#3b82f6;font-weight:600;font-size:0.78rem">'+(isKo?'📋 검토 완료':'📋 Review Done')+'</span>';
-        } else if (pct > 0) {
-            statusText = '<span style="color:#f59e0b;font-size:0.78rem">'+(isKo?'🔄 진행 중 ('+pct+'%)':'🔄 In Progress ('+pct+'%)')+'</span>';
-        } else {
-            statusText = '<span style="color:#94a3b8;font-size:0.78rem">'+(isKo?'⚪ 시작 전':'⚪ Not Started')+'</span>';
-        }
+        // ★ UX 2026-06-17: 진행 상태를 제목 밑 작은 글씨 → PROGRESS 컬럼의 눈에 띄는 컬러 배지로 승격
+        var _sBg,_sFg,_sBd,_sIcon,_sLabel;
+        if (finalized) { _sBg='rgba(34,168,97,0.16)';_sFg='#34d399';_sBd='rgba(34,168,97,0.45)';_sIcon='✅';_sLabel=(isKo?'확정 완료':'Finalized'); }
+        else if (pct >= 100) { _sBg='rgba(59,130,246,0.16)';_sFg='#60a5fa';_sBd='rgba(59,130,246,0.45)';_sIcon='📋';_sLabel=(isKo?'검토 완료':'Review Done'); }
+        else if (pct > 0) { _sBg='rgba(245,158,11,0.16)';_sFg='#fbbf24';_sBd='rgba(245,158,11,0.45)';_sIcon='🔄';_sLabel=(isKo?'진행 중 '+pct+'%':'In Progress '+pct+'%'); }
+        else { _sBg='rgba(148,163,184,0.14)';_sFg='#cbd5e1';_sBd='rgba(148,163,184,0.32)';_sIcon='⚪';_sLabel=(isKo?'시작 전':'Not Started'); }
+        var statusBadge = '<span style="display:inline-flex;align-items:center;gap:5px;background:'+_sBg+';color:'+_sFg+';border:1px solid '+_sBd+';padding:4px 11px;border-radius:7px;font-size:0.82rem;font-weight:700;white-space:nowrap;width:fit-content;">'+_sIcon+' '+_sLabel+'</span>';
 
         h+='<tr>';
-        h+='<td style="cursor:pointer" onclick="selectReview('+r.id+')"><div class="dash-title" style="color:var(--primary);text-decoration:underline">'+esc(r.title)+'</div>'+statusText+'</td>';
+        h+='<td style="cursor:pointer" onclick="selectReview('+r.id+')"><div class="dash-title" style="color:var(--primary);text-decoration:underline">'+esc(r.title)+'</div></td>';
         h+='<td>'+esc(_getSubmitterAFC(r))+'</td>';
         h+='<td style="max-width:160px;word-break:break-word;font-size:0.78rem">'+esc(r.reviewer)+'</td>';
         var yc=0,nc=0;
@@ -2316,7 +2312,7 @@ function renderDashboard(){
         var passRate=(yc+nc)>0?Math.round(yc/(yc+nc)*100):0;
         var prColor=passRate>=80?'#22a861':passRate>=60?'#f59e0b':'#ef4444';
         h+='<td style="cursor:pointer" onclick="showReviewDetail('+r.id+',event)"><span class="dash-score-pill" style="'+sc+'">'+r.score+'/'+r.maxScore+'</span><div style="font-size:0.65rem;color:#94a3b8;margin-top:2px;text-align:center">'+r.percentage+'%</div></td>';
-        h+='<td><div class="dash-progress"><div class="dash-progress-bar"><div class="dash-progress-fill" style="width:'+pct+'%;background:'+pctColor+'"></div></div><span class="dash-progress-text">'+pct+'%</span></div></td>';
+        h+='<td style="cursor:pointer" onclick="selectReview('+r.id+')"><div style="display:flex;flex-direction:column;gap:7px;min-width:160px">'+statusBadge+'<div class="dash-progress"><div class="dash-progress-bar" style="height:10px;border-radius:5px"><div class="dash-progress-fill" style="width:'+pct+'%;background:'+pctColor+'"></div></div><span class="dash-progress-text">'+pct+'%</span></div></div></td>';
         h+='<td><span style="font-weight:700;color:'+prColor+'">'+passRate+'%</span><div style="font-size:0.65rem;color:#94a3b8">'+yc+(isKo?'충족 / ':'Y / ')+nc+(isKo?'미충족':'N')+'</div></td>';
         h+='<td><span class="dash-gate-badge '+gateClass+'">'+gateText+'</span></td>';
         h+='<td><button class="dash-action-btn" onclick="selectReview('+r.id+')">'+t('dOpen')+'</button></td>';
