@@ -7200,6 +7200,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         closeNotifications();
         updateNotifBadge();
         // navigate
+        var _navigate = function() {
         try {
             if (action === 'approve-account') {
                 if (typeof openSettings === 'function') openSettings();
@@ -7223,6 +7224,24 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 _sendOpenDetailToIframe('portfolio', data);
             }
         } catch(navErr) { console.error('[notif] navigate error:', navErr); }
+        };
+        // ★ NEW 2026-06-17: 현재 열려 있는 도구/설정 페이지를 먼저 '닫고' → 상세 페이지로 이동.
+        //   요청: 알림 클릭 시 현재 페이지가 닫힌 뒤 상세로 전환되도록.
+        try {
+            var _didClose = false;
+            // 설정 모달이 열려있고, 계정 승인 외 액션이면 닫는다
+            try {
+                var _setOverlay = document.getElementById('settingsOverlay');
+                var _setOpen = _setOverlay && _setOverlay.classList.contains('active');
+                if (_setOpen && action !== 'approve-account' && typeof closeSettings === 'function') { closeSettings(); _didClose = true; }
+            } catch(_){}
+            // 도구(iframe) 페이지가 열려있으면 닫는다
+            try {
+                var _iv = document.getElementById('iframe-view');
+                if (_iv && _iv.classList.contains('active') && typeof closeTool === 'function') { closeTool(); _didClose = true; }
+            } catch(_){}
+            if (_didClose) { setTimeout(_navigate, 120); } else { _navigate(); }
+        } catch(_) { _navigate(); }
     };
 
     // ★ NEW 2026-06-11: 알림 클릭 시 iframe 안의 특정 컨텐츠 상세를 자동 열기
