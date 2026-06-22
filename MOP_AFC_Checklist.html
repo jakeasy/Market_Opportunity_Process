@@ -360,6 +360,7 @@
         <button onclick="switchView('dashboard')" style="margin-top:24px;padding:10px 28px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer">← Dashboard로 이동</button>
     </div>
     <div class="selected-info" id="selectedInfo">
+        <button id="afcBackBtn" onclick="switchView('dashboard')" data-i18n="btnBackToList" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#e2e8f0;padding:7px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;margin-bottom:14px;display:inline-flex;align-items:center;gap:6px;">← Back to List</button>
         <div style="display:flex;align-items:flex-start;justify-content:space-between;">
             <div style="flex:1;">
                 <div class="si-title" id="siTitle">—</div>
@@ -593,7 +594,7 @@ var i18n = {
         'lSubmitter':'Submitter:','lReviewer':'Reviewer:','lScore':'Score:','lDate':'Date:',
         'showAll':'Show All','incompleteOnly':'Not Reviewed','completeOnly':'Reviewed',
         'gateDecision':'Gate Decision','gateGo':'GO — Approved','gateCond':'Conditional — Proceed with Actions','gateNoGo':'NO GO — Defer',
-        'gateNotesPlaceholder':'Decision notes...','btnPrint':'🖨️ Print','btnConfirm':'✔ Confirm & Finalize',
+        'gateNotesPlaceholder':'Decision notes...','btnPrint':'🖨️ Print','btnConfirm':'✔ Confirm & Finalize','btnBackToList':'← Back to List',
         'sProgress':'REVIEW PROGRESS','sChecklist':'CHECKLIST','sReadiness':'PASS RATE','sSync':'Sync',
         'sProgressDesc':'Items reviewed out of total','owner':'OWNER','notStarted':'Not Reviewed','yes':'Yes','no':'No','memo':'Memo',
         'rdScore':'Yes / (Yes + No)','rdYes':'Yes','rdNo':'No','rdPending':'Pending',
@@ -677,7 +678,7 @@ var i18n = {
         'lSubmitter':'입력자:','lReviewer':'리뷰어:','lScore':'점수:','lDate':'날짜:',
         'showAll':'전체','incompleteOnly':'미검토','completeOnly':'검토 완료',
         'gateDecision':'Gate Decision (최종 결정)','gateGo':'GO — 승인','gateCond':'Conditional — 조건부 진행','gateNoGo':'NO GO — 보류',
-        'gateNotesPlaceholder':'결정 메모...','btnPrint':'🖨️ 인쇄','btnConfirm':'✔ 확정하기',
+        'gateNotesPlaceholder':'결정 메모...','btnPrint':'🖨️ 인쇄','btnConfirm':'✔ 확정하기','btnBackToList':'← 목록으로',
         'sProgress':'검토 진행률','sChecklist':'체크리스트','sReadiness':'충족률','sSync':'동기화',
         'sProgressDesc':'전체 항목 중 검토 완료 수','rdScore':'충족 / (충족 + 미충족)','rdYes':'충족','rdNo':'미충족','rdPending':'미검토',
         'rdReady':'진행 가능','rdCaution':'주의 필요','rdRisk':'고위험 — 진행 불가',
