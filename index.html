@@ -9202,6 +9202,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                                 } else if (ip.field === 'gate') rev.gate = ip.value;
                                 else if (ip.field === 'gateNotes') rev.gateNotes = ip.value;
                                 else if (ip.field === 'finalized') rev.finalized = !!ip.value;
+                                else if (ip.field === 'shareReason') rev.shareReason = ip.value;
                             }
                             try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(_){}
                         } catch(stErr){ console.error('local sync error:', stErr); }
@@ -9224,6 +9225,109 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             } catch(outerErr) {
                 console.error('[MOP] mop-afc-item-save outer error:', outerErr);
             }
+            return;
+        }
+        // ── ★ NEW 2026-06-17: 미팅노트 추가/수정 프록시 (iframe → GAS) ──
+        if (event.data && (event.data.type === 'mop-afc-note-add' || event.data.type === 'mop-afc-note-edit')) {
+            try {
+                var nUrl = getAppsScriptUrl();
+                if (!nUrl) { console.error('[MOP] afc-note: no APPS_SCRIPT_URL'); return; }
+                var np = event.data.payload || {};
+                var nCallId = event.data.callId;
+                var nSrc = event.source;
+                var nOrigin = (function(){ try { return __MOP_SEC.targetOrigin(); } catch(_){ return '*'; } })();
+                var nIsEdit = (event.data.type === 'mop-afc-note-edit');
+                var nBody = {
+                    type: nIsEdit ? 'afc-note-edit' : 'afc-note-add',
+                    token: (typeof MOP_API_TOKEN !== 'undefined') ? MOP_API_TOKEN : '',
+                    reviewId: np.reviewId,
+                    text: np.text
+                };
+                if (nIsEdit) nBody.noteId = np.noteId;
+                try {
+                    if (typeof _currentUser !== 'undefined' && _currentUser) {
+                        nBody.actorName = _currentUser.name || '';
+                        nBody.actorEmail = _currentUser.username || _currentUser.email || '';
+                        nBody.actorRole = _currentUser.role || '';
+                    }
+                } catch(_){}
+                console.log('[MOP] afc-note ' + (nIsEdit ? 'edit' : 'add') + ' → GAS rid=' + np.reviewId);
+                fetch(nUrl, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(nBody), keepalive: true })
+                  .then(function(res){ return res.json(); }).then(function(j){
+                    if (j && j.success && j.note) {
+                        try {
+                            if (!mopAfcState) mopAfcState = { checklistState: {} };
+                            if (!mopAfcState.checklistState[np.reviewId]) mopAfcState.checklistState[np.reviewId] = { items: {}, owners: {}, gate: '', gateNotes: '', finalized: false };
+                            var nrv = mopAfcState.checklistState[np.reviewId];
+                            if (!Array.isArray(nrv.meetingNotes)) nrv.meetingNotes = [];
+                            var nExIdx = nrv.meetingNotes.findIndex(function(n){ return n && String(n.id) === String(j.note.id); });
+                            if (nExIdx >= 0) nrv.meetingNotes[nExIdx] = j.note; else nrv.meetingNotes.push(j.note);
+                            try { localStorage.setItem('mop_afc_state', JSON.stringify(mopAfcState)); } catch(_){}
+                        } catch(stErr){ console.error('[MOP] afc-note local sync error:', stErr); }
+                        if (nSrc && nCallId) { try { nSrc.postMessage({ type: 'mop-afc-note-ack', callId: nCallId, success: true, note: j.note }, nOrigin); } catch(_){} }
+                    } else {
+                        console.error('[MOP] afc-note FAIL', j);
+                        if (nSrc && nCallId) { try { nSrc.postMessage({ type: 'mop-afc-note-ack', callId: nCallId, success: false, error: (j && j.error) || 'unknown' }, nOrigin); } catch(_){} }
+                    }
+                  }).catch(function(err){
+                    console.error('[MOP] afc-note fetch error:', err);
+                    if (nSrc && nCallId) { try { nSrc.postMessage({ type: 'mop-afc-note-ack', callId: nCallId, success: false, error: String(err && err.message || err) }, nOrigin); } catch(_){} }
+                  });
+            } catch(outerErr) { console.error('[MOP] afc-note outer error:', outerErr); }
+            return;
+        }
+        // ── ★ NEW 2026-06-17: 제출자에게 통과여부·주요사유 공유 메일 ──
+        if (event.data && event.data.type === 'mop-afc-share-submitter') {
+            try {
+                var sp = event.data.payload || {};
+                var sCallId = event.data.callId;
+                var sSrc = event.source;
+                var sOrigin = (function(){ try { return __MOP_SEC.targetOrigin(); } catch(_){ return '*'; } })();
+                var sUrl = getAppsScriptUrl();
+                var sRid = String(sp.reviewId || '');
+                var sRev = (mopReviews || []).find(function(r){ return r && String(r.id) === sRid; });
+                var sSub = sRev ? (mopSubmissions || []).find(function(s){ return s && String(s.id) === String(sRev.submissionId); }) : null;
+                var sEmail = (sSub && sSub.data && sSub.data.requestOwnerEmail) || (sRev && sRev.submitterEmail) || '';
+                var sTitle = (sRev && sRev.title) || (sSub && sSub.data && sSub.data.opportunityTitle) || '(Untitled)';
+                var sGate = String(sp.gate || ((mopAfcState && mopAfcState.checklistState && mopAfcState.checklistState[sRid] && mopAfcState.checklistState[sRid].gate) || ''));
+                var sReason = String(sp.reason || '');
+                if (!sUrl || !sEmail || sEmail.indexOf('@') < 0) {
+                    if (sSrc && sCallId) { try { sSrc.postMessage({ type: 'mop-afc-share-ack', callId: sCallId, success: false, error: 'no-submitter-email' }, sOrigin); } catch(_){} }
+                    return;
+                }
+                var sLabel = sGate === 'go' ? 'GO — 진행' : sGate === 'conditional' ? 'Conditional — 조건부 진행' : sGate === 'nogo' ? 'No-Go — 보류' : (sGate || '-');
+                var sColor = sGate === 'go' ? '#059669' : sGate === 'conditional' ? '#d97706' : sGate === 'nogo' ? '#dc2626' : '#475569';
+                var sBg = sGate === 'go' ? '#ecfdf5' : sGate === 'conditional' ? '#fffbeb' : sGate === 'nogo' ? '#fef2f2' : '#f1f5f9';
+                var sIcon = sGate === 'go' ? '✅' : sGate === 'conditional' ? '⚠️' : sGate === 'nogo' ? '🚫' : 'ℹ️';
+                var sReasonHtml = sReason ? sReason.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>') : '<span style="color:#94a3b8;">(별도 사유 없음)</span>';
+                var sHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
+                    + '<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#f0f2f5;">'
+                    + '<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f2f5;padding:24px 16px;"><tr><td align="center">'
+                    + '<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">'
+                    + '<tr><td style="background:#1e293b;padding:26px 28px;text-align:center;border-radius:12px 12px 0 0;">'
+                    + '<div style="font-size:11px;letter-spacing:2px;color:#94a3b8;font-weight:700;">MEDIT MOP SYSTEM</div>'
+                    + '<div style="font-size:21px;font-weight:800;color:#f1f5f9;margin-top:6px;">AFC 심의 결과 안내</div>'
+                    + '<div style="font-size:13px;color:#94a3b8;margin-top:4px;">Step 3 — Readiness Review Result</div>'
+                    + '</td></tr>'
+                    + '<tr><td style="background:' + sBg + ';padding:16px 28px;text-align:center;border-left:4px solid ' + sColor + ';">'
+                    + '<span style="font-size:18px;font-weight:800;color:' + sColor + ';">' + sIcon + ' ' + sLabel + '</span>'
+                    + '</td></tr>'
+                    + '<tr><td style="background:#ffffff;padding:26px 28px;border-radius:0 0 12px 12px;">'
+                    + '<p style="font-size:14px;color:#374151;margin:0 0 18px;">제출하신 프로젝트 <strong>' + String(sTitle).replace(/</g,'&lt;') + '</strong> 의 AFC 심의가 완료되었습니다.</p>'
+                    + '<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">'
+                    + '<tr><td style="padding:8px 12px;font-size:12px;color:#6b7280;font-weight:600;text-transform:uppercase;width:120px;border-bottom:1px solid #f3f4f6;">결정</td><td style="padding:8px 12px;font-size:14px;color:#111827;font-weight:600;border-bottom:1px solid #f3f4f6;">' + sLabel + '</td></tr>'
+                    + '</table>'
+                    + '<div style="margin-top:18px;"><div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;margin-bottom:8px;">주요 사유</div>'
+                    + '<div style="background:#f8fafc;border:1px solid #e5e7eb;border-radius:10px;padding:16px 18px;font-size:14px;color:#374151;line-height:1.7;">' + sReasonHtml + '</div></div>'
+                    + '<p style="font-size:12px;color:#94a3b8;margin:20px 0 0;">본 메일은 MOP System 에서 자동 발송되었습니다. 문의는 담당 매니저에게 연락해 주세요.</p>'
+                    + '</td></tr>'
+                    + '<tr><td style="text-align:center;padding:16px 0;font-size:11px;color:#9ca3af;">MEDIT MOP System · © 2026 MEDIT Corp.</td></tr>'
+                    + '</table></td></tr></table></body></html>';
+                gasPostEmail(sUrl, { type: 'custom-email', to: sEmail, subject: '[MOP] AFC 심의 결과 안내 — ' + sTitle, htmlBody: sHtml, textBody: 'AFC 심의 결과: ' + sLabel + (sReason ? ' / 사유: ' + sReason : '') },
+                    function(){ console.log('[MOP] afc-share email sent to submitter: ' + sEmail); if (sSrc && sCallId) { try { sSrc.postMessage({ type: 'mop-afc-share-ack', callId: sCallId, success: true, to: sEmail }, sOrigin); } catch(_){} } },
+                    function(e){ console.error('[MOP] afc-share email error:', e); if (sSrc && sCallId) { try { sSrc.postMessage({ type: 'mop-afc-share-ack', callId: sCallId, success: false, error: String(e) }, sOrigin); } catch(_){} } }
+                );
+            } catch(outerErr) { console.error('[MOP] afc-share outer error:', outerErr); }
             return;
         }
         if (event.data && event.data.type === 'mop-afc-state-save') {
