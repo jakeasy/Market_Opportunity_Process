@@ -163,9 +163,10 @@
             scrollbar-width: thin;
             scrollbar-color: rgba(100, 116, 139, 0.6) rgba(15, 23, 42, 0.4);
         }
-        /* ★ NEW 2026-06-17: 계정 목록 — 넓은 화면에서 2단 그리드 */
+        /* ★ NEW 2026-06-17: 계정 목록 — 패널이 넓어지면(확장 시) 2단, 좁으면 1단 (컨테이너 쿼리) */
+        #settingsTabAccounts { container-type: inline-size; }
         #accListContainer { grid-template-columns: 1fr; }
-        @media (min-width: 1500px) { #accListContainer { grid-template-columns: 1fr 1fr; } }
+        @container (min-width: 1100px) { #accListContainer { grid-template-columns: 1fr 1fr; } }
 
         /* ★ FIX 2026-05-19: 전역 다크 테마 스크롤바 (페이지 본문 스크롤) */
         html, body { scrollbar-width: thin; scrollbar-color: rgba(100,116,139,0.5) rgba(15,23,42,0.4); }
@@ -4884,7 +4885,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                   + '<span style="font-size:0.72rem;font-weight:600;color:' + getRoleColor(acc.role) + ';white-space:nowrap;opacity:0.8;">· ' + permDesc + '</span>'
                   + '</div>'
                 + '<div class="acc-row-meta" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + acc.username + deptStr + regionStr + '</div>'
-                + '<div style="display:flex;gap:16px;flex-wrap:nowrap;margin-top:4px;white-space:nowrap;">'
+                + '<div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:4px;">'
                 + '<span style="font-size:0.74rem;color:#64748b;">📅 ' + lblJoined + ' ' + (acc.signupDate || '-') + '</span>'
                 + '<span style="font-size:0.74rem;color:#64748b;">🔑 ' + lblLast + ' ' + (acc.lastLogin || '-') + '</span>'
                 + '<span style="font-size:0.74rem;color:#94a3b8;">' + lblLogins + ' <b>' + (acc.loginCount || 0) + '</b>' + lblLoginsUnit + '</span>'
