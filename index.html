@@ -163,6 +163,9 @@
             scrollbar-width: thin;
             scrollbar-color: rgba(100, 116, 139, 0.6) rgba(15, 23, 42, 0.4);
         }
+        /* ★ NEW 2026-06-17: 계정 목록 — 넓은 화면에서 2단 그리드 */
+        #accListContainer { grid-template-columns: 1fr; }
+        @media (min-width: 1500px) { #accListContainer { grid-template-columns: 1fr 1fr; } }
 
         /* ★ FIX 2026-05-19: 전역 다크 테마 스크롤바 (페이지 본문 스크롤) */
         html, body { scrollbar-width: thin; scrollbar-color: rgba(100,116,139,0.5) rgba(15,23,42,0.4); }
@@ -1404,7 +1407,7 @@
                     <span id="accListLabelText" data-i18n="setAccListLabel" style="font-size:0.7rem;color:#64748b;">👥 Account 목록</span>
                 </div>
                 <!-- ★ FIX 2026-05-21: 외부 settingsContentArea가 스크롤 관장 → 내부는 자연 높이 -->
-                <div id="accListContainer" style="display:flex;flex-direction:column;"></div>
+                <div id="accListContainer" style="display:grid;column-gap:10px;align-items:start;"></div>
             </div><!-- /settingsTabAccounts -->
 
             <!-- ★ FIX 2026-05-21: Email Logs Tab -->
@@ -4807,7 +4810,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         var isKo = currentLang === 'ko';
         _renderAccStats();
         _renderAccRoleTabs();
-        if (_accounts.length === 0) { el.innerHTML = '<div style="font-size:0.78rem;color:#64748b;padding:24px 0;text-align:center;">'+_A('setAccNoResult','No accounts')+'</div>'; return; }
+        if (_accounts.length === 0) { el.innerHTML = '<div style="grid-column:1/-1;font-size:0.78rem;color:#64748b;padding:24px 0;text-align:center;">'+_A('setAccNoResult','No accounts')+'</div>'; return; }
 
         // 필터링
         var filtered = _accounts.filter(function(a){
@@ -4854,7 +4857,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         }
 
         if (filtered.length === 0) {
-            el.innerHTML = '<div style="font-size:0.78rem;color:#64748b;padding:24px 0;text-align:center;">'+_A('setAccNoResult','No accounts found')+'</div>';
+            el.innerHTML = '<div style="grid-column:1/-1;font-size:0.78rem;color:#64748b;padding:24px 0;text-align:center;">'+_A('setAccNoResult','No accounts found')+'</div>';
             return;
         }
 
