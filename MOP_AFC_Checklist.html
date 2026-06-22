@@ -194,6 +194,27 @@
         .gate-section { background:#111827; border-radius:var(--radius); box-shadow:var(--shadow); padding:1.5rem; margin-top:1.5rem; display:none; }
         .gate-section.show { display:block; }
         .gate-section h2 { font-size:1.05rem; font-weight:700; color:var(--gray-900); margin-bottom:1rem; }
+        /* ★ NEW 2026-06-17: Meeting Notes */
+        .mn-section{background:#111827;border-radius:var(--radius);box-shadow:var(--shadow);padding:1.5rem;margin-top:1.5rem;}
+        .mn-section h2{font-size:1.05rem;font-weight:700;color:var(--gray-900);margin-bottom:1rem;}
+        .mn-section label{display:block;font-size:0.78rem;font-weight:700;color:#94a3b8;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.5px;}
+        .mn-section textarea{width:100%;min-height:70px;background:#0b1220;border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:#e2e8f0;padding:12px;font-size:0.9rem;font-family:inherit;resize:vertical;box-sizing:border-box;}
+        .mn-reason-actions{display:flex;align-items:center;gap:12px;margin-top:10px;flex-wrap:wrap;}
+        .mn-share-btn{background:#2563eb;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;}
+        .mn-share-btn:hover{background:#1d4ed8;}
+        .mn-share-hint{font-size:0.8rem;color:#94a3b8;}
+        .mn-list{margin:16px 0;display:flex;flex-direction:column;gap:10px;}
+        .mn-item{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;}
+        .mn-item-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:6px;}
+        .mn-item-meta{font-size:0.78rem;color:#94a3b8;}
+        .mn-item-meta b{color:#cbd5e1;}
+        .mn-item-text{font-size:0.9rem;color:#e2e8f0;white-space:pre-wrap;line-height:1.6;}
+        .mn-edit-btn{background:transparent;border:1px solid rgba(255,255,255,0.15);color:#94a3b8;border-radius:6px;padding:3px 10px;font-size:0.75rem;cursor:pointer;}
+        .mn-edit-btn:hover{color:#e2e8f0;border-color:rgba(255,255,255,0.3);}
+        .mn-add{display:flex;flex-direction:column;gap:8px;border-top:1px solid rgba(255,255,255,0.07);padding-top:14px;}
+        .mn-add-btn{align-self:flex-start;background:#059669;color:#fff;border:none;border-radius:8px;padding:9px 16px;font-size:0.85rem;font-weight:700;cursor:pointer;}
+        .mn-add-btn:hover{background:#047857;}
+        .mn-empty{font-size:0.85rem;color:#64748b;padding:8px 0;}
         .gate-btns { display:flex; gap:0.75rem; flex-wrap:wrap; }
         .gate-btn { padding:0.6rem 1.4rem; border-radius:8px; font-weight:600; font-size:0.88rem; border:2px solid; cursor:pointer; transition:all 0.2s; }
         .gate-go { border-color:var(--success); color:var(--success); background:#1a2235; }
@@ -373,6 +394,23 @@
         </div>
         <div class="gate-notes"><textarea id="gateNotes" placeholder="Decision notes..." data-i18n-placeholder="gateNotesPlaceholder"></textarea></div>
     </div>
+    <!-- ★ NEW 2026-06-17: Meeting Notes (의사결정 완료 후 표시) -->
+    <div class="mn-section" id="meetingNotesSection" style="display:none">
+        <h2 id="mnTitle">🗒️ Meeting Notes</h2>
+        <div class="mn-reason">
+            <label id="mnReasonLabel" for="mnShareReason">Key Reason (shared with submitter)</label>
+            <textarea id="mnShareReason"></textarea>
+            <div class="mn-reason-actions">
+                <button class="mn-share-btn" id="mnShareBtn" onclick="_afcShareToSubmitter()">📤 Share with submitter</button>
+                <span class="mn-share-hint" id="mnShareHint"></span>
+            </div>
+        </div>
+        <div class="mn-list" id="mnList"></div>
+        <div class="mn-add">
+            <textarea id="mnNewText"></textarea>
+            <button class="mn-add-btn" id="mnAddBtn" onclick="_afcNoteAdd()">+ Add note</button>
+        </div>
+    </div>
     <div class="actions" id="actionsBar">
         <button class="act-btn secondary" id="btnPrint" onclick="printChecklist()" data-i18n="btnPrint" style="display:none">🖨️ Print</button>
         <button class="act-btn primary" onclick="confirmGate()" data-i18n="btnConfirm" id="btnConfirm" style="display:none">✔ Confirm &amp; Finalize</button>
@@ -382,7 +420,15 @@
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebarWrap" style="display:none">
     <div class="sidebar-card">
-        <div class="sidebar-label" data-i18n="sProgress">REVIEW PROGRESS</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div class="sidebar-label" data-i18n="sProgress" style="margin-bottom:0;">REVIEW PROGRESS</div>
+            <div style="display:flex;gap:4px;">
+                <button id="afcForceSyncBtn" onclick="_afcForceSync()" title="서버에서 최신 데이터를 즉시 받아옵니다"
+                    style="background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.3);border-radius:14px;padding:3px 10px;font-size:0.7rem;cursor:pointer;line-height:1.2;white-space:nowrap;font-weight:600;">🔄 <span data-i18n="sSync">Sync</span></button>
+                <button id="afcDiagBtn" onclick="_afcDiag()" title="콘솔에 진단 정보 출력 (F12 콘솔 확인)"
+                    style="background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);border-radius:14px;padding:3px 10px;font-size:0.7rem;cursor:pointer;line-height:1.2;white-space:nowrap;font-weight:600;">🔍</button>
+            </div>
+        </div>
         <div class="progress-circle-wrap">
             <div class="progress-circle">
                 <svg viewBox="0 0 110 110"><circle class="bg" cx="55" cy="55" r="48"/><circle class="fg" id="progressArc" cx="55" cy="55" r="48"/></svg>
@@ -390,6 +436,7 @@
             </div>
         </div>
         <div id="progressDesc" style="text-align:center;font-size:0.72rem;color:var(--gray-500);margin-top:4px"></div>
+        <div id="afcSyncStatus" style="text-align:center;font-size:0.68rem;color:#94a3b8;margin-top:6px;line-height:1.3;">최근 동기화: -</div>
     </div>
     <div class="sidebar-card">
         <div class="sidebar-label" data-i18n="sChecklist">CHECKLIST</div>
@@ -547,7 +594,7 @@ var i18n = {
         'showAll':'Show All','incompleteOnly':'Not Reviewed','completeOnly':'Reviewed',
         'gateDecision':'Gate Decision','gateGo':'GO — Approved','gateCond':'Conditional — Proceed with Actions','gateNoGo':'NO GO — Defer',
         'gateNotesPlaceholder':'Decision notes...','btnPrint':'🖨️ Print','btnConfirm':'✔ Confirm & Finalize',
-        'sProgress':'REVIEW PROGRESS','sChecklist':'CHECKLIST','sReadiness':'PASS RATE',
+        'sProgress':'REVIEW PROGRESS','sChecklist':'CHECKLIST','sReadiness':'PASS RATE','sSync':'Sync',
         'sProgressDesc':'Items reviewed out of total','owner':'OWNER','notStarted':'Not Reviewed','yes':'Yes','no':'No','memo':'Memo',
         'rdScore':'Yes / (Yes + No)','rdYes':'Yes','rdNo':'No','rdPending':'Pending',
         'rdReady':'Ready to Go','rdCaution':'Needs Attention','rdRisk':'High Risk — Not Ready',
@@ -631,7 +678,7 @@ var i18n = {
         'showAll':'전체','incompleteOnly':'미검토','completeOnly':'검토 완료',
         'gateDecision':'Gate Decision (최종 결정)','gateGo':'GO — 승인','gateCond':'Conditional — 조건부 진행','gateNoGo':'NO GO — 보류',
         'gateNotesPlaceholder':'결정 메모...','btnPrint':'🖨️ 인쇄','btnConfirm':'✔ 확정하기',
-        'sProgress':'검토 진행률','sChecklist':'체크리스트','sReadiness':'충족률',
+        'sProgress':'검토 진행률','sChecklist':'체크리스트','sReadiness':'충족률','sSync':'동기화',
         'sProgressDesc':'전체 항목 중 검토 완료 수','rdScore':'충족 / (충족 + 미충족)','rdYes':'충족','rdNo':'미충족','rdPending':'미검토',
         'rdReady':'진행 가능','rdCaution':'주의 필요','rdRisk':'고위험 — 진행 불가',
         'rdOverview':'📊 준비도 요약','rdAllPass':'모두 충족','rdSomeFail':'미충족 있음','rdNotReviewed':'미검토',
@@ -1119,6 +1166,7 @@ function selectReview(id){
     }
     updateConfirmBtn();
     renderChecklist();updateSidebar();
+    try{renderMeetingNotes();}catch(_){}
     // THEN switch view (content already rendered, no flicker)
     if(needSwitch){
         switchView('checklist');
@@ -1159,10 +1207,18 @@ function renderChecklist(){
             if(currentFilter==='complete'&&!isDone)return '';
             if(currentFilter==='incomplete'&&isDone)return '';
             hasVisible=true;
+            // ★ FIX 2026-06-12: 변경자 메타 라인 (작은 회색)
+            var metaHtml = '';
+            if (s.lastEditedBy || s.lastEditedAt) {
+                var who = esc(_firstName(s.lastEditedBy || '-'));
+                var when = esc(_relTime(s.lastEditedAt));
+                var fullTitle = esc((s.lastEditedBy || '-') + ' • ' + (s.lastEditedAt ? new Date(s.lastEditedAt).toLocaleString() : '-'));
+                metaHtml = '<span class="cl-meta" title="'+fullTitle+'" onclick="event.stopPropagation();_afcShowMetaModal(\''+key+'\')" style="font-size:0.7rem;color:#94a3b8;margin-left:8px;cursor:pointer;">'+who+' · '+when+' <span style="opacity:0.6">ⓘ</span></span>';
+            }
             return '<div class="cl-item'+(isFinalized?' finalized':'')+'">'+
                 '<div class="cl-checkbox'+(s.checked?' checked':'')+'"'+(isFinalized?'':' onclick="toggleCheck(\''+key+'\')"')+'></div>'+
                 '<div class="cl-content">'+
-                    '<div class="cl-text'+(isDone?' done':'')+'">'+esc(t(item))+'</div>'+
+                    '<div class="cl-text'+(isDone?' done':'')+'">'+esc(t(item))+metaHtml+'</div>'+
                     '<div class="cl-bottom">'+
                         '<div class="status-btns">'+
                             '<button class="st-btn s-complete'+(s.status==='complete'?' active':'')+'"'+(isFinalized?' disabled':' onclick="setStatus(\''+key+'\',\'complete\')"')+'>✅ '+t('yes')+'</button>'+
@@ -1335,10 +1391,10 @@ function updateConfirmBtn(){
 }
 
 function isCurrentFinalized(){return selectedReview&&checklistState[selectedReview.id]&&checklistState[selectedReview.id].finalized;}
-function toggleCheck(key){if(isCurrentFinalized())return;var st=checklistState[selectedReview.id];st.items[key].checked=!st.items[key].checked;if(st.items[key].checked&&st.items[key].status==='not-started')st.items[key].status='complete';renderChecklist();updateSidebar();autoSave();}
-function setStatus(key,status){if(isCurrentFinalized())return;var st=checklistState[selectedReview.id];st.items[key].status=status;st.items[key].checked=(status==='complete');renderChecklist();updateSidebar();autoSave();}
-function setNotes(key,val){if(isCurrentFinalized())return;checklistState[selectedReview.id].items[key].notes=val;autoSave();}
-function setOwner(ci,val){checklistState[selectedReview.id].owners[ci]=val;autoSave();}
+function toggleCheck(key){if(isCurrentFinalized())return;var st=checklistState[selectedReview.id];st.items[key].checked=!st.items[key].checked;if(st.items[key].checked&&st.items[key].status==='not-started')st.items[key].status='complete';_afcMarkItemEdited(st.items[key]);renderChecklist();updateSidebar();autoSave();/*★per-item PUT*/try{_afcItemSave(selectedReview.id,key,{checked:st.items[key].checked,status:st.items[key].status});}catch(_){}}
+function setStatus(key,status){if(isCurrentFinalized())return;var st=checklistState[selectedReview.id];st.items[key].status=status;/* ★ FIX 2026-06-12: Yes/No 어느쪽이든 답하면 검토완료로 자동 체크 */st.items[key].checked=(status==='complete'||status==='no');_afcMarkItemEdited(st.items[key]);renderChecklist();updateSidebar();autoSave();/*★per-item PUT*/try{_afcItemSave(selectedReview.id,key,{status:status,checked:st.items[key].checked});}catch(_){}}
+function setNotes(key,val){if(isCurrentFinalized())return;checklistState[selectedReview.id].items[key].notes=val;_afcMarkItemEdited(st.items[key]);autoSave();/*★per-item PUT*/try{_afcItemSave(selectedReview.id,key,{notes:val});}catch(_){}}
+function setOwner(ci,val){checklistState[selectedReview.id].owners[ci]=val;autoSave();/*★per-field PUT*/try{_afcFieldSave(selectedReview.id,'owner',val,{ownerIndex:ci});}catch(_){}}
 // ★ FIX 2026-05-19: 초기 undefined 상태에서도 토글 정상 작동 — isOpen 판단과 동기화
 function toggleCat(ci){
     var currentlyOpen = openCategories[ci]!==false; // undefined나 true는 open
@@ -1346,8 +1402,137 @@ function toggleCat(ci){
     renderChecklist();
 }
 function setFilter(f,btn){currentFilter=f;document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');renderChecklist();}
-function setGate(d,btn){if(!selectedReview||isCurrentFinalized())return;checklistState[selectedReview.id].gate=d;document.querySelectorAll('.gate-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');updateConfirmBtn();autoSave();}
+function setGate(d,btn){if(!selectedReview||isCurrentFinalized())return;checklistState[selectedReview.id].gate=d;document.querySelectorAll('.gate-btn').forEach(function(b){b.classList.remove('active');});btn.classList.add('active');updateConfirmBtn();autoSave();/*★per-field PUT*/try{_afcFieldSave(selectedReview.id,'gate',d);}catch(_){}}
 document.getElementById('gateNotes').addEventListener('input',function(){if(selectedReview){checklistState[selectedReview.id].gateNotes=this.value;autoSave();}});
+
+// ── ★ NEW 2026-06-17: Meeting Notes (회의록 로그) + 제출자 공유 ──
+var _afcNotePending = {};
+var _mnReasonTimer = null;
+function _mnToast(msg,color){
+  try{
+    var t=document.createElement('div');
+    t.textContent=msg;
+    t.style.cssText='position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:'+(color||'#1e293b')+';color:#fff;padding:10px 18px;border-radius:10px;font-size:0.85rem;z-index:99999;box-shadow:0 6px 24px rgba(0,0,0,0.3);opacity:0;transition:opacity .2s;';
+    document.body.appendChild(t);
+    requestAnimationFrame(function(){t.style.opacity='1';});
+    setTimeout(function(){t.style.opacity='0';setTimeout(function(){try{t.remove();}catch(_){}} ,250);},2600);
+  }catch(_){ try{console.log('[toast]',msg);}catch(__){} }
+}
+function _mnFmtTime(iso){ try{ var d=new Date(iso); if(isNaN(d.getTime()))return iso||''; return d.toLocaleString(); }catch(_){ return iso||''; } }
+function _mnEsc(x){ return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function _mnCanEdit(note){
+  if(typeof _isAdminAfc==='function' && _isAdminAfc()) return true;
+  var me=(_userInfoAfc && String(_userInfoAfc.email||'').toLowerCase())||'';
+  return !!me && me===String(note&&note.authorEmail||'').toLowerCase();
+}
+function renderMeetingNotes(){
+  try{
+    var sec=document.getElementById('meetingNotesSection');
+    if(!sec)return;
+    if(!selectedReview || !isCurrentFinalized()){ sec.style.display='none'; return; }
+    sec.style.display='';
+    var isKo=currentLang==='ko';
+    var st=checklistState[selectedReview.id]||{};
+    var _t=document.getElementById('mnTitle'); if(_t)_t.textContent=isKo?'🗒️ 미팅노트':'🗒️ Meeting Notes';
+    var _l=document.getElementById('mnReasonLabel'); if(_l)_l.textContent=isKo?'주요 사유 (제출자에게 공유)':'Key Reason (shared with submitter)';
+    var _sb=document.getElementById('mnShareBtn'); if(_sb)_sb.textContent=isKo?'📤 제출자에게 공유':'📤 Share with submitter';
+    var _ab=document.getElementById('mnAddBtn'); if(_ab)_ab.textContent=isKo?'+ 기록 추가':'+ Add note';
+    var rs=document.getElementById('mnShareReason');
+    if(rs){ rs.placeholder=isKo?'제출자에게 공유할 통과/보류 주요 사유...':'Key reason to share with the submitter...'; if(document.activeElement!==rs) rs.value=st.shareReason||''; }
+    var nt=document.getElementById('mnNewText'); if(nt) nt.placeholder=isKo?'회의 기록을 입력하세요...':'Enter meeting note...';
+    var notes=Array.isArray(st.meetingNotes)?st.meetingNotes:[];
+    var listEl=document.getElementById('mnList');
+    if(listEl){
+      if(!notes.length){
+        listEl.innerHTML='<div class="mn-empty">'+(isKo?'아직 작성된 미팅노트가 없습니다.':'No meeting notes yet.')+'</div>';
+      } else {
+        listEl.innerHTML=notes.map(function(n){
+          var meta='<b>'+_mnEsc(n.authorName||n.authorEmail||'?')+'</b> · '+_mnEsc(_mnFmtTime(n.createdAt));
+          if(n.editedAt){ meta+=' <span style="color:#64748b">('+(isKo?'수정됨':'edited')+' '+_mnEsc(_mnFmtTime(n.editedAt))+(n.editedByName?(' · '+_mnEsc(n.editedByName)):'')+')</span>'; }
+          var editBtn=_mnCanEdit(n)?('<button class="mn-edit-btn" onclick="_afcNoteEditStart(\''+_mnEsc(n.id)+'\')">'+(isKo?'수정':'Edit')+'</button>'):'';
+          return '<div class="mn-item" id="mn-item-'+_mnEsc(n.id)+'"><div class="mn-item-head"><span class="mn-item-meta">'+meta+'</span>'+editBtn+'</div><div class="mn-item-text" id="mn-text-'+_mnEsc(n.id)+'">'+_mnEsc(n.text)+'</div></div>';
+        }).join('');
+      }
+    }
+  }catch(e){ try{console.error('[MOP AFC] renderMeetingNotes',e);}catch(_){} }
+}
+window.renderMeetingNotes=renderMeetingNotes;
+function _afcNoteAdd(){
+  if(!selectedReview)return;
+  var ta=document.getElementById('mnNewText'); if(!ta)return;
+  var text=(ta.value||'').trim();
+  if(!text){ _mnToast(currentLang==='ko'?'내용을 입력하세요.':'Enter note text.'); return; }
+  if(window.parent===window)return;
+  var callId='an_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  _afcNotePending[callId]=selectedReview.id;
+  window.parent.postMessage({type:'mop-afc-note-add',callId:callId,payload:{reviewId:String(selectedReview.id),text:text}},__MOP_SEC.targetOrigin());
+  ta.value='';
+}
+window._afcNoteAdd=_afcNoteAdd;
+function _afcNoteEditStart(noteId){
+  if(!selectedReview)return;
+  var st=checklistState[selectedReview.id]||{};
+  var notes=Array.isArray(st.meetingNotes)?st.meetingNotes:[];
+  var n=notes.find(function(x){return String(x.id)===String(noteId);});
+  if(!n)return;
+  if(!_mnCanEdit(n)){ _mnToast(currentLang==='ko'?'수정 권한이 없습니다.':'No permission to edit.'); return; }
+  var box=document.getElementById('mn-text-'+noteId); if(!box)return;
+  var isKo=currentLang==='ko';
+  box.innerHTML='<textarea id="mn-edit-'+_mnEsc(noteId)+'" style="width:100%;min-height:60px;background:#0b1220;border:1px solid rgba(255,255,255,0.15);border-radius:8px;color:#e2e8f0;padding:8px;font-family:inherit;box-sizing:border-box;"></textarea><div style="margin-top:6px;display:flex;gap:8px;"><button class="mn-add-btn" style="background:#2563eb;padding:5px 12px;" onclick="_afcNoteEditSave(\''+_mnEsc(noteId)+'\')">'+(isKo?'저장':'Save')+'</button><button class="mn-edit-btn" onclick="renderMeetingNotes()">'+(isKo?'취소':'Cancel')+'</button></div>';
+  var te=document.getElementById('mn-edit-'+noteId); if(te){te.value=n.text||'';te.focus();}
+}
+window._afcNoteEditStart=_afcNoteEditStart;
+function _afcNoteEditSave(noteId){
+  if(!selectedReview)return;
+  var te=document.getElementById('mn-edit-'+noteId); if(!te)return;
+  var text=(te.value||'').trim();
+  if(!text){ _mnToast(currentLang==='ko'?'내용을 입력하세요.':'Enter note text.'); return; }
+  if(window.parent===window)return;
+  var callId='en_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  _afcNotePending[callId]=selectedReview.id;
+  window.parent.postMessage({type:'mop-afc-note-edit',callId:callId,payload:{reviewId:String(selectedReview.id),noteId:String(noteId),text:text}},__MOP_SEC.targetOrigin());
+}
+window._afcNoteEditSave=_afcNoteEditSave;
+function _afcShareToSubmitter(){
+  if(!selectedReview)return;
+  var st=checklistState[selectedReview.id]||{};
+  var rsEl=document.getElementById('mnShareReason');
+  var reason=(rsEl&&rsEl.value)||st.shareReason||'';
+  var isKo=currentLang==='ko';
+  if(!confirm(isKo?'제출자에게 통과 여부와 주요 사유를 메일로 공유할까요?':'Share the decision and key reason with the submitter by email?'))return;
+  if(window.parent===window)return;
+  var callId='sh_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+  window.parent.postMessage({type:'mop-afc-share-submitter',callId:callId,payload:{reviewId:String(selectedReview.id),gate:st.gate||'',reason:reason}},__MOP_SEC.targetOrigin());
+  var hint=document.getElementById('mnShareHint'); if(hint)hint.textContent=isKo?'발송 중...':'Sending...';
+}
+window._afcShareToSubmitter=_afcShareToSubmitter;
+(function(){var _rs=document.getElementById('mnShareReason');if(_rs){_rs.addEventListener('input',function(){if(!selectedReview)return;checklistState[selectedReview.id]=checklistState[selectedReview.id]||{items:{},owners:{},gate:'',gateNotes:'',finalized:false};checklistState[selectedReview.id].shareReason=this.value;var _v=this.value,_rid=selectedReview.id;if(_mnReasonTimer)clearTimeout(_mnReasonTimer);_mnReasonTimer=setTimeout(function(){try{_afcFieldSave(_rid,'shareReason',_v);}catch(_){}},700);});}})();
+window.addEventListener('message',function(e){
+  if(!__MOP_SEC.isAllowedEvent(e))return;
+  var d=e.data; if(!d||!d.type)return;
+  if(d.type==='mop-afc-note-ack'){
+    if(d.success&&d.note){
+      var rid=_afcNotePending[d.callId];
+      if(rid==null&&selectedReview)rid=selectedReview.id;
+      if(rid!=null){
+        checklistState[rid]=checklistState[rid]||{items:{},owners:{},gate:'',gateNotes:'',finalized:false};
+        if(!Array.isArray(checklistState[rid].meetingNotes))checklistState[rid].meetingNotes=[];
+        var arr=checklistState[rid].meetingNotes;
+        var ix=arr.findIndex(function(n){return n&&String(n.id)===String(d.note.id);});
+        if(ix>=0)arr[ix]=d.note; else arr.push(d.note);
+      }
+      delete _afcNotePending[d.callId];
+      try{renderMeetingNotes();}catch(_){}
+      _mnToast(currentLang==='ko'?'미팅노트 저장됨':'Meeting note saved','#059669');
+    } else {
+      _mnToast((currentLang==='ko'?'미팅노트 저장 실패: ':'Note save failed: ')+(d.error||''),'#dc2626');
+    }
+  } else if(d.type==='mop-afc-share-ack'){
+    var hint=document.getElementById('mnShareHint');
+    if(d.success){ if(hint)hint.textContent=(currentLang==='ko'?'✅ 제출자에게 발송됨':'✅ Sent to submitter'); _mnToast(currentLang==='ko'?'제출자에게 공유되었습니다':'Shared with submitter','#059669'); }
+    else { if(hint)hint.textContent=(currentLang==='ko'?'❌ 발송 실패':'❌ Send failed'); _mnToast((currentLang==='ko'?'공유 실패: ':'Share failed: ')+(d.error||''),'#dc2626'); }
+  }
+});
 
 // Gate Confirm Flow
 function confirmGate(){
@@ -1470,6 +1655,115 @@ function finalizeGate(){
 function closeModal(){document.getElementById('completionModal').classList.remove('show');}
 
 var _detailExpanded=false;
+// ★ FIX 2026-06-11: 번역 기능 — 입력된 텍스트를 영↔한 변환 (자동 감지)
+//   AFC Checklist 에서 사용자가 제출 상세 내용을 다른 언어로 빠르게 읽을 수 있도록.
+//   백엔드: GAS LanguageApp.translate() — 무료, API key 불필요.
+function _hasKoreanText(s) {
+    return /[\u3131-\uD79D]/.test(String(s||''));
+}
+// ★ FIX 2026-06-11: AFC iframe 은 APPS_SCRIPT_URL 직접 접근 불가 (sandbox).
+//   Gateway 를 postMessage 프록시로 사용 — callId 로 비동기 응답 매칭.
+function _fetchTranslation(texts, srcLang, tgtLang) {
+    return new Promise(function(resolve, reject) {
+        try {
+            if (!window.parent || window.parent === window) {
+                reject('not embedded — cannot use translate proxy');
+                return;
+            }
+            var callId = 'tr_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+            var done = false;
+            var timer = setTimeout(function(){
+                if (done) return;
+                done = true;
+                window.removeEventListener('message', handler);
+                reject('translate timeout (60s)');
+            }, 60000);
+            function handler(e) {
+                if (!e.data || e.data.type !== 'mop-translate-result' || e.data.callId !== callId) return;
+                if (done) return;
+                done = true;
+                window.removeEventListener('message', handler);
+                clearTimeout(timer);
+                if (e.data.success && Array.isArray(e.data.translated)) {
+                    // ★ FIX 2026-06-11: GAS 가 실제 번역 못 한 경우 (changed=false) 명확히 알림
+                    if (e.data.changed === false) {
+                        reject('GAS_NO_TRANSLATE');  // 사용자에게 정확한 안내
+                        return;
+                    }
+                    resolve(e.data.translated);
+                } else {
+                    reject(e.data.error || 'translation failed');
+                }
+            }
+            window.addEventListener('message', handler);
+            try {
+                window.parent.postMessage({
+                    type: 'mop-translate-request',
+                    callId: callId,
+                    texts: texts,
+                    src: srcLang || '',
+                    tgt: tgtLang || 'en'
+                }, __MOP_SEC.targetOrigin());
+            } catch(postErr) {
+                if (!done) {
+                    done = true;
+                    window.removeEventListener('message', handler);
+                    clearTimeout(timer);
+                    reject('postMessage error: ' + (postErr.message || postErr));
+                }
+            }
+        } catch(e) { reject(String(e)); }
+    });
+}
+function _toggleTranslateSubmission() {
+    if (!selectedReview) return;
+    var btn = document.getElementById('siTranslateBtn');
+    var isKo = currentLang === 'ko';
+    // 이미 번역된 상태 → 원본 복원
+    if (selectedReview._showTranslated) {
+        selectedReview._showTranslated = false;
+        if (btn) btn.textContent = isKo ? '🌐 번역' : '🌐 Translate';
+        _renderSubmissionDetailContent();
+        return;
+    }
+    // 이미 번역 캐시 있음 → 그대로 사용
+    if (selectedReview._translations) {
+        selectedReview._showTranslated = true;
+        if (btn) btn.textContent = isKo ? '↺ 원본' : '↺ Original';
+        _renderSubmissionDetailContent();
+        return;
+    }
+    // 처음 번역 — GAS 호출
+    if (btn) { btn.textContent = isKo ? '⏳ 번역 중...' : '⏳ Translating...'; btn.disabled = true; }
+    var sd = selectedReview.submissionData || {};
+    var fieldKeys = ['targetCustomer','opportunitySummary','problemBeingSolved','strategicRelevance','growthImpact','evidence','competitorBenchmark','priorityArgument'];
+    var texts = fieldKeys.map(function(k){ return sd[k] || ''; });
+    // 자동 감지: 합쳐서 한글 있으면 ko → en, 없으면 en → ko
+    var combined = texts.join(' ');
+    var srcLang = _hasKoreanText(combined) ? 'ko' : 'en';
+    var tgtLang = srcLang === 'ko' ? 'en' : 'ko';
+    _fetchTranslation(texts, srcLang, tgtLang).then(function(translated){
+        selectedReview._translations = {};
+        fieldKeys.forEach(function(k, i){
+            selectedReview._translations[k] = translated[i] || sd[k] || '';
+        });
+        selectedReview._showTranslated = true;
+        if (btn) { btn.textContent = isKo ? '↺ 원본' : '↺ Original'; btn.disabled = false; }
+        _renderSubmissionDetailContent();
+    }).catch(function(err){
+        console.error('[MOP] translate error:', err);
+        if (btn) { btn.textContent = isKo ? '🌐 번역' : '🌐 Translate'; btn.disabled = false; }
+        try {
+            if (String(err) === 'GAS_NO_TRANSLATE') {
+                alert(isKo
+                    ? '⚠️ 번역 서비스가 일시적으로 작동하지 않습니다.\n관리자가 GAS 번역 백엔드를 점검 중입니다. 잠시 후 다시 시도해주세요.'
+                    : '⚠️ Translation service is temporarily unavailable.\nAdmin is updating the GAS backend. Please retry shortly.');
+            } else {
+                alert(isKo ? '번역에 실패했습니다. 다시 시도해주세요.\n(' + err + ')' : 'Translation failed. Please retry.\n(' + err + ')');
+            }
+        } catch(_){}
+    });
+}
 function toggleSubmissionDetail(){
     if(!selectedReview)return;
     _detailExpanded=!_detailExpanded;
@@ -1477,9 +1771,18 @@ function toggleSubmissionDetail(){
     var panel=document.getElementById('siExpandedDetail');
     btn.textContent=_detailExpanded?'▲':'▼';
     if(!_detailExpanded){panel.style.display='none';return;}
+    _renderSubmissionDetailContent();
+}
+function _renderSubmissionDetailContent(){
+    if(!selectedReview)return;
+    var panel=document.getElementById('siExpandedDetail');
+    if(!panel)return;
     var r=selectedReview;
     var isKo=currentLang==='ko';
     var sd=r.submissionData||{};
+    // ★ 번역 모드 활성화 시: sd 의 텍스트 필드를 _translations 의 값으로 가상 교체
+    var _tr = r._showTranslated && r._translations ? r._translations : null;
+    function _val(k){ return _tr && typeof _tr[k] !== 'undefined' ? _tr[k] : sd[k]; }
     var _criteriaKo={'Strategic Alignment':'전략적 부합도','Market Opportunity Size':'시장 기회 규모','Customer Impact':'고객 영향도','Competitive Advantage':'경쟁 우위','Revenue / Growth Potential':'매출/성장 잠재력','Feasibility':'실현 가능성','Time to Market':'출시 소요 기간','Risk Profile':'리스크 수준'};
     var h='';
     // Score breakdown
@@ -1505,15 +1808,21 @@ function toggleSubmissionDetail(){
     if(sd.division)fields.push([isKo?'리전':'Region',sd.division]);
     if(sd.requestOwner)fields.push([isKo?'요청 담당자':'Request Owner',sd.requestOwner]);
     if(sd.requestOwnerEmail)fields.push([isKo?'이메일':'Email',sd.requestOwnerEmail]);
-    if(sd.targetCustomer)fields.push([isKo?'대상 고객':'Target Customer',sd.targetCustomer]);
-    if(sd.opportunitySummary)fields.push([isKo?'기회 요약':'Opportunity Summary',sd.opportunitySummary,true]);
-    if(sd.problemBeingSolved)fields.push([isKo?'해결하려는 문제':'Problem Being Solved',sd.problemBeingSolved,true]);
-    if(sd.strategicRelevance)fields.push([isKo?'전략적 관련성':'Strategic Relevance',sd.strategicRelevance,true]);
-    if(sd.growthImpact)fields.push([isKo?'성장 영향 가설':'Growth Impact',sd.growthImpact,true]);
-    if(sd.evidence)fields.push([isKo?'근거 자료':'Evidence',sd.evidence,true]);
-    if(sd.priorityArgument)fields.push([isKo?'우선순위 근거':'Priority Argument',sd.priorityArgument,true]);
+    if(_val('targetCustomer'))fields.push([isKo?'대상 고객':'Target Customer',_val('targetCustomer')]);
+    if(_val('opportunitySummary'))fields.push([isKo?'기회 요약':'Opportunity Summary',_val('opportunitySummary'),true]);
+    if(_val('problemBeingSolved'))fields.push([isKo?'해결하려는 문제':'Problem Being Solved',_val('problemBeingSolved'),true]);
+    if(_val('strategicRelevance'))fields.push([isKo?'전략적 관련성':'Strategic Relevance',_val('strategicRelevance'),true]);
+    if(_val('growthImpact'))fields.push([isKo?'성장 영향 가설':'Growth Impact',_val('growthImpact'),true]);
+    if(_val('evidence'))fields.push([isKo?'근거 자료':'Evidence',_val('evidence'),true]);
+    if(_val('competitorBenchmark'))fields.push([isKo?'경쟁사 벤치마크':'Competitor Benchmark',_val('competitorBenchmark'),true]);
+    if(_val('priorityArgument'))fields.push([isKo?'우선순위 근거':'Priority Argument',_val('priorityArgument'),true]);
     if(fields.length){
-        h+='<div style="font-size:0.75rem;font-weight:700;color:#93bbff;text-transform:uppercase;letter-spacing:1px;margin:14px 0 8px;">'+(isKo?'제출 상세':'Submission Details')+'</div>';
+        // ★ 헤더에 번역 버튼 — 입력 텍스트를 영↔한 변환 (자동 감지)
+        var _btnLabel = r._showTranslated ? (isKo?'↺ 원본':'↺ Original') : (isKo?'🌐 번역':'🌐 Translate');
+        h+='<div style="display:flex;align-items:center;justify-content:space-between;margin:14px 0 8px;">';
+        h+='  <div style="font-size:0.75rem;font-weight:700;color:#93bbff;text-transform:uppercase;letter-spacing:1px;">'+(isKo?'제출 상세':'Submission Details')+'</div>';
+        h+='  <button id="siTranslateBtn" onclick="_toggleTranslateSubmission()" style="background:rgba(96,165,250,0.12);color:#60a5fa;border:1px solid rgba(96,165,250,0.3);border-radius:14px;padding:3px 12px;font-size:0.7rem;cursor:pointer;line-height:1.2;white-space:nowrap;font-weight:600;">'+_btnLabel+'</button>';
+        h+='</div>';
         h+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">';
         fields.forEach(function(f){
             var span=f[2]?'grid-column:1/-1;':'';
@@ -1766,6 +2075,32 @@ function printChecklist(){
     }
 
     // ★ 카테고리별 체크리스트 — 카테고리별 진행률 + 시각화
+    // ★ FIX 2026-06-12: Edit History Summary — 전체 변경 통계
+    (function(){
+        var editedItems = [];
+        var lastEditTs = 0;
+        var lastEditBy = '';
+        Object.keys(st.items || {}).forEach(function(k){
+            var it = st.items[k];
+            if (it && (it.lastEditedBy || it.lastEditedAt)) {
+                editedItems.push({ key: k, by: it.lastEditedBy || '-', at: it.lastEditedAt || '' });
+                if (it.lastEditedAt) {
+                    var ts = new Date(it.lastEditedAt).getTime();
+                    if (!isNaN(ts) && ts > lastEditTs) { lastEditTs = ts; lastEditBy = it.lastEditedBy || '-'; }
+                }
+            }
+        });
+        if (editedItems.length > 0) {
+            body += '<div class="edit-summary">';
+            body += '<div class="edit-summary-title">📝 '+(isKo?'변경 이력 요약':'Edit History Summary')+'</div>';
+            body += '<div class="edit-summary-stats">';
+            body += '<span><strong>'+editedItems.length+'</strong> '+(isKo?'개 항목 변경':'items edited')+'</span>';
+            if (lastEditTs > 0) {
+                body += ' &nbsp; · &nbsp; '+(isKo?'마지막 변경':'Last edit')+': <strong>'+esc(lastEditBy)+'</strong> · '+esc(new Date(lastEditTs).toLocaleString(isKo?'ko-KR':'en-US'));
+            }
+            body += '</div></div>';
+        }
+    })();
     body+='<h3>✅ '+(isKo?'AFI Readiness Checklist 결과':'AFI Readiness Checklist Results')+'</h3>';
     checklistData.forEach(function(cat,ci){
         var catTotal=cat.items.length;
@@ -1797,9 +2132,16 @@ function printChecklist(){
             else statusInfo={icon:'○',label:isKo?'미평가':'N/A',color:'#94a3b8',bg:'#f8fafc'};
             var notes=s.notes?'<div class="item-notes">📝 '+esc(s.notes)+'</div>':'';
             var owner=s.owner?'<div class="item-owner">👤 '+(isKo?'담당: ':'Owner: ')+esc(s.owner)+'</div>':'';
+            // ★ FIX 2026-06-12: 변경자/시간 메타 (Print 리포트)
+            var editMeta = '';
+            if (s.lastEditedBy || s.lastEditedAt) {
+                var ebyStr = esc(s.lastEditedBy || '-');
+                var eatStr = s.lastEditedAt ? new Date(s.lastEditedAt).toLocaleString(isKo?'ko-KR':'en-US') : '-';
+                editMeta = '<div class="item-edit-meta">✏️ '+(isKo?'변경: ':'Edited: ')+ebyStr+' <span class="meta-time">· '+esc(eatStr)+'</span></div>';
+            }
             body+='<tr>'+
                 '<td class="item-status" style="background:'+statusInfo.bg+';color:'+statusInfo.color+';">'+statusInfo.icon+'<br><span style="font-size:0.65rem;">'+statusInfo.label+'</span></td>'+
-                '<td class="item-text"><b>'+(ii+1)+'.</b> '+esc(t(item))+notes+owner+'</td>'+
+                '<td class="item-text"><b>'+(ii+1)+'.</b> '+esc(t(item))+notes+owner+editMeta+'</td>'+
                 '</tr>';
         });
         body+='</table></div>';
@@ -2022,7 +2364,7 @@ html+='@media print{.actions-bar{display:none}}';
     html+='<span class="region-tag">Region: '+regionLabel+'</span>';
     html+='<p style="margin-top:6px;font-size:10px;color:#94a3b8">Printed: '+new Date().toLocaleDateString()+'</p></div>';
     // ★ FIX 2026-05-22: 실제 대시보드와 1:1 정합 — TITLE(상태 sub-text 포함) | SUBMITTER | REVIEWER | REVIEW SCORE | PROGRESS | PASS RATE | DECISION
-    html+='<table><thead><tr><th style="min-width:200px">'+(isKo?'제목':'Title')+'</th><th>'+(isKo?'제출자':'Submitter')+'</th><th>'+(isKo?'검토자':'Reviewer')+'</th><th style="text-align:center">'+(isKo?'평가점수':'Review Score')+'</th><th style="text-align:center">'+(isKo?'검토 진행':'Progress')+'</th><th style="text-align:center">'+(isKo?'충족률':'Pass Rate')+'</th><th style="text-align:center">'+(isKo?'판정':'Decision')+'</th></tr></thead><tbody>';
+    html+='<table><thead><tr><th style="min-width:180px">'+(isKo?'제목':'Title')+'</th><th>'+(isKo?'제출자':'Submitter')+'</th><th>'+(isKo?'검토자':'Reviewer')+'</th><th style="text-align:center">'+(isKo?'평가점수':'Review Score')+'</th><th style="text-align:center">'+(isKo?'검토 진행':'Progress')+'</th><th style="text-align:center">'+(isKo?'충족률':'Pass Rate')+'</th><th style="text-align:center">'+(isKo?'판정':'Decision')+'</th><th style="text-align:center;min-width:130px">'+(isKo?'최근 활동':'Last Activity')+'</th></tr></thead><tbody>';
 
     sortedReviews.forEach(function(r){
         var st=checklistState[r.id]||checklistState[String(r.id)];
@@ -2058,6 +2400,24 @@ html+='@media print{.actions-bar{display:none}}';
         html+='<td style="text-align:center"><span class="bar-wrap"><span class="bar-fill" style="width:'+pct+'%;background:'+pctColor+'"></span></span> <span style="font-size:10px;color:'+pctColor+';font-weight:600">'+pct+'%</span></td>';
         html+='<td style="text-align:center;font-weight:700;color:'+prColor+'">'+passRate+'%<div style="font-size:9px;color:#94a3b8;font-weight:400">'+yc+(isKo?'충족 / ':'Y / ')+nc+(isKo?'미충족':'N')+'</div></td>';
         html+='<td style="text-align:center"><span class="gate '+gateCls+'">'+gateText+'</span></td>';
+        // ★ FIX 2026-06-12: Last Activity 컬럼
+        var lastActHtml = '<span style="color:#94a3b8;font-size:10px">—</span>';
+        if (st && st.items) {
+            var lastTs = 0, lastBy = '';
+            Object.keys(st.items).forEach(function(k){
+                var it = st.items[k];
+                if (it && it.lastEditedAt) {
+                    var ts = new Date(it.lastEditedAt).getTime();
+                    if (!isNaN(ts) && ts > lastTs) { lastTs = ts; lastBy = it.lastEditedBy || '-'; }
+                }
+            });
+            if (lastTs > 0) {
+                var d = new Date(lastTs);
+                var dStr = (d.getMonth()+1) + '/' + d.getDate() + ' ' + d.getHours() + ':' + (d.getMinutes()<10?'0':'') + d.getMinutes();
+                lastActHtml = '<div style="font-size:10px;font-weight:600;color:#1e293b">'+esc(lastBy)+'</div><div style="font-size:9px;color:#94a3b8;margin-top:2px">'+dStr+'</div>';
+            }
+        }
+        html+='<td style="text-align:center">'+lastActHtml+'</td>';
         html+='</tr>';
     });
     html+='</tbody></table>';
@@ -2076,23 +2436,407 @@ function saveStateToGateway(){
     } catch(e) { try { __MOP_SEC.logErr('AFC', e); } catch(_){} }
 }
 
-// === autoSave: 체크/메모/오너/게이트 변경 시 호출 (debounce 후 부모 + 로컬 저장) ===
+// === autoSave: 체크/메모/오너/게이트 변경 시 호출 ===
+// ★ FIX 2026-06-11 (P0-CRITICAL — DATA INTEGRITY):
+//   기존 버그: 빠른 연속 클릭마다 즉시 postMessage → Gateway 가 즉시 cloudSaveNow → 다중 PUT in-flight →
+//              마지막 PUT 응답 전 새 PUT 이 옛 mopAfcState 로 덮어쓰기 → 일부 변경 손실.
+//   (2026-06-11 CX팀 3개 입력 중 1개만 동기화 사례)
+//   해결: 500ms debounce — 빠른 연속 클릭을 단일 PUT 으로 통합. 마지막 변경 후 500ms 안정 → 한 번 push.
+//        localStorage 백업은 즉시 (메모리에서 손실 방지). beforeunload/pagehide 에서 timer 강제 flush.
 var _afcAutoSaveTimer = null;
+var _afcCloudPushTimer = null;
+var _AFC_PUSH_DEBOUNCE_MS = 500;
+
+function _afcLocalBackup() {
+    var snapshot = JSON.stringify({checklistState: checklistState, selectedReviewId: selectedReview ? selectedReview.id : null});
+    // 부모 Gateway localStorage 도 즉시 백업 (페이지 닫혀도 다음 방문 시 복구 가능)
+    try {
+        if (window.parent && window.parent.localStorage) {
+            window.parent.localStorage.setItem('mop_afc_state', snapshot);
+        }
+    } catch(_){}
+    // 자체 localStorage 백업
+    try { localStorage.setItem('mop_afc_state', snapshot); } catch(_){}
+}
+
+function _afcFlushCloudPush() {
+    // ★ FIX 2026-06-12 (race fix 2차): saveStateToGateway (전체 PUT) 호출 비활성화.
+    //   per-item PUT 으로 이미 cloud 동기화 — 전체 PUT 은 race 위험만 추가.
+    //   beforeunload/pagehide 시 호출되어도 안전. _afcLocalBackup 은 autoSave 에서 즉시 실행됨.
+    try {
+        if (_afcCloudPushTimer) { clearTimeout(_afcCloudPushTimer); _afcCloudPushTimer = null; }
+        // saveStateToGateway();  ← 의도적 disabled
+        // 마지막 로컬 백업 한 번 더 — 안전망
+        try { _afcLocalBackup(); } catch(_){}
+        console.log('[MOP AFC] flush — local backup only (cloud push disabled by race-fix-v2)');
+    } catch(e) { try { __MOP_SEC.logErr('AFC flush', e); } catch(_){} }
+}
+
 function autoSave(){
     try {
-        // 즉시 부모 Gateway 송신
-        saveStateToGateway();
-        // 로컬 백업 (부모 sync 누락 대비)
-        try {
-            if (window.parent && window.parent.localStorage) {
-                window.parent.localStorage.setItem('mop_afc_state', JSON.stringify({checklistState: checklistState, selectedReviewId: selectedReview ? selectedReview.id : null}));
-            }
-        } catch(_){}
-        // 자체 백업
-        try { localStorage.setItem('mop_afc_state', JSON.stringify({checklistState: checklistState, selectedReviewId: selectedReview ? selectedReview.id : null})); } catch(_){}
+        // 1) 로컬 백업은 즉시 — 메모리/디스크 손실 방지
+        _afcLocalBackup();
+        // ★ FIX 2026-06-12 (CRITICAL RACE FIX): cloud push 비활성화.
+        //   기존 _safePushAfcState 는 GET-merge-PUT 패턴이지만 두 사용자 동시 시 race 가능 —
+        //   GET 응답 도착 전 다른 사용자가 PUT 하면 본인이 그걸 못 보고 PUT 으로 덮어쓰기.
+        //   해결: per-item PUT (toggleCheck → _afcItemSave) 이 이미 atomic 으로 동작 → 전체 PUT 불필요.
+        //   localStorage 백업만 즉시 + cloudSaveDebounced 같은 fallback 도 제거.
+        //   (단 sync 버튼 [🔄] 으로 수동 force cloudLoad 가능)
     } catch(e) { try { __MOP_SEC.logErr('AFC autoSave', e); } catch(_){} }
 }
 window.autoSave = autoSave;
+
+
+// ★ FIX 2026-06-12 (UX-2): 변경자/시간 즉시 마킹 헬퍼
+//   _afcItemSave/_afcFieldSave 가 GAS 에 PUT 하기 전에 호출 — UI 즉시 반영용.
+//   GAS 도 actorName/actorEmail 받아서 시트에 동일 값 기록 → 일관성 OK.
+function _afcMarkItemEdited(itemObj) {
+    try {
+        if (!itemObj) return;
+        if (typeof _userInfoAfc !== 'undefined' && _userInfoAfc) {
+            itemObj.lastEditedBy = _userInfoAfc.name || itemObj.lastEditedBy || '';
+            itemObj.lastEditedByEmail = _userInfoAfc.email || itemObj.lastEditedByEmail || '';
+        }
+        itemObj.lastEditedAt = new Date().toISOString();
+    } catch(_){}
+}
+window._afcMarkItemEdited = _afcMarkItemEdited;
+
+// ★ FIX 2026-06-11 v4: per-item atomic PUT — race 근본 차단
+//   iframe → Gateway → GAS — 변경된 item/field 1개만 PUT.
+//   다른 사용자의 변경이 페이로드에 포함될 필요 없음 → 덮어쓰기 불가능.
+function _afcItemSave(reviewId, itemKey, fields) {
+    try {
+        if (!reviewId || !itemKey) return;
+        if (window.parent === window) return;
+        var callId = 'ai_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+        var payload = { reviewId: String(reviewId), itemKey: String(itemKey) };
+        if (typeof fields.checked !== 'undefined') payload.checked = !!fields.checked;
+        if (typeof fields.status !== 'undefined') payload.status = String(fields.status);
+        if (typeof fields.notes !== 'undefined') payload.notes = String(fields.notes);
+        window.parent.postMessage({ type: 'mop-afc-item-save', callId: callId, payload: payload }, __MOP_SEC.targetOrigin());
+        console.log('[MOP AFC] item save sent — rid=' + reviewId + ' ikey=' + itemKey, fields);
+    } catch(e) { try { __MOP_SEC.logErr('AFC itemSave', e); } catch(_){} }
+}
+function _afcFieldSave(reviewId, field, value, extra) {
+    try {
+        if (!reviewId || !field) return;
+        if (window.parent === window) return;
+        var callId = 'af_' + Date.now() + '_' + Math.floor(Math.random()*100000);
+        var payload = { reviewId: String(reviewId), field: String(field), value: value };
+        if (extra && typeof extra.ownerIndex !== 'undefined') payload.ownerIndex = extra.ownerIndex;
+        window.parent.postMessage({ type: 'mop-afc-item-save', callId: callId, payload: payload }, __MOP_SEC.targetOrigin());
+        console.log('[MOP AFC] field save sent — rid=' + reviewId + ' field=' + field + ' value=' + value);
+    } catch(e) { try { __MOP_SEC.logErr('AFC fieldSave', e); } catch(_){} }
+}
+window._afcItemSave = _afcItemSave;
+window._afcFieldSave = _afcFieldSave;
+
+// ★ FIX 2026-06-12: relative time 표시 헬퍼
+//   변경 시간을 사람이 읽기 쉬운 형식으로 변환 — 방금 / 5분 전 / 2시간 전 / 어제 / 날짜
+function _relTime(isoStr) {
+    if (!isoStr) return '';
+    try {
+        var then = new Date(isoStr).getTime();
+        if (isNaN(then)) return '';
+        var diff = Math.floor((Date.now() - then) / 1000);  // 초 단위
+        var isKo = currentLang === 'ko';
+        if (diff < 5) return isKo ? '방금' : 'just now';
+        if (diff < 60) return diff + (isKo ? '초 전' : 's ago');
+        if (diff < 3600) return Math.floor(diff/60) + (isKo ? '분 전' : 'm ago');
+        if (diff < 86400) return Math.floor(diff/3600) + (isKo ? '시간 전' : 'h ago');
+        if (diff < 172800) return isKo ? '어제' : 'yesterday';
+        if (diff < 604800) return Math.floor(diff/86400) + (isKo ? '일 전' : 'd ago');
+        // 7일 넘으면 날짜 표시
+        var d = new Date(then);
+        return (d.getMonth()+1) + '/' + d.getDate();
+    } catch(_) { return ''; }
+}
+// 첫 이름만 추출 (메타 라인에 공간 절약)
+function _firstName(fullName) {
+    if (!fullName) return '';
+    var s = String(fullName).trim();
+    // 한국 이름은 그대로 (보통 짧음). 영어는 첫 단어만.
+    if (/^[\u3131-\uD79D]/.test(s)) return s;  // 한글 시작 → 풀네임
+    return s.split(/\s+/)[0] || s;
+}
+
+// ★ FIX 2026-06-12: 변경 상세 모달 — alert → DOM 모달 (깔끔한 UI)
+function _afcShowMetaModal(itemKey) {
+    try {
+        if (!selectedReview) return;
+        var st = checklistState[selectedReview.id];
+        if (!st || !st.items || !st.items[itemKey]) return;
+        var it = st.items[itemKey];
+        var isKo = currentLang === 'ko';
+
+        // 기존 모달 있으면 제거
+        _afcCloseMetaModal();
+
+        // 카테고리 + 질문 텍스트 추출 (UX 강화)
+        var qText = '';
+        try {
+            var parts = String(itemKey).split('-');
+            var ci = parseInt(parts[0], 10), ii = parseInt(parts[1], 10);
+            if (!isNaN(ci) && !isNaN(ii) && checklistData[ci] && checklistData[ci].items[ii]) {
+                qText = t(checklistData[ci].items[ii]);
+            }
+        } catch(_){}
+
+        var hasHistory = !!(it.lastEditedBy || it.lastEditedAt);
+        var when = it.lastEditedAt ? new Date(it.lastEditedAt) : null;
+        var whenAbs = when ? when.toLocaleString() : '-';
+        var whenRel = it.lastEditedAt ? _relTime(it.lastEditedAt) : '-';
+        var statusLabel = (it.status === 'complete') ? (isKo ? '✅ 충족' : '✅ Yes')
+                        : (it.status === 'no') ? (isKo ? '❌ 미충족' : '❌ No')
+                        : (isKo ? '⏳ 미검토' : '⏳ Pending');
+
+        var overlay = document.createElement('div');
+        overlay.id = 'afcMetaModalOverlay';
+        overlay.style.cssText = 'position:fixed;inset:0;background:rgba(2,6,23,0.78);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(6px);animation:_afcModalFadeIn 0.18s ease-out;';
+        overlay.onclick = function(e){ if (e.target === overlay) _afcCloseMetaModal(); };
+
+        var card = document.createElement('div');
+        card.style.cssText = 'background:linear-gradient(180deg,#0f172a 0%,#0b1220 100%);border:1px solid rgba(96,165,250,0.25);border-radius:14px;padding:0;max-width:520px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.6),0 0 0 1px rgba(255,255,255,0.04);overflow:hidden;animation:_afcModalScaleIn 0.18s ease-out;';
+
+        // 헤더
+        var header = '<div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px 14px;border-bottom:1px solid rgba(255,255,255,0.06);">'
+            + '<div>'
+            + '<div style="font-size:0.65rem;font-weight:700;color:#60a5fa;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">' + (isKo ? '변경 기록' : 'Edit Info') + '</div>'
+            + '<div style="font-size:0.95rem;font-weight:600;color:#e2e8f0;">' + (isKo ? '체크 항목' : 'Checklist Item') + '</div>'
+            + '</div>'
+            + '<button onclick="_afcCloseMetaModal()" style="background:rgba(255,255,255,0.05);color:#94a3b8;border:1px solid rgba(255,255,255,0.08);border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:1rem;line-height:1;">×</button>'
+            + '</div>';
+
+        // 질문 텍스트 (있으면)
+        var questionRow = qText ? ('<div style="padding:14px 22px;background:rgba(96,165,250,0.06);border-bottom:1px solid rgba(255,255,255,0.04);">'
+            + '<div style="font-size:0.62rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">' + (isKo ? '질문' : 'Question') + '</div>'
+            + '<div style="font-size:0.88rem;color:#cbd5e1;line-height:1.45;">' + esc(qText) + '</div>'
+            + '</div>') : '';
+
+        // 본문 — 정보 grid
+        var body = '<div style="padding:20px 22px;">';
+
+        if (hasHistory) {
+            body += '<div style="display:grid;grid-template-columns:96px 1fr;gap:10px 14px;align-items:start;font-size:0.85rem;">'
+                + _metaRow(isKo ? '변경자' : 'Editor', '<div style="color:#e2e8f0;font-weight:600;">' + esc(it.lastEditedBy || '-') + '</div>' + (it.lastEditedByEmail ? '<div style="color:#64748b;font-size:0.78rem;margin-top:2px;">' + esc(it.lastEditedByEmail) + '</div>' : ''))
+                + _metaRow(isKo ? '시간' : 'When', '<div style="color:#e2e8f0;">' + esc(whenAbs) + '</div><div style="color:#10b981;font-size:0.78rem;margin-top:2px;">' + esc(whenRel) + '</div>')
+                + '</div>';
+        } else {
+            body += '<div style="background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.2);border-radius:8px;padding:14px 16px;color:#fbbf24;font-size:0.85rem;">' + (isKo ? '⏳ 아직 변경 기록이 없습니다.' : '⏳ No edit history yet.') + '</div>';
+        }
+
+        // 현재 상태 카드
+        body += '<div style="margin-top:18px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:14px 16px;">'
+            + '<div style="font-size:0.62rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">' + (isKo ? '현재 상태' : 'Current State') + '</div>'
+            + '<div style="display:flex;align-items:center;gap:8px;font-size:0.92rem;color:#e2e8f0;margin-bottom:' + (it.notes ? '10px' : '0') + ';">'
+            + '<span>' + statusLabel + '</span>'
+            + '</div>';
+        if (it.notes) {
+            body += '<div style="margin-top:8px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);">'
+                + '<div style="font-size:0.62rem;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">' + (isKo ? '메모' : 'Memo') + '</div>'
+                + '<div style="font-size:0.85rem;color:#cbd5e1;line-height:1.5;white-space:pre-wrap;">' + esc(it.notes) + '</div>'
+                + '</div>';
+        }
+        body += '</div>';
+
+        body += '</div>';
+
+        // 푸터 — 닫기 버튼
+        var footer = '<div style="padding:14px 22px;border-top:1px solid rgba(255,255,255,0.06);display:flex;justify-content:flex-end;">'
+            + '<button onclick="_afcCloseMetaModal()" style="background:linear-gradient(180deg,#3b82f6,#2563eb);color:#fff;border:none;border-radius:8px;padding:8px 18px;font-size:0.85rem;font-weight:600;cursor:pointer;">' + (isKo ? '확인' : 'OK') + '</button>'
+            + '</div>';
+
+        card.innerHTML = header + questionRow + body + footer;
+        overlay.appendChild(card);
+        document.body.appendChild(overlay);
+
+        // ESC 키로 닫기
+        window._afcMetaEscHandler = function(e){ if (e.key === 'Escape') _afcCloseMetaModal(); };
+        document.addEventListener('keydown', window._afcMetaEscHandler);
+
+        // 애니메이션 keyframes 주입 (1회만)
+        if (!document.getElementById('_afcModalAnimStyle')) {
+            var styleEl = document.createElement('style');
+            styleEl.id = '_afcModalAnimStyle';
+            styleEl.textContent = '@keyframes _afcModalFadeIn{from{opacity:0}to{opacity:1}}@keyframes _afcModalScaleIn{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}';
+            document.head.appendChild(styleEl);
+        }
+    } catch(e) { console.error('[MOP AFC] meta modal error:', e); }
+}
+
+// 메타 row 헬퍼 — 라벨 + 값
+function _metaRow(label, valueHtml) {
+    return '<div style="color:#64748b;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.8px;padding-top:2px;">' + esc(label) + '</div>'
+        + '<div>' + valueHtml + '</div>';
+}
+
+function _afcCloseMetaModal() {
+    try {
+        var el = document.getElementById('afcMetaModalOverlay');
+        if (el && el.parentNode) el.parentNode.removeChild(el);
+        if (window._afcMetaEscHandler) {
+            document.removeEventListener('keydown', window._afcMetaEscHandler);
+            window._afcMetaEscHandler = null;
+        }
+    } catch(_){}
+}
+window._afcShowMetaModal = _afcShowMetaModal;
+window._afcCloseMetaModal = _afcCloseMetaModal;
+
+
+
+// ★ FIX 2026-06-11 (P0-CRITICAL): AFC 강제 동기화 도구
+//   증상: CX팀 입력 후 Jake 화면 stale — Jake 가 새로고침 안 함 → 옛 mopAfcState 보고 있음.
+//   해결: 사용자가 직접 동기화 트리거 + 진입 시 자동 동기화 + 변경 후 timestamp 표시.
+var _afcLastSyncTs = null;
+var _afcSyncing = false;
+
+function _afcUpdateSyncStatus() {
+    try {
+        var el = document.getElementById('afcSyncStatus');
+        if (!el) return;
+        var isKo = currentLang === 'ko';
+        if (_afcSyncing) {
+            el.textContent = isKo ? '⏳ 동기화 중...' : '⏳ Syncing...';
+            el.style.color = '#fbbf24';
+            return;
+        }
+        if (!_afcLastSyncTs) {
+            el.textContent = isKo ? '최근 동기화: -' : 'Last sync: -';
+            el.style.color = '#94a3b8';
+            return;
+        }
+        var diff = Math.floor((Date.now() - _afcLastSyncTs) / 1000);
+        var when = diff < 5 ? (isKo ? '방금' : 'just now')
+                 : diff < 60 ? (diff + (isKo ? '초 전' : 's ago'))
+                 : Math.floor(diff/60) + (isKo ? '분 전' : 'm ago');
+        el.textContent = (isKo ? '최근 동기화: ' : 'Last sync: ') + when;
+        el.style.color = diff < 30 ? '#10b981' : (diff < 120 ? '#94a3b8' : '#fbbf24');
+    } catch(_){}
+}
+
+// 매 5초마다 timestamp 표시 갱신
+try { setInterval(_afcUpdateSyncStatus, 5000); } catch(_){}
+
+function _afcForceSync() {
+    if (_afcSyncing) {
+        console.log('[MOP AFC] sync already in progress — skip');
+        return;
+    }
+    _afcSyncing = true;
+    _afcUpdateSyncStatus();
+    var btn = document.getElementById('afcForceSyncBtn');
+    if (btn) btn.disabled = true;
+    try {
+        // Gateway 의 window.cloudLoad 직접 호출 (same-origin iframe)
+        if (window.parent && window.parent.cloudLoad && typeof window.parent.cloudLoad === 'function') {
+            console.log('[MOP AFC] force cloudLoad — fetching latest from server...');
+            window.parent.cloudLoad();
+            // cloudLoad 가 끝나면 mop-afc-state-restore 가 자동으로 와서 _hydrateFromParent 트리거됨.
+            // 보통 1-3초 안에 완료.
+            setTimeout(function() {
+                _afcSyncing = false;
+                _afcLastSyncTs = Date.now();
+                _afcUpdateSyncStatus();
+                if (btn) btn.disabled = false;
+                console.log('[MOP AFC] force sync completed');
+            }, 3000);
+        } else {
+            console.warn('[MOP AFC] parent.cloudLoad not available');
+            _afcSyncing = false;
+            if (btn) btn.disabled = false;
+            try { alert(currentLang==='ko' ? '동기화 기능을 사용할 수 없습니다. 페이지를 새로고침해주세요.' : 'Sync unavailable. Please refresh the page.'); } catch(_){}
+        }
+    } catch(e) {
+        console.error('[MOP AFC] force sync error:', e);
+        _afcSyncing = false;
+        if (btn) btn.disabled = false;
+    }
+}
+window._afcForceSync = _afcForceSync;
+
+// ★ 진단 버튼 — F12 콘솔에 데이터 상태 출력
+function _afcDiag() {
+    try {
+        console.log('=== AFC iframe 진단 ===');
+        console.log('iframe BUILD:', window._MOP_AFC_BUILD || '(unknown)');
+        console.log('parent Gateway BUILD:', (window.parent && window.parent._MOP_GW_BUILD) || '(unknown — 옛 버전 가능성)');
+        console.log('iframe checklistState 의 reviews:', Object.keys(checklistState || {}).length);
+        Object.keys(checklistState || {}).forEach(function(rid){
+            var st = checklistState[rid] || {};
+            var checked = 0;
+            Object.keys(st.items || {}).forEach(function(k){ if (st.items[k] && st.items[k].checked) checked++; });
+            console.log('  - review ' + rid + ': items=' + Object.keys(st.items||{}).length + ', checked=' + checked + ', gate=' + (st.gate||'-') + ', finalized=' + (!!st.finalized));
+        });
+        // 부모(Gateway) 의 diagAfc 호출 — 서버 비교
+        if (window.parent && typeof window.parent.diagAfc === 'function') {
+            console.log('--- parent.diagAfc() 호출 (서버 비교) ---');
+            window.parent.diagAfc();
+        } else {
+            console.warn('parent.diagAfc 없음 — Gateway 가 새 버전 아닐 가능성');
+        }
+        console.log('=== 진단 끝 — 위 로그를 jake@medit.com 으로 보내주세요 ===');
+        try {
+            var isKo = currentLang === 'ko';
+            alert(isKo
+                ? '진단 정보를 콘솔에 출력했습니다.\nF12 → Console 탭에서 확인 후 jake@medit.com 으로 캡처 전달 부탁드립니다.'
+                : 'Diagnostic info logged to console.\nF12 → Console tab. Please share screenshot to jake@medit.com.');
+        } catch(_){}
+    } catch(e) {
+        console.error('[MOP AFC] _afcDiag error:', e);
+    }
+}
+window._afcDiag = _afcDiag;
+
+// ★ iframe 빌드 버전 표시 — 사용자가 어떤 버전 코드 보고 있는지 확인 가능
+window._MOP_AFC_BUILD = 'v2.20260615-HOTFIX-STATE-RESTORE-MERGE';
+try { console.log('[MOP AFC] iframe BUILD: ' + window._MOP_AFC_BUILD); } catch(_){}
+
+// ★ AFC 진입 시 자동 force cloudLoad — Jake 화면 stale 방지
+//   1) 1초 후 force cloudLoad (다른 사용자의 최근 변경 확인)
+//   2) 그 후 30초마다 자동 동기화 (polling — 실시간 협업 효과)
+try {
+    setTimeout(function() {
+        try { _afcForceSync(); } catch(_){}
+    }, 1000);
+    setInterval(function() {
+        // 사용자가 적극 입력 중이면 건너뜀 (debounce timer 활성 시)
+        if (_afcCloudPushTimer || _afcSyncing) return;
+        // ★★★ EMERGENCY SAFETY 2026-06-12: 로컬에 데이터 있을 때만 sync — 빈 응답 받아서 덮어쓰기 방지
+        try {
+            var _localCount = Object.keys(checklistState || {}).length;
+            if (_localCount === 0) {
+                console.log('[MOP AFC polling] 로컬 checklistState 비어있음 - polling skip (force sync 위해 수동 클릭 권장)');
+                return;
+            }
+        } catch(_){}
+        try { _afcForceSync(); } catch(_){}
+    }, 30000);
+} catch(_){}
+
+// ★ FIX 2026-06-11: 페이지 닫기 시 debounce timer 강제 flush — 손실 방지
+try {
+    window.addEventListener('beforeunload', function() {
+        if (_afcCloudPushTimer) {
+            console.log('[MOP AFC] beforeunload — forcing cloud push flush');
+            _afcFlushCloudPush();
+        }
+    });
+    window.addEventListener('pagehide', function() {
+        if (_afcCloudPushTimer) {
+            console.log('[MOP AFC] pagehide — forcing cloud push flush');
+            _afcFlushCloudPush();
+        }
+    });
+    // visibility change — 탭 전환 시에도 flush (페이지가 백그라운드로 가면 timer 가 throttle 될 수 있음)
+    document.addEventListener('visibilitychange', function() {
+        if (document.visibilityState === 'hidden' && _afcCloudPushTimer) {
+            console.log('[MOP AFC] visibility hidden — forcing cloud push flush');
+            _afcFlushCloudPush();
+        }
+    });
+} catch(_){}
 
 // === 부모(Gateway) localStorage에서 hydrate ===
 function _hydrateFromParent(){
@@ -2146,15 +2890,123 @@ window.addEventListener('message', function(event){
         }
         if(d.type==='mop-afc-state-restore'&&d.payload){
             try{
-                if(d.payload.checklistState){checklistState=d.payload.checklistState;}
+                // ★ CRITICAL FIX 2026-06-15: 통째 덮어쓰기 → 안전 머지
+                //   기존: checklistState = d.payload.checklistState (서버 데이터로 통째 교체)
+                //   문제: 서버에서 빈 객체/일부 누락 payload 가 오면 로컬 변경 모두 손실.
+                //         "Commerce 팀 작업이 사라짐" 증상의 근본 원인.
+                //   해결: review 단위 머지 + item 단위 최신 우선 + empty 절대 거부.
+                if (d.payload.checklistState && typeof d.payload.checklistState === 'object') {
+                    var srvCs = d.payload.checklistState;
+                    var srvKeys = Object.keys(srvCs);
+                    var localKeys = Object.keys(checklistState || {});
+                    // SAFETY: 서버가 완전히 빈 객체인데 로컬에 데이터 있음 → 절대 덮어쓰지 않음
+                    if (srvKeys.length === 0 && localKeys.length > 0) {
+                        console.warn('[MOP AFC] state-restore SAFETY ABORT — 서버 empty + 로컬 보유 (' + localKeys.length + ' reviews) — 머지 skip');
+                    } else {
+                        if (!checklistState || typeof checklistState !== 'object') checklistState = {};
+                        var mergedCount = 0, addedCount = 0, keptCount = 0;
+                        // 1) 서버에 있는 reviews — item 단위로 비교 머지
+                        srvKeys.forEach(function(rid) {
+                            var srv = srvCs[rid] || {};
+                            var loc = checklistState[rid];
+                            if (!loc) {
+                                // 로컬에 없는 review — 그대로 추가
+                                checklistState[rid] = srv;
+                                addedCount++;
+                                return;
+                            }
+                            // 둘 다 있음 — items 단위 머지
+                            var mergedItems = {};
+                            // 로컬 items 먼저 복사
+                            if (loc.items && typeof loc.items === 'object') {
+                                Object.keys(loc.items).forEach(function(k){ mergedItems[k] = loc.items[k]; });
+                            }
+                            // 서버 items 들여다보며 비교
+                            if (srv.items && typeof srv.items === 'object') {
+                                Object.keys(srv.items).forEach(function(k){
+                                    var lItem = mergedItems[k];
+                                    var sItem = srv.items[k];
+                                    if (!lItem) { mergedItems[k] = sItem; return; }
+                                    if (!sItem) return;
+                                    // 둘 다 있음 — lastEditedAt 비교, 없으면 서버 우선 (cloudLoad 가 fresh 한 데이터)
+                                    var lTs = lItem.lastEditedAt ? new Date(lItem.lastEditedAt).getTime() : 0;
+                                    var sTs = sItem.lastEditedAt ? new Date(sItem.lastEditedAt).getTime() : 0;
+                                    if (sTs >= lTs) {
+                                        // 서버가 같거나 더 최신 — 서버 데이터로 교체. (단 로컬에 _afcInFlight 표시 있으면 보존)
+                                        if (lItem._afcInFlight && lTs > 0 && Math.abs(Date.now() - lTs) < 10000) {
+                                            // 로컬이 PUT in-flight (10s 이내) — 로컬 보존
+                                            keptCount++;
+                                        } else {
+                                            mergedItems[k] = sItem;
+                                        }
+                                    } else {
+                                        // 로컬이 더 최신 — 보존
+                                        keptCount++;
+                                    }
+                                });
+                            }
+                            // owner/gate/gateNotes/finalized 도 머지 — 서버 fresh 우선이지만 로컬 in-flight 있으면 보존
+                            var newRev = {};
+                            ['owners','gate','gateNotes','finalized','memos','meetingNotes','shareReason'].forEach(function(f){
+                                if (typeof srv[f] !== 'undefined') newRev[f] = srv[f];
+                                else if (typeof loc[f] !== 'undefined') newRev[f] = loc[f];
+                            });
+                            newRev.items = mergedItems;
+                            checklistState[rid] = newRev;
+                            mergedCount++;
+                        });
+                        // 2) 로컬에만 있고 서버에 없는 reviews — 그대로 보존 (cloudLoad 가 못 가져왔을 가능성)
+                        localKeys.forEach(function(rid) {
+                            if (!srvCs[rid]) {
+                                // 로컬에만 있음 — 그대로 둠 (이미 checklistState 에 있음)
+                            }
+                        });
+                        // localStorage 백업 즉시 (안전망)
+                        try { localStorage.setItem('mop_afc_state', JSON.stringify({checklistState: checklistState, selectedReviewId: selectedReview ? selectedReview.id : null})); } catch(_){}
+                        console.log('[MOP AFC] state-restore 안전 머지 — srv=' + srvKeys.length + ', loc=' + localKeys.length + ', merged=' + mergedCount + ', added=' + addedCount + ', local-kept-items=' + keptCount);
+                    }
+                    try { _afcLastSyncTs = Date.now(); _afcUpdateSyncStatus(); } catch(_){}
+                }
                 if(typeof renderReviewCards==='function')renderReviewCards();
                 if(typeof renderDashboard==='function')renderDashboard();
-            }catch(_){}
+                // 현재 보고있는 review 가 머지 후 변했으면 다시 그림
+                if(typeof renderChecklist==='function' && selectedReview) renderChecklist();
+                if(typeof updateSidebar==='function' && selectedReview) updateSidebar();
+            }catch(restoreErr){
+                try { __MOP_SEC.logErr('AFC state-restore merge', restoreErr); } catch(_){}
+                console.error('[MOP AFC] state-restore merge ERROR:', restoreErr);
+            }
         }
         if(d.type==='mop-lang-sync'&&(d.lang==='ko'||d.lang==='en')){
             currentLang=d.lang;
             if(typeof setLanguage==='function')setLanguage(d.lang);
             else if(typeof applyLanguage==='function')applyLanguage();
+        }
+        // ★ NEW 2026-06-11: 알림 클릭에서 특정 review detail 을 직접 열기
+        if(d.type==='mop-open-detail' && (!d.tool || d.tool === 'afc')){
+            try{
+                var _tid = d.targetId;
+                if (!_tid) return;
+                var _open = function() {
+                    var _r = reviews.find(function(x){ return x && String(x.id) === String(_tid); });
+                    if (!_r) {
+                        console.warn('[MOP AFC] mop-open-detail: review not yet loaded, will retry —', _tid);
+                        return false;
+                    }
+                    try {
+                        if (typeof selectReview === 'function') {
+                            selectReview(_r.id);
+                            console.log('[MOP AFC] opened detail for review', _r.id);
+                        }
+                    } catch(opErr) { console.error('[MOP AFC] open-detail error:', opErr); }
+                    return true;
+                };
+                if (!_open()) {
+                    setTimeout(_open, 300);
+                    setTimeout(_open, 800);
+                    setTimeout(_open, 1500);
+                }
+            }catch(_){}
         }
     }catch(_){}
 });
