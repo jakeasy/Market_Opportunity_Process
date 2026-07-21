@@ -2334,8 +2334,37 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         localStorage.setItem('mop_accounts', JSON.stringify(_accounts));
     }
 
+    // ★★★ NEW 2026-07-21 (SESSION EXPIRY): 세션 자동 만료 기준
+    //   - 무활동(IDLE) 2시간: 마우스/키보드/터치/iframe 메시지 없음
+    //   - 절대(ABS) 12시간: 로그인 후 경과 시간 (활동과 무관)
+    //   장기 방치 탭이 옛 세션·옛 데이터로 계속 작업하는 것을 차단.
+    var MOP_SESSION_IDLE_MS = 2 * 60 * 60 * 1000;   // 2시간
+    var MOP_SESSION_ABS_MS  = 12 * 60 * 60 * 1000;  // 12시간
+
     var _currentUser = (function() {
         try { var s = sessionStorage.getItem('mop_session'); return s ? JSON.parse(s) : null; } catch(e) { return null; }
+    })();
+    // ★ NEW 2026-07-21 (SESSION EXPIRY): 복원된 세션의 만료 검사 — 만료됐으면 로그인 화면부터 시작
+    (function(){
+        try {
+            if (!_currentUser) return;
+            var now = Date.now();
+            var meta = null;
+            try { meta = JSON.parse(sessionStorage.getItem('__mop_session_meta') || 'null'); } catch(_){}
+            if (!meta || !meta.issuedAt) {
+                // 구버전 세션 (meta 없음) — 지금부터 카운트 시작
+                sessionStorage.setItem('__mop_session_meta', JSON.stringify({ issuedAt: now, lastActivityAt: now }));
+                return;
+            }
+            var idleOver = (now - (meta.lastActivityAt || meta.issuedAt)) > MOP_SESSION_IDLE_MS;
+            var absOver = (now - meta.issuedAt) > MOP_SESSION_ABS_MS;
+            if (idleOver || absOver) {
+                console.warn('[MOP] 복원 세션 만료 (idle=' + idleOver + ', abs=' + absOver + ') — 재로그인 필요');
+                _currentUser = null;
+                try { sessionStorage.removeItem('mop_session'); } catch(_){}
+                try { sessionStorage.removeItem('__mop_session_meta'); } catch(_){}
+            }
+        } catch(_){}
     })();
 
     function saveAccounts() {
@@ -2376,6 +2405,16 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         _currentUser = user;
         if (user) {
             try { sessionStorage.setItem('mop_session', JSON.stringify(user)); } catch(_){}
+            // ★ NEW 2026-07-21 (SESSION EXPIRY): 세션 발급 시각 기록
+            try {
+                var _smNow = Date.now();
+                var _smPrev = null;
+                try { _smPrev = JSON.parse(sessionStorage.getItem('__mop_session_meta') || 'null'); } catch(_){}
+                sessionStorage.setItem('__mop_session_meta', JSON.stringify({
+                    issuedAt: (_smPrev && _smPrev.issuedAt) ? _smPrev.issuedAt : _smNow,  // 계정정보 갱신 시 발급시각 유지
+                    lastActivityAt: _smNow
+                }));
+            } catch(_){}
             try {
                 localStorage.setItem('mop_user_info', JSON.stringify({
                     name: user.name || '',
@@ -2387,6 +2426,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             } catch(_){}
         } else {
             try { sessionStorage.removeItem('mop_session'); } catch(_){}
+            try { sessionStorage.removeItem('__mop_session_meta'); } catch(_){}  // ★ 2026-07-21
             try { localStorage.removeItem('mop_user_info'); } catch(_){}
         }
     }
@@ -7900,7 +7940,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     };
 
     // ★ Gateway 빌드 버전 표시 — 사용자가 어떤 버전 코드 보고 있는지 확인 가능
-    window._MOP_GW_BUILD = 'v2.20260722b-UX-GUARD';
+    window._MOP_GW_BUILD = 'v2.20260722c-SESSION-EXPIRY';
     try { console.log('[MOP] Gateway BUILD: ' + window._MOP_GW_BUILD); } catch(_){}
 
     // ★★★ NEW 2026-07-21 (P0 — FORCE UPDATE): 구버전 클라이언트 자동 갱신
@@ -8010,6 +8050,63 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         } catch(_){}
     }
     try { setInterval(_mopUpdateSyncPill, 1000); } catch(_){}
+
+    // ★★★ NEW 2026-07-21 (SESSION EXPIRY): 활동 추적 + 만료 감시
+    //   - 활동: 마우스/키보드/터치/스크롤 + iframe postMessage (도구 안 작업도 활동으로 인정)
+    //   - 감시: 1분마다 + 탭 복귀 시. 무활동 2h 또는 로그인 후 12h 경과 시 자동 로그아웃.
+    //   - 도구(iframe) 화면이 열려있는 동안엔 무활동 로그아웃 보류 (작업 중 강제 종료로 인한 유실 방지,
+    //     절대 12h 만료는 그대로 적용)
+    var _mopLastActWrite = 0;
+    function _mopTouchActivity() {
+        try {
+            if (!_currentUser) return;
+            var now = Date.now();
+            if (now - _mopLastActWrite < 30000) return;  // 30초 쓰로틀 (sessionStorage 쓰기 최소화)
+            _mopLastActWrite = now;
+            var meta = null;
+            try { meta = JSON.parse(sessionStorage.getItem('__mop_session_meta') || 'null'); } catch(_){}
+            if (!meta || !meta.issuedAt) meta = { issuedAt: now };
+            meta.lastActivityAt = now;
+            sessionStorage.setItem('__mop_session_meta', JSON.stringify(meta));
+        } catch(_){}
+    }
+    try {
+        ['click', 'keydown', 'mousemove', 'scroll', 'touchstart'].forEach(function(ev){
+            document.addEventListener(ev, _mopTouchActivity, { passive: true });
+        });
+        window.addEventListener('message', _mopTouchActivity);  // iframe 안 작업도 활동으로 집계
+    } catch(_){}
+    function _mopSessionWatchdog() {
+        try {
+            if (!_currentUser) return;
+            var meta = null;
+            try { meta = JSON.parse(sessionStorage.getItem('__mop_session_meta') || 'null'); } catch(_){}
+            if (!meta || !meta.issuedAt) return;
+            var now = Date.now();
+            var idleOver = (now - (meta.lastActivityAt || meta.issuedAt)) > MOP_SESSION_IDLE_MS;
+            var absOver = (now - meta.issuedAt) > MOP_SESSION_ABS_MS;
+            if (!idleOver && !absOver) return;
+            // 도구 작업 중이면 무활동 로그아웃 보류 (절대 만료는 적용)
+            var toolOpen = false;
+            try { var iv = document.getElementById('iframe-view'); toolOpen = !!(iv && iv.classList.contains('active')); } catch(_){}
+            if (toolOpen && !absOver) return;
+            console.warn('[MOP] 세션 만료 — 자동 로그아웃 (idle=' + idleOver + ', abs=' + absOver + ')');
+            // pending 저장 flush 후 로그아웃
+            try { if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; cloudSaveNow(); } } catch(_){}
+            try { doLogout(); } catch(_){}
+            try {
+                var ko = (typeof currentLang !== 'undefined' && currentLang === 'ko');
+                var le = document.getElementById('loginError');
+                if (le) le.textContent = ko
+                    ? '⏱ 보안을 위해 자동 로그아웃되었습니다. 다시 로그인해주세요.'
+                    : '⏱ You were signed out automatically for security. Please sign in again.';
+            } catch(_){}
+        } catch(_){}
+    }
+    try {
+        setInterval(_mopSessionWatchdog, 60 * 1000);
+        document.addEventListener('visibilitychange', function(){ if (!document.hidden) setTimeout(_mopSessionWatchdog, 500); });
+    } catch(_){}
 
     // ★★★ NEW 2026-07-21 (UX GUARD): 저장 미확인 상태에서 브라우저 닫기 경고
     //   "제출하고 바로 브라우저를 닫는" 케이스 방어: 디바운스 대기 중 / push 보류 중 /
