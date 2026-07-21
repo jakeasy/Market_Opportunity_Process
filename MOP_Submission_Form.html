@@ -708,6 +708,20 @@
                 flex-direction: column;
                 gap: 1rem;
             }
+
+            /* ★ NEW 2026-07-22 (RESPONSIVE): 상세 모달 그리드 1열화 */
+            .my-sub-modal-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+            .mop-info-grid { grid-template-columns: 1fr !important; }
+            .pv-grid { grid-template-columns: 1fr !important; }
+            .pv-score-row { grid-template-columns: 1fr 90px 38px; font-size: 0.82rem; }
+            /* 내 제출 목록 행 — 세로 스택 */
+            .my-sub-item { flex-direction: column; align-items: stretch; gap: 10px; }
+            .my-sub-item .my-sub-actions { justify-content: flex-end; }
+        }
+
+        @media (max-width: 420px) {
+            header h1 { font-size: 1.6rem; }
+            .form-section { padding: 1.1rem; }
         }
 
         /* Print styles */
@@ -1663,10 +1677,15 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
         // ★ FIX 2026-06-11: silent fail 제거 — timeout(45s) + retry 3회 + 명시적 _uploadFailed flag
         //   원인: 단일 fetch + silent catch → 네트워크 글리치 한 번이면 fileId 없이 제출됨
         //   증상: Chanouk 의 Intraoral Camera.png 가 9일째 "Not persisted" 표시
-        function _uploadAttachmentToDrive(file, attemptIdx) {
+        // ★ FIX 2026-06-11 (P0-CRITICAL — UPLOAD ROBUSTNESS):
+        //   파일 업로드 실패 영구 해결 — 큰 파일 / 느린 네트워크 / GAS 일시 장애 대응.
+        //   기존 버그: 45초 timeout 으로 4MB pptx 같은 큰 페이로드는 base64 decode + Drive upload + sharing 이
+        //              누적 15-30초 소요되어 retry 마저 실패. Promise.all 동시 호출로 GAS Drive quota race 도 발생.
+        //   해결: timeout 90s, retry 5회 (backoff 2/4/8/15/30s), 순차 업로드(아래 _uploadAllAttachments).
+        function _uploadAttachmentToDrive(file, attemptIdx, onProgress) {
             attemptIdx = attemptIdx || 1;
-            var MAX_ATTEMPTS = 3;
-            var TIMEOUT_MS  = 45000;
+            var MAX_ATTEMPTS = 5;
+            var TIMEOUT_MS  = 90000;
             return new Promise(function(resolve) {
                 try {
                     if (!file || !file.dataUrl) {
@@ -1723,10 +1742,15 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         var reason = timedOut ? 'timeout' : (err && err.message) || 'unknown';
                         console.warn('[MOP] upload attempt '+attemptIdx+'/'+MAX_ATTEMPTS+' FAILED for', file.name, '—', reason);
                         if (attemptIdx < MAX_ATTEMPTS) {
-                            var backoff = Math.pow(2, attemptIdx - 1) * 1000;
-                            console.log('[MOP] retrying in ' + backoff + 'ms...');
+                            // ★ FIX 2026-06-11: backoff 2/4/8/15/30s — GAS 일시 장애에 충분한 회복 시간
+                            var backoffMap = [2000, 4000, 8000, 15000, 30000];
+                            var backoff = backoffMap[attemptIdx - 1] || 30000;
+                            console.log('[MOP] retrying in ' + (backoff/1000) + 's... (attempt ' + (attemptIdx+1) + '/' + MAX_ATTEMPTS + ')');
+                            if (typeof onProgress === 'function') {
+                                try { onProgress({ file: file.name, attempt: attemptIdx+1, max: MAX_ATTEMPTS, backoff: backoff, reason: reason }); } catch(_){}
+                            }
                             setTimeout(function(){
-                                _uploadAttachmentToDrive(file, attemptIdx + 1).then(resolve);
+                                _uploadAttachmentToDrive(file, attemptIdx + 1, onProgress).then(resolve);
                             }, backoff);
                         } else {
                             console.error('[MOP] upload PERMANENTLY FAILED after '+MAX_ATTEMPTS+' attempts:', file.name);
@@ -1751,10 +1775,38 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 }
             });
         }
-        function _uploadAllAttachments(attachments) {
+        // ★ FIX 2026-06-11 (P0-CRITICAL): Promise.all 동시 업로드 → 순차 업로드.
+        //   기존 버그: 여러 첨부파일을 동시에 GAS doPost 로 보내면 Drive createFile API 가 race
+        //              (특히 큰 base64 payload 여러 개가 한 번에 도착하면 GAS Lock/quota 충돌).
+        //   해결: 한 번에 1개씩 순차 처리. UI 에 "1/3 업로드 중" 진행 표시.
+        function _uploadAllAttachments(attachments, onProgress) {
             if (!attachments || !attachments.length) return Promise.resolve([]);
-            return Promise.all(attachments.map(_uploadAttachmentToDrive));
+            var results = [];
+            var total = attachments.length;
+            var _next = function(idx) {
+                if (idx >= total) return Promise.resolve(results);
+                var f = attachments[idx];
+                if (typeof onProgress === 'function') {
+                    try { onProgress({ phase: 'start', file: f.name, index: idx+1, total: total }); } catch(_){}
+                }
+                return _uploadAttachmentToDrive(f, 1, function(p){
+                    // per-retry 진행: 상위로 전달
+                    if (typeof onProgress === 'function') {
+                        try { onProgress({ phase: 'retry', file: p.file, index: idx+1, total: total, attempt: p.attempt, max: p.max, reason: p.reason }); } catch(_){}
+                    }
+                }).then(function(r){
+                    results.push(r);
+                    if (typeof onProgress === 'function') {
+                        var ok = r && !r._uploadFailed;
+                        try { onProgress({ phase: ok ? 'done' : 'failed', file: f.name, index: idx+1, total: total, error: r && r._error }); } catch(_){}
+                    }
+                    return _next(idx + 1);
+                });
+            };
+            return _next(0);
         }
+        // ★ 버전 마커 — 사용자가 F12 콘솔에서 form 버전 확인 가능
+        try { console.log('[MOP Form] _uploadAttachmentToDrive vNumberOne — 2026-06-11 SERIAL+EXTENDED_TIMEOUT'); } catch(_){}
 
         var form = document.getElementById('mopForm');
         var submitBtn = document.getElementById('submitBtn');
@@ -2097,7 +2149,27 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                         var _uploadPromise;
                         if (evidenceAttachments.length) {
                             submitBtn.textContent = '📤 ' + (currentLang==='ko'?'첨부파일 업로드 중...':'Uploading attachments...');
-                            _uploadPromise = _uploadAllAttachments(evidenceAttachments).then(function(uploaded){
+                            // ★ FIX 2026-06-11: per-file 진행 표시 — 사용자가 진행 상황을 알 수 있도록
+                            var _uploadProgress = function(p) {
+                                try {
+                                    if (p.phase === 'start') {
+                                        var label = currentLang==='ko'
+                                            ? '📤 업로드 중 ' + p.index + '/' + p.total + ' — ' + p.file
+                                            : '📤 Uploading ' + p.index + '/' + p.total + ' — ' + p.file;
+                                        submitBtn.textContent = label;
+                                    } else if (p.phase === 'retry') {
+                                        var rlabel = currentLang==='ko'
+                                            ? '↻ 재시도 ' + p.attempt + '/' + p.max + ' — ' + p.file
+                                            : '↻ Retry ' + p.attempt + '/' + p.max + ' — ' + p.file;
+                                        submitBtn.textContent = rlabel;
+                                    } else if (p.phase === 'failed') {
+                                        console.warn('[MOP] file FAILED: ' + p.file + ' — ' + (p.error || 'unknown'));
+                                    } else if (p.phase === 'done') {
+                                        console.log('[MOP] file OK: ' + p.file + ' (' + p.index + '/' + p.total + ')');
+                                    }
+                                } catch(_){}
+                            };
+                            _uploadPromise = _uploadAllAttachments(evidenceAttachments, _uploadProgress).then(function(uploaded){
                                 var failed = uploaded.filter(function(f){ return f && f._uploadFailed; });
                                 if (failed.length > 0) {
                                     var names = failed.map(function(f){ return f.name + ' ('+(f._error||'')+')'; }).join('\n  • ');
