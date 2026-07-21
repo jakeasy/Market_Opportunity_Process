@@ -818,6 +818,100 @@
             header h1 { font-size: 2.2rem; letter-spacing: -0.5px; }
         }
 
+        /* ============================================================
+           ★★★ NEW 2026-07-22 (RESPONSIVE): 모바일/태블릿 반응형 (Gateway 셸)
+           - 상단 고정 요소(배지·언어토글·네비) 겹침 해소 → 2줄 배치
+           - 설정 모달·알림 패널·검색·계정편집 → 전체폭
+           - 대시보드/승인 뷰 패딩 축소, Stage 퍼널 2열
+           ============================================================ */
+        @media (max-width: 768px) {
+            .container { padding: 104px 14px 32px; }   /* 상단 고정 2줄 확보 */
+            header { margin-bottom: 32px; }
+            header h1 { font-size: 1.8rem; }
+            header p { font-size: 0.92rem; padding: 0 8px; }
+
+            /* 상단 고정 컨트롤 — 1행: 배지(좌)/언어(우), 2행: 네비 아이콘(우) */
+            .user-badge { top: 10px; left: 10px; padding: 6px 10px; gap: 7px; max-width: 58vw; }
+            .user-badge-name { font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .lang-toggle { top: 10px; right: 10px; }
+            .lang-btn { padding: 6px 11px; font-size: 0.72rem; }
+            #navBtns { top: 54px !important; right: 10px !important; }
+
+            /* Process flow — 세로 흐름, 화살표 회전 */
+            .process-flow { gap: 8px; margin-bottom: 32px; }
+            .flow-step { font-size: 0.74rem; padding: 7px 12px; }
+
+            .card { padding: 24px 20px 22px; }
+            .card h2 { font-size: 1.15rem; }
+
+            /* 설정 모달 — 전체화면화 */
+            #settingsModal {
+                width: 100vw !important; height: 100vh !important;
+                max-height: 100vh !important; max-width: 100vw !important;
+                border-radius: 0 !important; padding: 20px 14px 16px !important;
+            }
+            .pw-overlay { align-items: stretch; }
+            #settingsModal .pw-title { font-size: 1rem; }
+            /* 설정 탭 — 가로 스크롤 */
+            #settingsModal > div[style*="display:flex"][style*="border-radius:10px"] {
+                overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap;
+            }
+            /* 통계 카드 그리드 — 2열 */
+            #accListContainer { grid-template-columns: 1fr !important; }
+
+            /* 계정 행 — 세로 스택 */
+            .acc-row { flex-direction: column; align-items: stretch; gap: 12px; padding: 14px 16px; }
+            .acc-row-btns { justify-content: flex-end; }
+
+            /* 알림 패널 — 전체폭 시트 */
+            .notif-panel {
+                top: auto !important; bottom: 0 !important; right: 0 !important; left: 0 !important;
+                width: 100% !important; max-width: 100% !important;
+                max-height: 78vh !important; border-radius: 16px 16px 0 0 !important;
+            }
+
+            /* 전역 검색 모달 */
+            .gsearch-overlay { padding-top: 48px; }
+            .gsearch-modal { max-height: calc(100vh - 80px); }
+
+            /* 계정 편집 모달 */
+            .acc-edit-modal { max-width: 94vw; padding: 22px 18px; }
+            .acc-perm-grid { grid-template-columns: 1fr; }
+
+            /* 로그인 박스 */
+            .login-box { padding: 32px 22px 28px; max-width: 94vw; }
+
+            /* 대시보드 / 승인 뷰 */
+            #dashboard-view .dashboard-body,
+            #approval-view .approval-body { padding: 20px 14px; }
+            .ap-funnel { grid-template-columns: 1fr 1fr; gap: 10px; }
+            .ap-stage-arrow { display: none; }
+            .ap-region-tabs { gap: 6px; }
+            .ap-list-table th:nth-child(n+4),
+            .ap-list-table td:nth-child(n+4) { display: none; }  /* 좁은 화면에선 핵심 열만 */
+
+            /* 도구 상단바 */
+            .iframe-topbar { padding: 8px 12px; gap: 10px; }
+            .iframe-title { font-size: 0.82rem; }
+
+            /* 업데이트 배너 — 모바일에서 버튼 줄바꿈 */
+            #mopUpdateBanner { font-size: 12px; padding: 8px 12px; line-height: 1.5; }
+        }
+
+        @media (max-width: 420px) {
+            header h1 { font-size: 1.55rem; }
+            .flow-step .step-num { width: 20px; height: 20px; }
+            .user-badge { max-width: 52vw; }
+            .lang-btn { padding: 5px 9px; }
+            .nav-btn { width: 36px; height: 36px; }
+        }
+
+        /* 터치 대상 최소 크기 확보 (접근성) */
+        @media (hover: none) and (pointer: coarse) {
+            .card { cursor: default; }
+            .acc-edit-btn, .acc-del-btn, .pw-btn, .login-btn, .back-btn { min-height: 40px; }
+        }
+
         /* ── Login Screen ── */
         #loginOverlay {
             position: fixed; inset: 0; z-index: 9000;
@@ -7945,7 +8039,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     };
 
     // ★ Gateway 빌드 버전 표시 — 사용자가 어떤 버전 코드 보고 있는지 확인 가능
-    window._MOP_GW_BUILD = 'v2.20260722e-WITHDRAW-FIX';
+    window._MOP_GW_BUILD = 'v2.20260722f-RESPONSIVE';
     try { console.log('[MOP] Gateway BUILD: ' + window._MOP_GW_BUILD); } catch(_){}
 
     // ★★★ NEW 2026-07-21 (P0 — FORCE UPDATE): 구버전 클라이언트 자동 갱신
