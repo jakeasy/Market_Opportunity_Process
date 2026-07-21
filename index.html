@@ -6423,11 +6423,23 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 return;
             }
             console.log('[MOP gasPost] using fetch fallback');
-            fetch(url, {
+            // ★★★ FIX 2026-07-21c (P0 — ROOT CAUSE): keepalive 는 브라우저가 본문 64KB 로 제한.
+            //   기존엔 payload 가 60KB 를 넘으면 sendBeacon 을 건너뛰고 fetch 로 오는데 keepalive:true 가
+            //   무조건 붙어 있어서 TypeError 로 즉시 실패 → 서버에 도달조차 못함 (silent).
+            //   6월 중순 데이터가 64KB 를 넘은 이후 모든 type=all 저장이 실패해온 근본 원인
+            //   (6/12 이후 제출·리뷰 미저장: Milos 7/20, Chanouk 7/21 사례).
+            //   해결: 60KB 미만일 때만 keepalive (unload 보장용), 이상이면 일반 fetch (크기 제한 없음).
+            var _gpOpts = {
                 method: 'POST', mode: 'no-cors',
                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                body: jsonStr, keepalive: true
-            }).then(function(){
+                body: jsonStr
+            };
+            if (jsonStr.length < BEACON_LIMIT) {
+                _gpOpts.keepalive = true;
+            } else {
+                console.warn('[MOP gasPost] payload ' + sizeKb + 'KB ≥ 60KB → keepalive 비활성 (일반 fetch — 64KB 제한 회피)');
+            }
+            fetch(url, _gpOpts).then(function(){
                 console.log('[MOP gasPost] fetch sent ✓');
                 if (onSuccess) onSuccess({ success: true, note: 'sent via fetch no-cors (' + sizeKb + 'KB)' });
             }).catch(function(err){
@@ -7866,7 +7878,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     };
 
     // ★ Gateway 빌드 버전 표시 — 사용자가 어떤 버전 코드 보고 있는지 확인 가능
-    window._MOP_GW_BUILD = 'v2.20260721-FORCE-UPDATE';
+    window._MOP_GW_BUILD = 'v2.20260722-BIGPAYLOAD-FIX';
     try { console.log('[MOP] Gateway BUILD: ' + window._MOP_GW_BUILD); } catch(_){}
 
     // ★★★ NEW 2026-07-21 (P0 — FORCE UPDATE): 구버전 클라이언트 자동 갱신
