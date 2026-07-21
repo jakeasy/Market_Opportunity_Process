@@ -7708,7 +7708,9 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 gasGet(url, function(j){
                     try {
                         var serverSubs = (j && j.success && j.data && Array.isArray(j.data.submissions)) ? j.data.submissions : [];
-                        var found = serverSubs.some(function(s){ return s && String(s.id) === String(submissionId); });
+                        // ★ FIX 2026-07-21d: 'mop_submission_' 접두사 유무와 무관하게 매칭 (양쪽 정규화)
+                        var _vNorm = String(submissionId).replace(/^mop_submission_/, '');
+                        var found = serverSubs.some(function(s){ return s && String(s.id).replace(/^mop_submission_/, '') === _vNorm; });
                         if (found) {
                             console.log('[MOP verify-sub] ✅ confirmed on server (attempt ' + attempt + ') — id=' + submissionId);
                             try { _mopUnverifiedUntil = 0; } catch(_){}  // ★ 2026-07-21: 저장 확인 — 닫기 경고 해제
@@ -7940,7 +7942,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     };
 
     // ★ Gateway 빌드 버전 표시 — 사용자가 어떤 버전 코드 보고 있는지 확인 가능
-    window._MOP_GW_BUILD = 'v2.20260722c-SESSION-EXPIRY';
+    window._MOP_GW_BUILD = 'v2.20260722d-VERIFY-ID-FIX';
     try { console.log('[MOP] Gateway BUILD: ' + window._MOP_GW_BUILD); } catch(_){}
 
     // ★★★ NEW 2026-07-21 (P0 — FORCE UPDATE): 구버전 클라이언트 자동 갱신
@@ -8999,6 +9001,11 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                 //   submissionId 가 있으면 verify 후 발송. 없으면(signup 등) 그대로 발송.
                 //   "Submission Received" 이메일도 cloudSaveNow silent fail 시 데이터-없이-메일만-가는 문제 차단.
                 var _verifySubId = (src && src.submissionId) ? String(src.submissionId) : null;
+                // ★★★ FIX 2026-07-21d (P0 — ROOT CAUSE #2): 폼은 submissionId 로 레거시 키
+                //   ('mop_submission_<ts>')를 보내지만 실제 저장되는 레코드 id 는 숫자 <ts>.
+                //   접두사 미제거 시 verify 가 영원히 NOT FOUND → 저장 성공에도 "저장 안 됨" 오탐
+                //   + 제출 메일 발송 차단 (6/11 verify 도입 이후 모든 제출 확인 메일이 이렇게 불발됨).
+                if (_verifySubId) _verifySubId = _verifySubId.replace(/^mop_submission_/, '');
                 var _doSendDualEmail = function() {
                     gasPostEmail(url, newSubPayload,
                         function(res){ console.log('✓ MOP dual-email sent via', res && res.note ? res.note : 'unknown'); },
