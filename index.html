@@ -1394,6 +1394,7 @@
                     <select id="accSortBy" onchange="filterAccList()"
                         style="background:#0f1525;border:1px solid #2d3a4f;border-radius:8px;padding:8px 12px;color:#fff;font-size:0.78rem;cursor:pointer;outline:none;font-family:inherit;">
                         <option value="pending" data-i18n="setAccSortPending">정렬: 승인대기 우선</option>
+                        <option value="signup" data-i18n="setAccSortSignup">정렬: 최근 가입순</option>
                         <option value="recent" data-i18n="setAccSortRecent">정렬: 최근 로그인순</option>
                         <option value="name" data-i18n="setAccSortName">정렬: 이름 (가나다)</option>
                         <option value="loginCount" data-i18n="setAccSortLogin">정렬: 로그인 횟수</option>
@@ -5488,7 +5489,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             setToolPwLabel: 'Tool Passwords',
             setAccListLabel: 'Account List',
             setAccSearchPh: 'Search by name / email / region...',
-            setAccSortRecent: 'Recent',
+            setAccSortRecent: 'Recent Login',
+            setAccSortSignup: 'Newest Accounts',
             setAccSortLogin: 'Most Logins',
             setAccSortName: 'Name',
             setAccSortPending: 'Pending First',
@@ -5721,7 +5723,8 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
             setToolPwLabel: '도구별 비밀번호',
             setAccListLabel: '계정 목록',
             setAccSearchPh: '이름 / 이메일 / 지역 검색...',
-            setAccSortRecent: '최근순',
+            setAccSortRecent: '최근 로그인순',
+            setAccSortSignup: '최근 가입순',
             setAccSortLogin: '로그인 많은순',
             setAccSortName: '이름순',
             setAccSortPending: '대기 먼저',
@@ -7942,7 +7945,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     };
 
     // ★ Gateway 빌드 버전 표시 — 사용자가 어떤 버전 코드 보고 있는지 확인 가능
-    window._MOP_GW_BUILD = 'v2.20260722d-VERIFY-ID-FIX';
+    window._MOP_GW_BUILD = 'v2.20260722e-WITHDRAW-FIX';
     try { console.log('[MOP] Gateway BUILD: ' + window._MOP_GW_BUILD); } catch(_){}
 
     // ★★★ NEW 2026-07-21 (P0 — FORCE UPDATE): 구버전 클라이언트 자동 갱신
@@ -8772,6 +8775,32 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
                     mopSubmissions = mopSubmissions.filter(function(s){ return String(s.id) !== String(dp.id); });
                     if (mopSubmissions.length !== beforeLen) {
                         saveSubmissions();
+                        // ★★★ FIX 2026-07-21e (P0 — WITHDRAW GHOST): 서버에 명시적 삭제 + tombstone.
+                        //   기존엔 로컬 제거 + type=all push 뿐이었는데 서버 병합은 additive 라
+                        //   서버 사본이 그대로 남아 다음 cloudLoad 에서 부활 (알림에도 계속 노출).
+                        //   delete-submission 엔드포인트로 서버 삭제 + tombstone 등록 → 영구 제거.
+                        try {
+                            var _delUrl2 = getAppsScriptUrl();
+                            if (_delUrl2) {
+                                var _delBody = { type: 'delete-submission', id: dp.id, token: (typeof MOP_API_TOKEN !== 'undefined') ? MOP_API_TOKEN : '' };
+                                try { if (_currentUser) _delBody._actor = { id: _currentUser.id || '', username: _currentUser.username || '', name: _currentUser.name || '', role: _currentUser.role || '' }; } catch(_){}
+                                fetch(_delUrl2, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(_delBody), keepalive: true })
+                                    .then(function(r){ return r.json(); })
+                                    .then(function(j){ console.log('[MOP] ✅ server delete-submission OK — id=' + dp.id + ' tombstoned=' + (j && j.tombstoned)); })
+                                    .catch(function(err){ console.error('[MOP] ❌ server delete-submission error:', err); });
+                            }
+                        } catch(_){}
+                        // 로컬 tombstone 캐시에도 즉시 등록 — 삭제 직후 도착하는 cloudLoad 응답(삭제 전 데이터)이 되살리지 못하게
+                        try { if (_tombstoneCache && _tombstoneCache.submissions) _tombstoneCache.submissions[String(dp.id)] = Date.now(); } catch(_){}
+                        // 최근 제출 grace 마커 제거 — 철회 건을 보호 로직이 부활시키지 않도록
+                        try {
+                            var _grRaw2 = localStorage.getItem('__mop_recent_submissions') || '[]';
+                            var _gr2 = JSON.parse(_grRaw2);
+                            if (Array.isArray(_gr2)) {
+                                var _gr2f = _gr2.filter(function(r){ return !(r && String(r.id) === String(dp.id)); });
+                                if (_gr2f.length !== _gr2.length) localStorage.setItem('__mop_recent_submissions', JSON.stringify(_gr2f));
+                            }
+                        } catch(_){}
                         // ★ FIX 2026-06-11 (P0-CRITICAL): 자진 철회도 즉시 cloud push — 의도 미반영 (고스트 데이터) 차단
                         try {
                             if (_cloudSaveTimer) { clearTimeout(_cloudSaveTimer); _cloudSaveTimer = null; }
