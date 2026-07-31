@@ -825,24 +825,43 @@
            - 대시보드/승인 뷰 패딩 축소, Stage 퍼널 2열
            ============================================================ */
         @media (max-width: 768px) {
-            .container { padding: 104px 14px 32px; }   /* 상단 고정 2줄 확보 */
-            header { margin-bottom: 32px; }
-            header h1 { font-size: 1.8rem; }
-            header p { font-size: 0.92rem; padding: 0 8px; }
+            .container { padding: 96px 14px 32px; }   /* 상단 고정 2줄 확보 */
+            header { margin-bottom: 26px; }
+            /* ★ 2026-07-22: 아이폰 대응 — 히어로/본문 텍스트 대폭 축소 (compact scale) */
+            header h1 { font-size: 1.4rem; line-height: 1.2; margin-bottom: 10px; }
+            header p { font-size: 0.8rem; padding: 0 10px; line-height: 1.55; }
+            .logo-mark { margin-bottom: 20px; }
 
             /* 상단 고정 컨트롤 — 1행: 배지(좌)/언어(우), 2행: 네비 아이콘(우) */
-            .user-badge { top: 10px; left: 10px; padding: 6px 10px; gap: 7px; max-width: 58vw; }
-            .user-badge-name { font-size: 0.72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .user-badge { top: 10px; left: 10px; padding: 5px 9px; gap: 6px; max-width: 56vw; }
+            .user-badge-name { font-size: 0.7rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+            .user-badge-role { font-size: 0.58rem; padding: 1px 6px; }
             .lang-toggle { top: 10px; right: 10px; }
-            .lang-btn { padding: 6px 11px; font-size: 0.72rem; }
-            #navBtns { top: 54px !important; right: 10px !important; }
+            .lang-btn { padding: 5px 10px; font-size: 0.68rem; }
+            #navBtns { top: 52px !important; right: 10px !important; }
 
-            /* Process flow — 세로 흐름, 화살표 회전 */
-            .process-flow { gap: 8px; margin-bottom: 32px; }
-            .flow-step { font-size: 0.74rem; padding: 7px 12px; }
+            /* Process flow */
+            .process-flow { gap: 6px; margin-bottom: 26px; }
+            .flow-step { font-size: 0.68rem; padding: 6px 10px; }
+            .flow-step .step-num { width: 18px; height: 18px; font-size: 0.62rem; }
+            .flow-arrow { font-size: 0.85rem; }
 
-            .card { padding: 24px 20px 22px; }
-            .card h2 { font-size: 1.15rem; }
+            .card { padding: 20px 18px 18px; }
+            .card-step { font-size: 0.62rem; }
+            .card-role { font-size: 0.6rem; }
+            .card-icon { width: 42px; height: 42px; font-size: 1.05rem; margin-bottom: 14px; }
+            .card h2 { font-size: 1.02rem; margin-bottom: 8px; }
+            .card p { font-size: 0.82rem; line-height: 1.55; margin-bottom: 16px; }
+            .card-link { font-size: 0.78rem; }
+            footer p { font-size: 0.72rem; }
+
+            /* 로그인/모달 입력창 — iOS 자동확대 방지 위해 16px 고정 (핵심) */
+            .login-input, .pw-input, .acc-edit-input,
+            input, select, textarea { font-size: 16px !important; }
+            .login-title { font-size: 1.1rem; }
+            .login-sub { font-size: 0.74rem; }
+            .login-field label { font-size: 0.66rem; }
+            .login-btn { font-size: 0.9rem; }
 
             /* 설정 모달 — 전체화면화 */
             #settingsModal {
@@ -899,10 +918,15 @@
         }
 
         @media (max-width: 420px) {
-            header h1 { font-size: 1.55rem; }
-            .flow-step .step-num { width: 20px; height: 20px; }
-            .user-badge { max-width: 52vw; }
-            .lang-btn { padding: 5px 9px; }
+            header h1 { font-size: 1.25rem; }
+            header p { font-size: 0.76rem; }
+            .flow-step { font-size: 0.64rem; padding: 5px 9px; }
+            .flow-step .step-num { width: 17px; height: 17px; }
+            .card h2 { font-size: 0.98rem; }
+            .card p { font-size: 0.8rem; }
+            .user-badge { max-width: 50vw; }
+            .user-badge-name { font-size: 0.68rem; }
+            .lang-btn { padding: 5px 9px; font-size: 0.66rem; }
             .nav-btn { width: 36px; height: 36px; }
         }
 
@@ -8039,7 +8063,7 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     };
 
     // ★ Gateway 빌드 버전 표시 — 사용자가 어떤 버전 코드 보고 있는지 확인 가능
-    window._MOP_GW_BUILD = 'v2.20260722f-RESPONSIVE';
+    window._MOP_GW_BUILD = 'v2.20260722g-MOBILE-TEXT';
     try { console.log('[MOP] Gateway BUILD: ' + window._MOP_GW_BUILD); } catch(_){}
 
     // ★★★ NEW 2026-07-21 (P0 — FORCE UPDATE): 구버전 클라이언트 자동 갱신
