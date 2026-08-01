@@ -1654,6 +1654,62 @@
         }
 
         .in-iframe .lang-toggle { display: none !important; }
+
+        /* ★ FIX 2026-07-22: iOS 좌우 밀림(가로 오버플로우) 차단 */
+        html, body { overflow-x: hidden; max-width: 100%; }
+
+
+        /* ============================================================
+           ★★★ NEW 2026-07-22 (RESPONSIVE): 아이폰 / 아이패드 대응
+           ============================================================ */
+        @media (max-width: 1024px) {
+            .container { padding: 2rem 1.25rem; max-width: 100%; }
+            header { padding: 2rem 1.25rem; }
+            header h1 { font-size: 2rem; }
+            .main-grid { grid-template-columns: 1fr 270px; gap: 22px; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 1.25rem 1rem 2.5rem; }
+            header { padding: 1.6rem 1rem; }
+            header h1 { font-size: 1.45rem; line-height: 1.25; }
+            header .medit-brand { font-size: 0.72rem; }
+            header .subtitle, header p { font-size: 0.82rem; }
+
+            /* 본문/사이드바 1열 — 사이드바 sticky 해제(모바일에선 방해) */
+            .main-grid { grid-template-columns: 1fr; gap: 18px; margin-bottom: 24px; }
+            .sidebar { position: static; }
+
+            .criteria-card { padding: 16px; margin-bottom: 16px; }
+            .criteria-card h3, .criteria-title { font-size: 0.95rem; }
+            .stats-summary { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+            .stat-card { padding: 14px; }
+
+            /* 점수 입력·버튼 — 터치 타겟 */
+            .score-btn, .score-option { min-height: 40px; }
+            .actions, .btn-group { flex-direction: column; }
+            .actions button, .btn-group button { width: 100%; min-height: 44px; }
+
+            /* 표 — 가로 스크롤 */
+            .table-wrap, .list-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            table { font-size: 0.8rem; }
+
+            /* 제출 목록 카드 — 세로 스택 */
+            .sub-item, .submission-item { flex-direction: column; align-items: stretch; gap: 10px; }
+
+            /* iOS 자동확대 방지 */
+            input, select, textarea { font-size: 16px !important; }
+
+            .lang-toggle { top: 10px; right: 10px; }
+            .lang-btn, .lang-toggle button { padding: 6px 11px; font-size: 0.72rem; }
+        }
+        @media (max-width: 420px) {
+            header h1 { font-size: 1.25rem; }
+            .stats-summary { grid-template-columns: 1fr !important; }
+            .criteria-card { padding: 13px; }
+        }
+        @media (hover: none) and (pointer: coarse) {
+            .score-btn, .tab-btn, .filter-btn { min-height: 38px; }
+        }
     
         /* === 내 제출 토글 (Step 2) === */
         .mine-toggle-bar { display: flex; gap: 8px; align-items: center; padding: 12px 0; margin-bottom: 12px; border-bottom: 1px solid var(--border-color, rgba(255,255,255,0.08)); }
@@ -1666,8 +1722,8 @@
 </head>
 <body>
     <div class="lang-toggle">
-        <button class="lang-btn active" data-lang="en" onclick="setLanguage('en')">EN</button>
-        <button class="lang-btn" data-lang="ko" onclick="setLanguage('ko')">한국어</button>
+        <button class="lang-btn active" data-lang="en" onclick="setLanguage('en')">ENG</button>
+        <button class="lang-btn" data-lang="ko" onclick="setLanguage('ko')">KOR</button>
     </div>
 
     <!-- Submissions List Page -->
