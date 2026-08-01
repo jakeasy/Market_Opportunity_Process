@@ -31,6 +31,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MOP — Market Opportunity Process — Medit</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <script>
+    /* ★ NEW 2026-07-22 (THEME): 화면 그려지기 전 테마 적용 — 새로고침 시 깜빡임 방지. 기본 dark */
+    (function(){ try {
+        var t = localStorage.getItem('mop_theme') || 'dark';
+        if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+    } catch(_){} })();
+    </script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         :root {
@@ -54,7 +61,99 @@
             --accent-3: #10b981;
             --accent-4: #f59e0b;
         }
-        html { scroll-behavior: smooth; }
+        /* ★★★ NEW 2026-07-22 (THEME): 라이트 테마 팔레트 — 대부분의 셸 요소가 var() 를 쓰므로 변수만 교체하면 적용됨 */
+        :root[data-theme="light"] {
+            --bg-deep: #f4f6fb;
+            --bg-card: #ffffff;
+            --bg-card-hover: #f1f5fb;
+            --bg-surface: #eef2f9;
+            --border: rgba(15,23,42,0.10);
+            --border-hover: rgba(15,23,42,0.20);
+            --text: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            /* accent 색은 유지 (양쪽 테마 공통) */
+        }
+        /* 라이트 테마: 하드코딩된 흰색 텍스트/배경을 갖는 셸 요소 보정 */
+        :root[data-theme="light"] header h1,
+        :root[data-theme="light"] .login-title,
+        :root[data-theme="light"] .card h2,
+        :root[data-theme="light"] .change-pw-box .pw-title { color: #0f172a; }
+        :root[data-theme="light"] body::after {
+            background-image:
+                linear-gradient(rgba(15,23,42,0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(15,23,42,0.03) 1px, transparent 1px);
+        }
+        :root[data-theme="light"] .card { box-shadow: 0 1px 3px rgba(15,23,42,0.06); }
+        :root[data-theme="light"] .card:hover { box-shadow: 0 12px 32px rgba(15,23,42,0.12); }
+        :root[data-theme="light"] .login-box { box-shadow: 0 12px 40px rgba(15,23,42,0.12); }
+        :root[data-theme="light"] .login-input,
+        :root[data-theme="light"] .pw-input { color: #0f172a; }
+
+        /* ════════ 라이트 테마 — 오버레이/패널/대시보드 전체 적용 (2026-07-22) ════════ */
+        :root[data-theme="light"] .notif-panel { background:#ffffff; border-color:rgba(15,23,42,0.10); box-shadow:0 24px 60px rgba(15,23,42,0.18); }
+        :root[data-theme="light"] .notif-header,
+        :root[data-theme="light"] .notif-tabs,
+        :root[data-theme="light"] .notif-footer { border-color:rgba(15,23,42,0.08); background:rgba(15,23,42,0.02); }
+        :root[data-theme="light"] .notif-header-title,
+        :root[data-theme="light"] .notif-item-title { color:#0f172a; }
+        :root[data-theme="light"] .notif-item-desc,
+        :root[data-theme="light"] .notif-tab,
+        :root[data-theme="light"] .notif-empty,
+        :root[data-theme="light"] .notif-footer { color:#475569; }
+        :root[data-theme="light"] .notif-action-btn { background:rgba(15,23,42,0.05); border-color:rgba(15,23,42,0.10); color:#475569; }
+        :root[data-theme="light"] .notif-item:hover { background:rgba(249,115,22,0.06); }
+        :root[data-theme="light"] .notif-item.read:hover { background:rgba(15,23,42,0.03); }
+        :root[data-theme="light"] .notif-item + .notif-item { border-color:rgba(15,23,42,0.05); }
+        :root[data-theme="light"] .notif-item-icon { background:rgba(15,23,42,0.05); }
+        :root[data-theme="light"] .notif-age { background:rgba(15,23,42,0.05); color:#64748b; }
+
+        :root[data-theme="light"] .gsearch-overlay { background:rgba(15,23,42,0.35); }
+        :root[data-theme="light"] .gsearch-modal { background:#ffffff; border-color:rgba(15,23,42,0.10); box-shadow:0 24px 80px rgba(15,23,42,0.22); }
+        :root[data-theme="light"] .gsearch-header,
+        :root[data-theme="light"] .gsearch-filters,
+        :root[data-theme="light"] .gsearch-footer { border-color:rgba(15,23,42,0.08); }
+        :root[data-theme="light"] .gsearch-input,
+        :root[data-theme="light"] .gsearch-title { color:#0f172a; }
+        :root[data-theme="light"] .gsearch-input::placeholder { color:#94a3b8; }
+        :root[data-theme="light"] .gsearch-count,
+        :root[data-theme="light"] .gsearch-meta,
+        :root[data-theme="light"] .gsearch-empty,
+        :root[data-theme="light"] .gsearch-footer { color:#64748b; }
+        :root[data-theme="light"] .gsearch-chip { background:rgba(15,23,42,0.04); border-color:rgba(15,23,42,0.08); color:#475569; }
+        :root[data-theme="light"] .gsearch-result:hover,
+        :root[data-theme="light"] .gsearch-result.kb-active { background:rgba(59,130,246,0.06); }
+        :root[data-theme="light"] .gsearch-close { background:rgba(15,23,42,0.04); border-color:rgba(15,23,42,0.10); color:#475569; }
+
+        :root[data-theme="light"] .acc-row { background:#ffffff; border-color:rgba(15,23,42,0.10); }
+        :root[data-theme="light"] .acc-row-name { color:#0f172a; }
+        :root[data-theme="light"] .acc-edit-modal { background:#ffffff; border-color:rgba(15,23,42,0.10); }
+        :root[data-theme="light"] .acc-edit-input { background:#f1f5f9; border-color:rgba(15,23,42,0.15); color:#0f172a; }
+        :root[data-theme="light"] .acc-edit-title { color:#0f172a; }
+
+        :root[data-theme="light"] .ap-stage-card,
+        :root[data-theme="light"] .ap-list-wrap { background:#ffffff; border-color:rgba(15,23,42,0.10); }
+        :root[data-theme="light"] .ap-stage-card:hover { border-color:rgba(59,130,246,0.4); }
+        :root[data-theme="light"] .ap-stage-name { color:#0f172a; }
+        :root[data-theme="light"] .ap-list-table th { background:rgba(15,23,42,0.03); color:#475569; border-color:rgba(15,23,42,0.10); }
+        :root[data-theme="light"] .ap-list-table td { color:#334155; border-color:rgba(15,23,42,0.06); }
+        :root[data-theme="light"] .ap-list-table tr.ap-row:hover { background:rgba(59,130,246,0.05); }
+        :root[data-theme="light"] .ap-timeline { background:rgba(15,23,42,0.02); }
+        :root[data-theme="light"] .ap-tl-body { color:#334155; }
+        :root[data-theme="light"] .ap-tl-body b { color:#0f172a; }
+        :root[data-theme="light"] .ap-region-tab { border-color:rgba(15,23,42,0.15); color:#475569; }
+
+        :root[data-theme="light"] .pw-overlay,
+        :root[data-theme="light"] #accEditOverlay { background:rgba(15,23,42,0.35); }
+
+        /* ⚙️ 설정 모달은 인라인 다크 스타일이 방대 → 라이트에서도 다크 유지(안전). 밝은 페이지 위 다크 관리자 패널 */
+        :root[data-theme="light"] #settingsModal { background:#111827 !important; }
+        :root[data-theme="light"] #settingsModal .pw-title,
+        :root[data-theme="light"] #settingsModal .pw-icon { color:#f1f5f9; }
+
+        /* ★★★ FIX 2026-07-22 (HORIZONTAL OVERFLOW): iOS 좌우 밀림(rubber-band) 차단.
+           body 뿐 아니라 html 에도 overflow-x:hidden + width 제한을 걸어야 고정요소 초과 시 밀림 방지. */
+        html { scroll-behavior: smooth; overflow-x: hidden; width: 100%; max-width: 100%; }
         body {
             background: var(--bg-deep);
             color: var(--text);
@@ -62,6 +161,7 @@
             min-height: 100vh;
             position: relative;
             overflow-x: hidden;
+            width: 100%; max-width: 100%;
         }
 
         /* ── Ambient background ── */
@@ -819,6 +919,32 @@
         }
 
         /* ============================================================
+           ★★★ NEW 2026-07-22 (RESPONSIVE — TABLET): 아이패드 세로 (769~1024px)
+           - 데스크톱 레이아웃 유지하되 뷰포트를 넘는 요소만 보정
+           ============================================================ */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container { max-width: 100%; padding: 60px 22px 40px; }
+            /* 설정 모달 960px 고정 → 아이패드 폭에 맞춤 */
+            #settingsModal {
+                width: 92vw !important; height: 90vh !important;
+                max-width: 92vw !important; max-height: 90vh !important;
+            }
+            /* 대시보드/승인 뷰 패딩 축소 */
+            #dashboard-view .dashboard-body,
+            #approval-view .approval-body { padding: 28px 24px; }
+            /* iOS 자동확대 방지 — 입력창 16px */
+            input, select, textarea { font-size: 16px; }
+            /* 상단 네비/언어 토글이 겹치지 않게 약간의 여백 */
+            .container { padding-top: 68px; }
+        }
+
+        /* 터치 기기(아이패드 포함) — 카드 hover 이동 억제 + 터치 타겟 확보 */
+        @media (hover: none) and (pointer: coarse) and (min-width: 769px) {
+            .card:hover { transform: none; }
+            .nav-btn, .lang-btn, .btn, .back-btn { min-height: 40px; }
+        }
+
+        /* ============================================================
            ★★★ NEW 2026-07-22 (RESPONSIVE): 모바일/태블릿 반응형 (Gateway 셸)
            - 상단 고정 요소(배지·언어토글·네비) 겹침 해소 → 2줄 배치
            - 설정 모달·알림 패널·검색·계정편집 → 전체폭
@@ -1215,6 +1341,9 @@
         </div>
     </div>
     <div class="lang-toggle" id="langToggle">
+        <!-- ★ NEW 2026-07-22: 다크/라이트 테마 토글 -->
+        <button class="lang-btn" id="themeToggleBtn" onclick="toggleMopTheme()" title="Theme" aria-label="Toggle theme" style="font-size:0.95rem;padding:8px 12px;">🌙</button>
+        <span style="width:1px;align-self:stretch;background:var(--border);margin:6px 0;"></span>
         <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
         <button class="lang-btn" id="langKo" onclick="setLang('ko')">한국어</button>
     </div>
@@ -8063,7 +8192,29 @@ window.__MOP_SEC = window.__MOP_SEC || (function() {
     };
 
     // ★ Gateway 빌드 버전 표시 — 사용자가 어떤 버전 코드 보고 있는지 확인 가능
-    window._MOP_GW_BUILD = 'v2.20260722g-MOBILE-TEXT';
+    // ★★★ NEW 2026-07-22 (THEME): 다크/라이트 토글
+    function _mopApplyThemeIcon() {
+        try {
+            var isLight = document.documentElement.getAttribute('data-theme') === 'light';
+            var btn = document.getElementById('themeToggleBtn');
+            if (btn) btn.textContent = isLight ? '☀️' : '🌙';  // 현재 테마 표시
+            var meta = document.querySelector('meta[name="theme-color"]');
+            if (meta) meta.setAttribute('content', isLight ? '#f4f6fb' : '#0a0e1a');
+        } catch(_){}
+    }
+    window.toggleMopTheme = function() {
+        try {
+            var cur = document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark';
+            var next = cur === 'light' ? 'dark' : 'light';
+            if (next === 'light') document.documentElement.setAttribute('data-theme', 'light');
+            else document.documentElement.removeAttribute('data-theme');
+            try { localStorage.setItem('mop_theme', next); } catch(_){}
+            _mopApplyThemeIcon();
+        } catch(_){}
+    };
+    try { _mopApplyThemeIcon(); } catch(_){}
+
+    window._MOP_GW_BUILD = 'v2.20260722k-FULL-THEME';
     try { console.log('[MOP] Gateway BUILD: ' + window._MOP_GW_BUILD); } catch(_){}
 
     // ★★★ NEW 2026-07-21 (P0 — FORCE UPDATE): 구버전 클라이언트 자동 갱신
