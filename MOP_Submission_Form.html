@@ -784,6 +784,21 @@
         }
 
         .in-iframe .lang-toggle { display: none !important; }
+
+        /* ★ FIX 2026-07-22: iOS 좌우 밀림(가로 오버플로우) 차단 */
+        html, body { overflow-x: hidden; max-width: 100%; }
+
+
+        /* ★ NEW 2026-07-22 (RESPONSIVE): 아이패드 세로 대응 */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .container { grid-template-columns: 1fr 240px; padding: 1.5rem 1.25rem; gap: 20px; }
+            header { padding: 2rem 1.5rem; }
+            header h1 { font-size: 2rem; }
+            input, select, textarea { font-size: 16px; }   /* iOS 자동확대 방지 */
+        }
+        @media (hover: none) and (pointer: coarse) {
+            button, .btn { min-height: 40px; }
+        }
     
         /* === 내 제출 (My Submissions) === */
         .sub-tab-bar { grid-column: 1 / -1; display: flex; gap: 4px; padding: 0 2.5rem; border-bottom: 1px solid var(--border-color); background: var(--background-main); border-radius: 8px 8px 0 0; margin-bottom: 0; }
@@ -944,8 +959,8 @@
 <body>
     <!-- Language Toggle -->
     <div class="lang-toggle" id="formLangToggle" style="display:none;">
-        <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
-        <button class="lang-btn" id="langKo" onclick="setLang('ko')">한국어</button>
+        <button class="lang-btn active" id="langEn" onclick="setLang('en')">ENG</button>
+        <button class="lang-btn" id="langKo" onclick="setLang('ko')">KOR</button>
     </div>
 
     <header>
