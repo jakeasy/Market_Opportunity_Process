@@ -235,6 +235,9 @@
         .act-btn.primary:hover { background:var(--primary-dark); }
         .act-btn.secondary { background:var(--gray-100); color:var(--gray-700); }
         .act-btn.secondary:hover { background:var(--gray-200); }
+        /* ★ 2026-06-17: STEP2 버튼과 동일 스타일의 Back to List */
+        .afc-back-btn { font-family:'DM Sans',sans-serif; font-size:0.95rem; font-weight:600; padding:12px 28px; border-radius:8px; border:1px solid #2d3a4f; background:#1a2235; color:#e2e8f0; cursor:pointer; transition:all 0.3s ease; text-transform:uppercase; letter-spacing:0.5px; display:inline-flex; align-items:center; gap:8px; box-shadow:0 1px 2px rgba(0,0,0,0.2); }
+        .afc-back-btn:hover { background:#232e47; border-color:#3b82f6; color:#3b82f6; transform:translateY(-2px); }
 
         /* COMPLETION MODAL */
         .modal-overlay { display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center; }
@@ -315,6 +318,63 @@
         @media print { .lang-toggle,.submission-panel,.filter-bar,.actions,.sidebar,.st-btn,.gate-btns,.view-tabs,.dashboard-view { display:none!important; } .main-layout { grid-template-columns:1fr; } .selected-info { display:block!important; } .cat-body { display:block!important; } body { background:#fff; } }
         @media (max-width:768px) { .main-layout { grid-template-columns:1fr; } .sidebar { position:static; display:grid; grid-template-columns:1fr 1fr; gap:12px; } .cl-bottom { flex-direction:column; align-items:flex-start; } .dash-table { font-size:0.82rem; } }
         .in-iframe .lang-toggle { display: none !important; }
+
+        /* ★ FIX 2026-07-22: iOS 좌우 밀림(가로 오버플로우) 차단 */
+        html, body { overflow-x: hidden; max-width: 100%; }
+
+
+        /* ============================================================
+           ★★★ NEW 2026-07-22 (RESPONSIVE): 아이폰 / 아이패드 대응
+           ============================================================ */
+        @media (max-width: 1024px) {
+            .main-layout { grid-template-columns: 1fr 220px; padding: 1.25rem; gap: 18px; }
+            .view-tabs { padding: 0 1.25rem; }
+            h1 { font-size: 2rem; }
+        }
+        @media (max-width: 768px) {
+            /* 헤더 축소 */
+            header { padding: 1.6rem 1rem !important; }
+            h1 { font-size: 1.45rem; line-height: 1.25; }
+            header p, .subtitle { font-size: 0.82rem; }
+
+            /* 사이드바 → 본문 아래 2열 (기존 규칙 유지·보강) */
+            .main-layout { grid-template-columns: 1fr; padding: 1rem; gap: 16px; }
+            .sidebar { position: static; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+            /* 탭 — 가로 스크롤 */
+            .view-tabs { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap;
+                         padding: 0 1rem; margin-top: 1rem; scrollbar-width: none; }
+            .view-tabs::-webkit-scrollbar { display: none; }
+            .view-tab { flex: none; padding: 9px 14px; font-size: 0.78rem; min-height: 40px; }
+
+            .submission-panel, .category-section { padding: 1rem; }
+            .submission-panel { margin-bottom: 1rem; }
+            .selected-info { padding: 1rem 1.1rem; }
+            .filter-bar { gap: 0.4rem; }
+
+            /* 체크리스트 항목 — 세로 스택 */
+            .cl-bottom { flex-direction: column; align-items: flex-start; gap: 6px; }
+            .actions { justify-content: stretch; flex-direction: column; }
+            .actions button, .actions .btn { width: 100%; min-height: 44px; }
+
+            /* 대시보드 표 — 가로 스크롤 */
+            .dashboard-view, .dash-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+            .dash-table { font-size: 0.76rem; min-width: 620px; }
+
+            /* iOS 자동확대 방지 */
+            input, select, textarea { font-size: 16px !important; }
+
+            .lang-toggle { top: 10px; right: 10px; }
+            .lang-btn { padding: 6px 11px; font-size: 0.72rem; }
+        }
+        @media (max-width: 420px) {
+            h1 { font-size: 1.25rem; }
+            .sidebar { grid-template-columns: 1fr; }
+            .main-layout { padding: 0.75rem; }
+        }
+        @media (hover: none) and (pointer: coarse) {
+            .view-tab, .st-btn, .gate-btns button { min-height: 38px; }
+        }
     
         .dash-table th:last-child, .dash-table td:last-child { position: sticky; right: 0; background: var(--bg-2, #1a2235); z-index: 2; box-shadow: -4px 0 8px rgba(0,0,0,0.3); }
         .dash-table-wrap { overflow-x: auto; max-width: 100%; }
@@ -329,8 +389,8 @@
 <body>
 
 <div class="lang-toggle">
-    <button class="lang-btn active" id="langEn" onclick="setLang('en')">EN</button>
-    <button class="lang-btn" id="langKo" onclick="setLang('ko')">한국어</button>
+    <button class="lang-btn active" id="langEn" onclick="setLang('en')">ENG</button>
+    <button class="lang-btn" id="langKo" onclick="setLang('ko')">KOR</button>
 </div>
 
 <div class="page-header">
@@ -360,7 +420,7 @@
         <button onclick="switchView('dashboard')" style="margin-top:24px;padding:10px 28px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-weight:600;font-size:0.9rem;cursor:pointer">← Dashboard로 이동</button>
     </div>
     <div class="selected-info" id="selectedInfo">
-        <button id="afcBackBtn" onclick="switchView('dashboard')" data-i18n="btnBackToList" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#e2e8f0;padding:7px 16px;border-radius:8px;font-size:0.85rem;font-weight:600;cursor:pointer;margin-bottom:14px;display:inline-flex;align-items:center;gap:6px;">← Back to List</button>
+        <button id="afcBackBtn" class="afc-back-btn" onclick="switchView('dashboard')" data-i18n="btnBackToList" style="margin-bottom:14px;">← Back to List</button>
         <div style="display:flex;align-items:flex-start;justify-content:space-between;">
             <div style="flex:1;">
                 <div class="si-title" id="siTitle">—</div>
@@ -413,6 +473,7 @@
         </div>
     </div>
     <div class="actions" id="actionsBar">
+        <button class="afc-back-btn" id="afcBackBtnBottom" onclick="switchView('dashboard')" data-i18n="btnBackToList" style="margin-right:auto">← Back to List</button>
         <button class="act-btn secondary" id="btnPrint" onclick="printChecklist()" data-i18n="btnPrint" style="display:none">🖨️ Print</button>
         <button class="act-btn primary" onclick="confirmGate()" data-i18n="btnConfirm" id="btnConfirm" style="display:none">✔ Confirm &amp; Finalize</button>
     </div>
